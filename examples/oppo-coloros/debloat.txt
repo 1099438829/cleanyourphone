@@ -4,16 +4,18 @@
 # 更多候选(自动生成): examples/oppo-coloros/uad-recommended.txt
 
 # ---------- 推荐: 广告与统计服务(禁用) ----------
-com.heytap.pictorial       disable   # 乐划锁屏(锁屏广告/杂志, 重点清理项)
+com.heytap.pictorial       disable   # 乐划锁屏(锁屏广告/杂志, 重点清理项; 部分机型禁止禁用会自动挂起)
 com.coloros.lockscreen.magazine disable # ColorOS 锁屏杂志/画报(锁屏商业推广)
 com.nearme.statistics      disable   # 欢太数据统计与遥测上报
 com.heytap.habit.analysis  disable   # 用户习惯分析与个性化广告画像
 com.heytap.mcs             disable   # 欢太移动云推送(营销广告推送; 禁用后部分第三方推送也收不到, 按需)
+com.oplus.statistics.rom   disable   # 系统数据统计与遥测(真机审计发现, ColorOS 13+)
 
 # ---------- 推荐: 内容推广(禁用/卸载) ----------
 com.heytap.yoli            disable   # 视频/短视频信息流推广
 com.heytap.browser         uninstall # OPPO 浏览器(含广告与资讯)
 com.heytap.quicksearchbox  uninstall # 全局搜索(含资讯与广告, 可选)
+com.coloros.video          disable   # 视频(内容推荐/信息流, 真机审计发现)
 
 # ---------- 推荐: 预装应用(卸载, 可恢复) ----------
 com.heytap.themestore      uninstall # 主题商店(可选)
@@ -28,6 +30,15 @@ com.oplus.logkit           uninstall # 系统日志收集
 # ---------- 可选(按需保留) ----------
 com.heytap.push            disable   # 推送服务(禁用后部分应用收不到推送, 谨慎)
 com.heytap.dictation       disable   # 语音听写(不用语音输入可卸)
+com.android.adservices.api disable   # Android 广告服务 API(部分 App 拿它取广告 ID, 卸了可能影响广告相关功能)
+com.mediatek.gnssdebugreport disable # MTK 定位调试日志上报(真机审计发现)
+com.coloros.childrenspace  uninstall # 儿童空间(无孩子可卸, 真机审计发现)
+com.oplus.onetrace         disable   # 追踪日志收集(遥测, 真机清单发现)
+com.oplus.crashbox         disable   # 崩溃日志收集(遥测, 真机清单发现)
+com.oplus.interconnectcollectkit disable # 互联设备数据收集(遥测, 真机清单发现)
+com.google.android.printservice.recommendation disable # Google 打印推荐服务(遥测)
+com.coloros.assistantscreen disable  # 智能助手负一屏(资讯/卡片推荐; 关闭后负一屏不可用)
+com.oplus.customize.coreapp disable  # 个性化定制核心(禁用后主题/字体等个性化可能异常, 谨慎)
 
 # ---------- 谨慎操作(默认注释, 确有需要再取消注释) ----------
 # com.heytap.usercenter    uninstall # 账号中心(卸载后无法登录 OPPO 账号, 谨慎)

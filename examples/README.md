@@ -1,6 +1,6 @@
 # examples — 各品牌清理列表索引
 
-每个品牌目录包含四个文件:
+每个品牌目录包含以下文件:
 
 | 文件 | 说明 |
 | --- | --- |
@@ -8,6 +8,8 @@
 | `settings.conf` | 设置级去广告项(`settings put`, DNS 项默认注释) |
 | `README.md` | 该品牌**手动关闭广告**的逐条设置路径 + 优化设置建议 |
 | `uad-recommended.txt` | UAD-NG 自动生成的候选(`python3 -I tools/sync_uad.py` 同步, 需人工核对) |
+| `device-inventory.md`(部分) | **真机实测记录**: 拉取的清单/设置键、ROM 限制、清理后状态 |
+| `device-system-packages.txt`(部分) | 真机 `pm list packages -s -f` 原始输出 |
 
 | 目录 | 适用品牌/ROM | 清理重点 |
 | --- | --- | --- |

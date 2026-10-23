@@ -29,3 +29,19 @@
 - **保留** `com.heytap.usercenter`(账号中心)与 `com.heytap.cloud`(云服务/查找手机)
 - **保留** `com.coloros.oshare`(互传): 换机传输依赖它
 - realme UI 国行同样适用本列表; 一加国行(ColorOS 内核)同样适用
+
+## 四、真机测试记录(OPPO PEQM00, Android 13 / ColorOS 13)
+
+- **卸载受限**: 大部分 `com.heytap.*` 预装应用执行 `pm uninstall --user 0` 会返回
+  `DELETE_FAILED_INTERNAL_ERROR`(ROM 保护), 工具会自动**降级为禁用**, 属正常现象
+- **乐划锁屏禁用受限**: `com.heytap.pictorial` 执行 `pm disable-user` 会返回
+  `new state: default`(静默拒绝, 退出码仍为 0), 工具会自动改用
+  `pm suspend --user 0` **挂起**(应用无法启动, 效果等同禁用); 挂起状态可能被系统恢复,
+  可用 `check --fix` 重新挂起
+- **真机命中/缺失情况**(18 条列表): 命中 12 条, 6 条该机型未安装
+  (`com.coloros.lockscreen.magazine` / `com.nearme.statistics` / `com.heytap.habit.analysis` /
+  `com.coloros.gamespace` / `com.heytap.push` / `com.heytap.dictation`)
+- **审计补充**: `audit` 在该机发现列表外候选 `com.oplus.statistics.rom`、`com.coloros.video`、
+  `com.coloros.childrenspace`、`com.mediatek.gnssdebugreport`、`com.android.adservices.api`,
+  已补入本列表
+- 该机输入法为搜狗 OEM 版(`com.sohu.inputmethod.sogouoem`), 清理时被自动保护, 不受影响

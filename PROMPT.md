@@ -11,7 +11,7 @@
 
 ## 硬性规则(违反任何一条都必须停止并向用户说明)
 
-1. 不 root、不解锁 BL、不向手机安装任何 APK、不替换桌面启动器
+1. 不 root、不解锁 BL、不向手机安装任何 APK、**不替换桌面启动器**
 2. 所有操作通过 `python3 tools/phone.py`(或 tools/ 下的 .sh 封装)完成,
    不要绕过脚本直接调用 adb 执行破坏性命令
 3. 永远不要操作 DENY 名单中的包(桌面/电话/短信/系统 UI/设置/WebView/账号云服务等),
@@ -19,6 +19,19 @@
 4. 每个动作执行前必须向用户说明"卸什么、为什么、怎么恢复"
 5. 用户说停就停; 任何失败项如实报告, 不要重复试错超过 2 次
 6. 全部可逆: 结束时告诉用户 `python3 tools/phone.py restore --all`
+
+## 已知 ROM 行为(真机实测, 遇到时如实向用户解释, 属正常现象)
+
+- **卸载被拒**: 部分 ROM(如 ColorOS)对预装应用返回
+  `DELETE_FAILED_INTERNAL_ERROR`, 脚本会自动降级为禁用
+- **禁用被拒**: 个别包(如 OPPO 乐划锁屏 `com.heytap.pictorial`)执行
+  `pm disable-user` 会返回 `new state: default`(静默拒绝, 退出码仍为 0),
+  脚本会自动改用 `pm suspend --user 0` 挂起(无法启动, 效果等同禁用);
+  挂起可能被系统恢复, OTA 后用 `check --fix` 重新挂起
+- **设置写入被拒**: 部分 ROM(实测 ColorOS 13)禁止 adb shell 写入 settings
+  (`SecurityException: WRITE_SETTINGS`), 脚本会回读校验并如实报告失败,
+  此时引导用户按品牌 README 手动操作
+- 各机型包名有差异, 列表里"未安装"的包会自动跳过
 
 ## 执行流程
 
@@ -45,6 +58,8 @@
 3. 是否需要分批执行 + 截图验证?(`--batch 5 --screenshot`, 适合第一次清理)
 4. 是否需要无线调试?
 
+> 若品牌目录里有 `device-inventory.md`(真机实测记录), 先读它再动手。
+
 ### 第 3 步: 预演
 `python3 tools/phone.py apply <列表> --dry-run`
 把预演清单给用户看: 哪些会卸载、哪些会禁用、哪些不存在会跳过、哪些被安全规则拒绝。
@@ -52,14 +67,19 @@
 ### 第 4 步: 备份并执行
 说明会自动备份到 ~/.cleanyourphone/<序列号>/, 然后:
 `python3 tools/phone.py apply <列表>`(需用户输入 y 确认)
+第一次清理建议 `--batch 5 --screenshot` 分批验证。
 
 ### 第 5 步: 验证与审计
-1. `python3 tools/phone.py check <列表>` 报告结果
+1. `python3 tools/phone.py check <列表>` 报告结果(识别 已卸载/已禁用/已挂起/降级 等状态)
 2. `python3 tools/phone.py audit` 扫描残留广告/遥测候选包, 逐个与用户确认后处理
+3. 如用户允许, 可用 adb 拉取设备清单辅助分析:
+   `adb shell pm list packages -s -f`、`adb shell settings list secure`
+   (参考 examples/oppo-coloros/device-inventory.md 的做法)
 
 ### 第 6 步: 设置级去广告
-`python3 tools/phone.py settings <品牌目录>/settings.conf`(旧值自动记录, 可还原)
-然后打开 examples/<品牌>/README.md, 逐条给出 ADB 做不到的手动开关:
+`python3 tools/phone.py settings <品牌目录>/settings.conf`(旧值自动记录, 可还原;
+写入被 ROM 拒绝时会如实报告)。然后打开 examples/<品牌>/README.md,
+逐条给出 ADB 做不到的手动开关:
 - 关闭"个性化广告推荐/限制广告跟踪"
 - 关闭杂志锁屏/乐划锁屏
 - 关闭智慧搜索/全局搜索的资讯与热搜
@@ -77,11 +97,12 @@
 
 ### 第 9 步: 收尾
 1. 告知恢复方法: `python3 tools/phone.py restore --all`
+   (卸载→重装, 禁用→启用, 挂起→取消挂起, 设置→还原旧值)
 2. 告知 OTA 后运行: `python3 tools/phone.py check <列表> --fix`
 3. 运行 `python3 tools/phone.py finish` 关闭 USB 调试并断开无线连接
 
 ## 输出要求
 
 - 每一步先说要做什么, 再给命令, 最后报告结果
-- 失败项如实说明原因(ROM 保护/包不存在/授权问题)
+- 失败项如实说明原因(ROM 保护/包不存在/授权问题/写入被拒)
 - 全程中文, 避免堆砌术语

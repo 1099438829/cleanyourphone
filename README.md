@@ -5,9 +5,10 @@
 [cleanyourphone](https://github.com/upfind/cleanyourphone) 三家思路, 为**国产手机**
 (小米/红米/POCO、华为、荣耀、OPPO/一加/realme、vivo/iQOO、三星国行、魅族)打造的清理项目。
 
-**无需 root、无需解锁、不在手机上安装任何软件, 全部操作可一键恢复。**
+**无需 root、无需解锁、不在手机上安装任何软件、不替换桌面启动器, 全部操作可一键恢复。**
 
 三层清理策略: **卸载预装应用** · **关闭广告与统计服务** · **设置级去广告 + 摇一摇封杀**。
+(卸载/禁用被 ROM 拒绝时自动降级, 禁用被拒时自动挂起, 见下方"真机实测")
 
 ## 仓库地址
 
@@ -32,11 +33,13 @@ git clone https://gitee.com/muziys/cleanyourphone.git
 | --- | --- | --- |
 | 卸载预装应用(对当前用户) | `pm uninstall --user 0 <包名>` | `cmd package install-existing --user 0 <包名>` |
 | 禁用广告/统计服务 | `pm disable-user <包名>` | `pm enable --user 0 <包名>` |
+| 挂起(禁用被 ROM 拒绝时) | `pm suspend --user 0 <包名>` | `pm unsuspend --user 0 <包名>` |
 | 关闭广告相关系统设置 | `settings put <ns> <key> <val>` | 还原旧值(restore --all 自动处理) |
 | 封杀"摇一摇"跳转 | `appops set <包名> BODY_SENSORS ignore` 等 | `appops set <包名> <op> default` |
 
 - APK 始终留在系统分区, 变的只是"对当前用户是否安装/启用", 所以**不会变砖、可完全恢复**
 - 恢复出厂设置同样能恢复一切
+- **本项目不替换桌面启动器**: 原厂桌面始终保留(同时被安全规则和保护名单双重拦截)
 
 ## 零门槛: adb 自动准备
 
@@ -100,6 +103,8 @@ Windows 用户: 把本仓库放在**不含中文的路径**下, 用 `python tool
 每个品牌目录含: `debloat.txt`(清理列表)、`settings.conf`(设置项)、
 `README.md`(**手动关闭广告**的逐条设置路径 + 优化设置建议)、
 `uad-recommended.txt`(UAD-NG 自动生成的候选, 运行 `python3 -I tools/sync_uad.py` 同步)。
+部分目录含 `device-inventory.md` + `device-system-packages.txt`:
+真机拉取的系统应用清单与实测结论(见下节)。
 
 ## 安全设计(来自 CleanYourAndroid 的护栏实践)
 
@@ -110,7 +115,8 @@ Windows 用户: 把本仓库放在**不含中文的路径**下, 用 `python tool
 3. **自动备份**: 每次执行前保存包列表、禁用列表、系统设置、getprop、dumpsys recents 到
    `~/.cleanyourphone/<序列号>/backup-时间戳/`
 4. **状态记录**: 每个被处理的包/设置/传感器限制都记录到 `~/.cleanyourphone/<序列号>/state.json`
-5. **降级策略**: `pm uninstall` 被 ROM 拒绝时自动降级为 `pm disable-user`
+5. **降级策略**: `pm uninstall` 被 ROM 拒绝时自动降级为 `pm disable-user`;
+   `pm disable-user` 被 ROM 静默拒绝时自动降级为 `pm suspend`(挂起, 无法启动)
 6. **分批+截图**: `--batch N --screenshot` 每处理 N 个自动截图, 逐段验证不出事再继续
 7. **DNS 自愈**: Private DNS 开启后自动探测解析, 失败(网络封锁 853 端口)立即回退, 手机网络不受影响
 8. **确认与预演**: 非 `--dry-run` 执行前必须输入 y 确认; 管道/非交互环境默认拒绝
@@ -119,12 +125,28 @@ Windows 用户: 把本仓库放在**不含中文的路径**下, 用 `python tool
 
 | 工具 | 作用 |
 | --- | --- |
-| `phone.py` | 核心工具(Python 标准库, 跨平台, 17 个子命令) |
+| `phone.py` | 核心工具(Python 标准库, 跨平台, 18 个子命令) |
 | `clean.sh` | 全流程编排(备份→debloat→settings→shake, 可分阶段) |
 | `disable.sh` / `restore.sh` / `check.sh` | 应用/恢复/检查列表 |
 | `install-adb.sh` | 安装官方 Android 平台工具 |
 | `sync_uad.py` | 从 UAD-NG 社区数据库同步品牌候选列表 |
 | `../tests/test_phone.py` | 单元测试(模拟设备): `python3 -I tests/test_phone.py` |
+
+## 真机实测(2026-10-23, OPPO PEQM00 / Android 13 / ColorOS 13)
+
+完整记录见 [`examples/oppo-coloros/device-inventory.md`](examples/oppo-coloros/device-inventory.md),
+原始系统应用清单见 [`examples/oppo-coloros/device-system-packages.txt`](examples/oppo-coloros/device-system-packages.txt)(310 个系统应用)。
+
+| ROM 行为 | 现象 | 工具的处理 |
+| --- | --- | --- |
+| 卸载受限 | `com.heytap.*` 多数返回 `DELETE_FAILED_INTERNAL_ERROR` | 自动降级为禁用 |
+| 禁用受限 | 乐划锁屏 `pm disable-user` 返回 `new state: default`(静默拒绝) | 自动改用 `pm suspend` 挂起 |
+| 设置写入受限 | `settings put` 抛 `SecurityException: WRITE_SETTINGS` | 回读校验, 如实报告失败, 引导手动操作 |
+| 包名差异 | 列表 23 条中 9 条该机型未安装 | 自动跳过, 不影响其他条目 |
+
+清理后该机状态: 卸载 4 个、禁用 10 个、挂起 3 个(乐划锁屏/浏览器/全局搜索),
+桌面与输入法未动。真机清单还发现了原列表缺失的 11 个遥测/广告包, 已回补
+`examples/oppo-coloros/debloat.txt`, 并发现 12 个广告相关 settings 键(记入 settings.conf)。
 
 ## 常见问题(FAQ)
 
@@ -145,7 +167,12 @@ Windows 用户: 把本仓库放在**不含中文的路径**下, 用 `python tool
 不会。所有操作都是 Android 标准的用户级包管理, 可逆; 核心组件被安全规则硬性拦截。
 
 **Q: 为什么有的包卸不掉?**
-各 ROM 保护策略不同(华为/HarmonyOS 较严)。脚本会自动降级为禁用, 效果相同。
+各 ROM 保护策略不同(华为/HarmonyOS、ColorOS 较严)。脚本会自动降级为禁用;
+禁用也被拒时(如 OPPO 乐划锁屏)自动挂起, 效果相同。
+
+**Q: `settings` 提示"该 ROM 禁止 adb 写入系统设置"?**
+实测 ColorOS 13 等 ROM 禁止 adb shell 写入 settings(SecurityException),
+这不是工具故障, 请按品牌 README 的手动开关操作。
 
 **Q: 摇一摇封杀会影响 App 吗?**
 只限制传感器(加速度计/陀螺仪)读取, 不影响 App 其他功能; 但计步器、AR、运动健康类
@@ -167,6 +194,8 @@ App 可能受影响, 可单独还原: `python3 tools/phone.py shake off <包名>
 | 设备显示 `offline` | 插拔数据线, 或关闭再打开 USB 调试 |
 | macOS 连不上无线设备 | 系统设置 → 隐私与安全性 → 本地网络 → 允许终端访问 |
 | `Failure [DELETE_FAILED_...]` | 该 ROM 受保护, 脚本会自动降级为禁用; 仍失败则重启手机后重试 |
+| `new state: default`(禁用被拒) | 该 ROM 静默拒绝禁用, 脚本会自动挂起; 属正常 |
+| `SecurityException ... WRITE_SETTINGS` | 该 ROM 禁止 adb 写系统设置, 请按品牌 README 手动操作 |
 | 截图失败/全黑 | 手机屏幕处于关闭状态, 唤醒后重试(不影响清理本身) |
 | 卸载后桌面出现空白 | 恢复该项: `tools/restore.sh <列表>` |
 
@@ -197,9 +226,11 @@ cleanyourphone/
 │   ├── check.sh         OTA 后检查
 │   ├── install-adb.sh   安装 adb
 │   └── sync_uad.py      同步 UAD-NG 候选列表
-├── tests/test_phone.py  单元测试(模拟设备, 26 个用例)
+├── tests/test_phone.py  单元测试(模拟设备, 30 个用例)
 └── examples/            各品牌列表 + settings.conf + 手动关广告/优化设置说明
     └── shake_apps.txt   全品牌摇一摇封杀清单(22 款 App)
+    └── oppo-coloros/device-inventory.md  真机实测记录(OPPO PEQM00)
+    └── oppo-coloros/device-system-packages.txt  真机系统应用清单(310 个)
 ```
 
 ## 致谢与许可

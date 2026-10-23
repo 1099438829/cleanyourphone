@@ -540,6 +540,21 @@ def list_disabled(dev: Adb) -> set:
     return _parse_pm_list(dev.shell("pm list packages -d"))
 
 
+def list_suspended(dev: Adb) -> set:
+    """已被挂起(pm suspend)的包; 部分 ROM(如 ColorOS 乐划锁屏)禁止
+    pm disable-user, 但允许 suspend, 挂起后应用无法启动, 效果等同禁用。"""
+    out = dev.shell("dumpsys package")
+    pkgs = set()
+    cur = None
+    for line in out.splitlines():
+        s = line.strip()
+        if s.startswith("Package ["):
+            cur = s.split("[", 1)[1].split("]", 1)[0] if "[" in s else None
+        elif "suspended=true" in s and cur:
+            pkgs.add(cur)
+    return pkgs
+
+
 # ---------------------------------------------------------------------------
 # 备份与状态记录
 # ---------------------------------------------------------------------------
@@ -635,6 +650,7 @@ def apply_list(dev: Adb, entries: list, list_file: str = "", dry_run: bool = Fal
     """
     installed = list_packages(dev)
     disabled = list_disabled(dev)
+    suspended = list_suspended(dev)
     protect = protected_targets(dev)
     protected = {p for p in protect.values() if p}
     if protect.get("ime"):
@@ -668,9 +684,9 @@ def apply_list(dev: Adb, entries: list, list_file: str = "", dry_run: bool = Fal
             result["skipped_missing"].append(pkg)
             log(f"[跳过] {pkg} 未在本机安装(可能该机型/版本无此应用)")
             return
-        if action == "disable" and pkg in disabled:
+        if action == "disable" and (pkg in disabled or pkg in suspended):
             result["already"].append(pkg)
-            log(f"[跳过] {pkg} 已处于禁用状态")
+            log(f"[跳过] {pkg} 已处于禁用/挂起状态")
             return
         if dry_run:
             result["ok"].append(pkg)
@@ -687,10 +703,19 @@ def apply_list(dev: Adb, entries: list, list_file: str = "", dry_run: bool = Fal
             action = "disable"
         out = dev.shell_all(f"pm disable-user {pkg}")
         low = out.lower()
-        if "disabled" in low or "new state" in low:
+        # 成功输出为 "new state: disabled-user"; 部分 ROM(如 ColorOS 的
+        # 乐划锁屏)会返回 "new state: default" 静默拒绝, 退出码仍为 0
+        if "disabled-user" in low:
             record_pkg(state, pkg, action, list_file, base)
             result["ok"].append(pkg)
             log(f"[已禁用] {pkg}  # {e['comment']}")
+            return
+        # 兜底: 改用 pm suspend 挂起(应用无法启动, 效果等同禁用)
+        out2 = dev.shell(f"pm suspend --user 0 {pkg}")
+        if "true" in out2.lower():
+            record_pkg(state, pkg, "suspend", list_file, base)
+            result["ok"].append(pkg)
+            log(f"[已挂起] {pkg}(该 ROM 禁止禁用, 已挂起: 无法启动)  # {e['comment']}")
         else:
             result["fail"].append(pkg)
             log(f"[失败] {pkg}: {out.strip() or '无输出'}")
@@ -743,6 +768,12 @@ def restore_pkgs(dev: Adb, pkgs: list, state: dict, base=HOME_DIR, log=print,
             else:
                 log(f"[未恢复] {pkg}: {out.strip() or '无输出'}")
                 result["fail"].append(pkg)
+        elif action == "suspend":
+            dev.shell(f"pm unsuspend --user 0 {pkg}")
+            dev.shell(f"pm enable --user 0 {pkg}")
+            log(f"[已恢复] {pkg}(取消挂起)")
+            result["ok"].append(pkg)
+            state.get("packages", {}).pop(pkg, None)
         else:
             out = dev.shell(f"pm enable --user 0 {pkg}")
             log(f"[已恢复] {pkg}" + (f" ({out.strip()})" if out.strip() else ""))
@@ -752,12 +783,20 @@ def restore_pkgs(dev: Adb, pkgs: list, state: dict, base=HOME_DIR, log=print,
         for ns_key, old in list(state.get("settings", {}).items()):
             ns, _, key = ns_key.partition(":")
             if old in ("", "null"):
-                dev.shell(f"settings delete {ns} {key}")
+                dev.shell_all(f"settings delete {ns} {key}")
                 log(f"[已还原] 设置 {ns} {key}(删除, 原值: {old or '空'})")
+                state["settings"].pop(ns_key, None)
             else:
-                dev.shell(f"settings put {ns} {key} {old}")
-                log(f"[已还原] 设置 {ns} {key} -> {old}")
-            state["settings"].pop(ns_key, None)
+                out = dev.shell_all(f"settings put {ns} {key} {old}")
+                back = dev.shell(f"settings get {ns} {key}")
+                if back == str(old):
+                    log(f"[已还原] 设置 {ns} {key} -> {old}")
+                    state["settings"].pop(ns_key, None)
+                else:
+                    hint = ("ROM 禁止 adb 写入系统设置, 请手动改回"
+                            if "SecurityException" in out or "not granted" in out
+                            else out)
+                    log(f"[未还原] 设置 {ns} {key}(期望 {old}, 实际 {back or '空'}): {hint}")
         for pkg, ops in list(state.get("shake", {}).items()):
             for op in ops:
                 dev.shell(f"appops set {pkg} {op} default")
@@ -776,6 +815,8 @@ def check_list(dev: Adb, entries: list, fix: bool = False,
         log(f"[备份] 已保存到 {bdir}")
     installed = list_packages(dev)
     disabled = list_disabled(dev)
+    suspended = list_suspended(dev)
+    state = load_state(dev.serial, base)
     protect = protected_targets(dev)
     protected = {p for p in protect.values() if p}
     rows = []
@@ -783,11 +824,17 @@ def check_list(dev: Adb, entries: list, fix: bool = False,
         pkg, action = e["pkg"], e["action"]
         if is_denied(pkg) or pkg in protected:
             continue
+        actual = state.get("packages", {}).get(pkg, {}).get("action", "")
         if pkg not in installed and action == "uninstall":
             cur, ok = "已卸载", True
+        elif pkg in suspended:
+            cur, ok = "已挂起" + ("(卸载降级)" if action == "uninstall" else ""), True
         elif action == "disable":
             ok = pkg in disabled
             cur = "已禁用" if ok else "仍启用"
+        elif actual == "disable" and pkg in disabled:
+            # 列表写 uninstall 但 ROM 禁止卸载, 执行时已降级为禁用
+            cur, ok = "已禁用(卸载降级)", True
         else:
             ok = False
             cur = "仍安装"
@@ -810,26 +857,41 @@ def check_list(dev: Adb, entries: list, fix: bool = False,
 # ---------------------------------------------------------------------------
 def apply_settings(dev: Adb, entries: list, dry_run: bool = False,
                    base=HOME_DIR, log=print) -> dict:
-    """写入系统设置(命名空间 global/secure/system), 旧值记入 state 供还原。"""
+    """写入系统设置(命名空间 global/secure/system), 旧值记入 state 供还原。
+
+    写入后会回读校验: 部分国产 ROM(实测 ColorOS 13)禁止 adb shell 写入
+    settings(SecurityException: WRITE_SETTINGS 未授予 shell), 此时如实报告
+    失败并提示手动操作, 不会误报成功; 写入未生效的项也不记入 state。
+    """
     state = load_state(dev.serial, base)
     state.setdefault("settings", {})
     result = {"ok": [], "fail": []}
     for e in entries:
         ns, key, val = e["ns"], e["key"], e["value"]
         skey = f"{ns}:{key}"
+        old = dev.shell(f"settings get {ns} {key}")
         if skey not in state["settings"]:
-            state["settings"][skey] = dev.shell(f"settings get {ns} {key}")
+            state["settings"][skey] = old
         if dry_run:
             log(f"[预演] settings put {ns} {key} {val}  # {e['comment']}")
             result["ok"].append(skey)
             continue
-        out = dev.shell(f"settings put {ns} {key} {val}")
-        if out.strip() in ("", "null"):
+        out = dev.shell_all(f"settings put {ns} {key} {val}")
+        back = dev.shell(f"settings get {ns} {key}")
+        if back == str(val):
             log(f"[已设置] {ns} {key} -> {val}  # {e['comment']}")
             result["ok"].append(skey)
         else:
-            log(f"[失败] {ns} {key} -> {val}: {out.strip()}")
+            if "SecurityException" in out or "not granted" in out:
+                hint = ("该 ROM 禁止 adb 写入系统设置(实测 ColorOS 13 已封禁 "
+                        "shell 的 WRITE_SETTINGS 权限), 请按品牌 README 手动操作")
+            else:
+                hint = out or f"回读值不符(期望 {val}, 实际 {back or '空'})"
+            log(f"[失败] {ns} {key} -> {val}: {hint}")
             result["fail"].append(skey)
+            # 写入未生效, 不保留旧值记录(避免 restore 时无意义地回写)
+            if old == state["settings"].get(skey):
+                state["settings"].pop(skey, None)
     state["updated"] = dt.datetime.now().isoformat(timespec="seconds")
     save_state(state, base)
     return result

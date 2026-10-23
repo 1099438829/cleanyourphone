@@ -18,9 +18,14 @@ import phone  # noqa: E402
 class FakeAdb(phone.Adb):
     """用内存数据结构模拟 adb 行为。"""
 
-    def __init__(self, packages, disabled=(), home=None, extra=None):
+    def __init__(self, packages, disabled=(), home=None, extra=None,
+                 refuse_disable=(), suspended=(), refuse_settings=False):
         self._packages = set(packages)
         self._disabled = set(disabled)
+        self._suspended = set(suspended)
+        self._refuse_disable = set(refuse_disable)
+        self._refuse_settings = refuse_settings
+        self._settings = {}
         self._home = home
         self.calls = []
         self._extra = extra or {}
@@ -28,6 +33,7 @@ class FakeAdb(phone.Adb):
 
     def run(self, *args, timeout=120):
         self.calls.append(args)
+        self._stderr = ""
         key = " ".join(str(a) for a in args)
         if key in self._extra:
             out = self._extra[key]
@@ -37,6 +43,17 @@ class FakeAdb(phone.Adb):
                 out = "\n".join(f"package:{p}" for p in sorted(self._packages))
             elif cmd == "pm list packages -d":
                 out = "\n".join(f"package:{p}" for p in sorted(self._disabled))
+            elif cmd == "dumpsys package":
+                lines = []
+                for p in sorted(self._packages | self._disabled):
+                    lines.append(f"  Package [{p}] (1a2b3c):")
+                    lines.append(
+                        f"    User 0: ceDataInode=1 installed=true hidden=false "
+                        f"suspended={'true' if p in self._suspended else 'false'} "
+                        f"stopped=false notLaunched=false "
+                        f"enabled={'3' if p in self._disabled else '0'} "
+                        f"ofs=0 pdm=false instant=false virtual=false")
+                out = "\n".join(lines)
             elif cmd.startswith("cmd package resolve-activity"):
                 out = self._home or ""
             elif cmd.startswith("pm uninstall"):
@@ -48,12 +65,24 @@ class FakeAdb(phone.Adb):
                     out = "Failure [DELETE_FAILED_INTERNAL_ERROR]"
             elif cmd.startswith("pm disable-user"):
                 pkg = cmd.split()[-1]
-                self._disabled.add(pkg)
-                out = "new state: disabled"
+                if pkg in self._refuse_disable:
+                    # ColorOS 乐划锁屏类: 静默拒绝, 退出码仍为 0
+                    out = f"Package {pkg} new state: default"
+                else:
+                    self._disabled.add(pkg)
+                    out = f"Package {pkg} new state: disabled-user"
+            elif cmd.startswith("pm suspend"):
+                pkg = cmd.split()[-1]
+                self._suspended.add(pkg)
+                out = f"Package {pkg} new suspended state: true"
+            elif cmd.startswith("pm unsuspend"):
+                pkg = cmd.split()[-1]
+                self._suspended.discard(pkg)
+                out = f"Package {pkg} new suspended state: false"
             elif cmd.startswith("pm enable"):
                 pkg = cmd.split()[-1]
                 self._disabled.discard(pkg)
-                out = "new state: enabled"
+                out = f"Package {pkg} new state: enabled"
             elif cmd.startswith("cmd package install-existing"):
                 pkg = cmd.split()[-1]
                 self._packages.add(pkg)
@@ -63,8 +92,24 @@ class FakeAdb(phone.Adb):
             elif cmd.startswith("appops get"):
                 out = "ignore"
             elif cmd.startswith("settings get"):
-                out = "null"
+                parts = cmd.split()
+                out = self._settings.get((parts[2], parts[3]), "null")
             elif cmd.startswith("settings put"):
+                parts = cmd.split()
+                if self._refuse_settings:
+                    # 模拟 ColorOS 13: shell 无 WRITE_SETTINGS 权限, 写入被拒
+                    self._stderr = (
+                        "Exception occurred while executing 'put':\n"
+                        "java.lang.SecurityException: com.android.shell was "
+                        "not granted  this permission: "
+                        "android.permission.WRITE_SETTINGS.")
+                    out = ""
+                else:
+                    self._settings[(parts[2], parts[3])] = parts[4]
+                    out = ""
+            elif cmd.startswith("settings delete"):
+                parts = cmd.split()
+                self._settings.pop((parts[2], parts[3]), None)
                 out = ""
             elif cmd.startswith("ping"):
                 out = "PING www.google.com: 56 data bytes"
@@ -73,7 +118,8 @@ class FakeAdb(phone.Adb):
         else:
             out = ""
         return subprocess.CompletedProcess(
-            args=["adb", *args], returncode=0, stdout=out, stderr="")
+            args=["adb", *args], returncode=0, stdout=out,
+            stderr=getattr(self, "_stderr", ""))
 
 
 class ParseTest(unittest.TestCase):
@@ -224,6 +270,44 @@ class ApplyTest(unittest.TestCase):
         self.assertEqual(state["packages"]["com.huawei.systemmanager"]["action"],
                          "disable")
 
+    def test_disable_refused_falls_back_to_suspend(self):
+        """真机案例: ColorOS 乐划锁屏 pm disable-user 返回 default(静默拒绝),
+        工具应自动改用 pm suspend 挂起。"""
+        dev = FakeAdb(packages={"com.heytap.pictorial", "com.heytap.mcs"},
+                      refuse_disable={"com.heytap.pictorial"})
+        entries = phone.parse_list(
+            "com.heytap.pictorial disable  # 乐划锁屏\n"
+            "com.heytap.mcs disable  # 推送\n")
+        logs = []
+        res = phone.apply_list(dev, entries, do_backup=False,
+                               base=self.base, log=logs.append)
+        self.assertIn("com.heytap.pictorial", res["ok"])
+        self.assertIn("com.heytap.mcs", res["ok"])
+        self.assertEqual(res["fail"], [])
+        self.assertIn("com.heytap.pictorial", dev._suspended)
+        self.assertIn("com.heytap.mcs", dev._disabled)
+        self.assertTrue(any("已挂起" in l for l in logs))
+        state = phone.load_state("FAKE123", self.base)
+        self.assertEqual(state["packages"]["com.heytap.pictorial"]["action"],
+                         "suspend")
+        # 恢复: 挂起 -> 取消挂起
+        state = phone.load_state("FAKE123", self.base)
+        r = phone.restore_pkgs(dev, ["com.heytap.pictorial"], state,
+                               base=self.base, log=logs.append)
+        self.assertEqual(r["ok"], ["com.heytap.pictorial"])
+        self.assertNotIn("com.heytap.pictorial", dev._suspended)
+        calls = [" ".join(c[1:]) for c in dev.calls]
+        self.assertIn("pm unsuspend --user 0 com.heytap.pictorial", calls)
+
+    def test_already_suspended_skipped(self):
+        dev = FakeAdb(packages={"com.heytap.pictorial"},
+                      suspended={"com.heytap.pictorial"},
+                      refuse_disable={"com.heytap.pictorial"})
+        entries = phone.parse_list("com.heytap.pictorial disable")
+        res = phone.apply_list(dev, entries, do_backup=False,
+                               base=self.base, log=lambda *a: None)
+        self.assertEqual(res["already"], ["com.heytap.pictorial"])
+
     def test_dry_run_no_change(self):
         dev = FakeAdb(packages={"com.miui.player"})
         entries = phone.parse_list("com.miui.player uninstall")
@@ -305,6 +389,36 @@ class CheckTest(unittest.TestCase):
                          log=lambda *a: None)
         self.assertNotIn("com.miui.video", dev._packages)
 
+    def test_check_reports_suspend_and_downgrade(self):
+        """真机场景: 乐划锁屏被挂起(disable 被拒)、浏览器卸载被拒降级为禁用,
+        check 应把两者都识别为目标达成, 而不是误报"变化"。"""
+        dev = FakeAdb(packages={"com.heytap.pictorial", "com.heytap.browser"},
+                      refuse_disable={"com.heytap.pictorial"})
+        dev._extra = {"shell pm uninstall --user 0 com.heytap.browser":
+                      "Failure [DELETE_FAILED_INTERNAL_ERROR]"}
+        entries = phone.parse_list(
+            "com.heytap.pictorial disable  # 乐划锁屏\n"
+            "com.heytap.browser uninstall  # 浏览器\n")
+        phone.apply_list(dev, entries, do_backup=False, base=self.base,
+                         log=lambda *a: None)
+        rows = phone.check_list(dev, entries, fix=False, base=self.base,
+                                log=lambda *a: None)
+        by_pkg = {r["pkg"]: r for r in rows}
+        self.assertTrue(by_pkg["com.heytap.pictorial"]["ok"])
+        self.assertEqual(by_pkg["com.heytap.pictorial"]["current"], "已挂起")
+        self.assertTrue(by_pkg["com.heytap.browser"]["ok"])
+        self.assertEqual(by_pkg["com.heytap.browser"]["current"],
+                         "已禁用(卸载降级)")
+        # 挂起被系统恢复(OTA 类回潮) -> check 报变化, --fix 重新挂起
+        dev._suspended.discard("com.heytap.pictorial")
+        rows = phone.check_list(dev, entries, fix=False, base=self.base,
+                                log=lambda *a: None)
+        by_pkg = {r["pkg"]: r for r in rows}
+        self.assertFalse(by_pkg["com.heytap.pictorial"]["ok"])
+        phone.check_list(dev, entries, fix=True, base=self.base,
+                         log=lambda *a: None)
+        self.assertIn("com.heytap.pictorial", dev._suspended)
+
 
 class SettingsTest(unittest.TestCase):
     def setUp(self):
@@ -322,6 +436,8 @@ class SettingsTest(unittest.TestCase):
         logs = []
         res = phone.apply_settings(dev, entries, base=self.base, log=logs.append)
         self.assertEqual(len(res["ok"]), 2)
+        # 写入已回读校验生效
+        self.assertEqual(dev._settings[("secure", "limit_ad_tracking")], "1")
         # 旧值(null)已记录
         state = phone.load_state("FAKE123", self.base)
         self.assertEqual(state["settings"]["secure:limit_ad_tracking"], "null")
@@ -331,6 +447,18 @@ class SettingsTest(unittest.TestCase):
         self.assertIn("settings delete secure limit_ad_tracking", calls)
         self.assertIn("settings delete global private_dns_mode", calls)
         self.assertEqual(state["settings"], {})
+
+    def test_settings_write_refused_by_rom(self):
+        """ColorOS 13 真机案例: shell 无 WRITE_SETTINGS 权限, put 静默失败。
+        工具必须回读校验, 如实报告失败, 且不记录伪旧值。"""
+        dev = FakeAdb(packages=set(), refuse_settings=True)
+        entries = phone.parse_settings("secure limit_ad_tracking 1 # 限制广告跟踪")
+        logs = []
+        res = phone.apply_settings(dev, entries, base=self.base, log=logs.append)
+        self.assertEqual(res["fail"], ["secure:limit_ad_tracking"])
+        self.assertTrue(any("禁止 adb 写入" in l for l in logs))
+        state = phone.load_state("FAKE123", self.base)
+        self.assertNotIn("secure:limit_ad_tracking", state["settings"])
 
 
 class ShakeTest(unittest.TestCase):
