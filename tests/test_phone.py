@@ -19,7 +19,8 @@ class FakeAdb(phone.Adb):
     """用内存数据结构模拟 adb 行为。"""
 
     def __init__(self, packages, disabled=(), home=None, extra=None,
-                 refuse_disable=(), suspended=(), refuse_settings=False):
+                 refuse_disable=(), suspended=(), refuse_settings=False,
+                 paths=None, third_party=()):
         self._packages = set(packages)
         self._disabled = set(disabled)
         self._suspended = set(suspended)
@@ -27,9 +28,17 @@ class FakeAdb(phone.Adb):
         self._refuse_settings = refuse_settings
         self._settings = {}
         self._home = home
+        self._paths = dict(paths or {})
+        self._third_party = set(third_party)
         self.calls = []
         self._extra = extra or {}
         self.serial = "FAKE123"
+
+    def _path_of(self, pkg: str) -> str:
+        if pkg in self._paths:
+            return self._paths[pkg]
+        tail = pkg.rsplit(".", 1)[-1].title()
+        return f"/system/app/{tail}/{tail}.apk"
 
     def run(self, *args, timeout=120):
         self.calls.append(args)
@@ -41,6 +50,14 @@ class FakeAdb(phone.Adb):
             cmd = " ".join(args[1:])
             if cmd == "pm list packages":
                 out = "\n".join(f"package:{p}" for p in sorted(self._packages))
+            elif cmd == "pm list packages -s -f":
+                out = "\n".join(
+                    f"package:{self._path_of(p)}={p}"
+                    for p in sorted(self._packages - self._third_party))
+            elif cmd == "pm list packages -3 -f":
+                out = "\n".join(
+                    f"package:{self._path_of(p)}={p}"
+                    for p in sorted(self._third_party))
             elif cmd == "pm list packages -d":
                 out = "\n".join(f"package:{p}" for p in sorted(self._disabled))
             elif cmd == "dumpsys package":
@@ -561,6 +578,204 @@ class AuditTest(unittest.TestCase):
             phone.write_audit_list(dev, out, log=lambda *a: None)
             entries = phone.parse_list(out.read_text(encoding="utf-8"))
             self.assertTrue(any(e["pkg"] == "com.miui.analytics" for e in entries))
+
+
+class AutoTest(unittest.TestCase):
+    """自动清单: 本机预装 × 聚合知识库。"""
+
+    def setUp(self):
+        self.dev = FakeAdb(
+            packages={"com.miui.player", "com.miui.video", "com.miui.home",
+                      "com.android.settings", "com.miui.msa.global",
+                      "com.miui.analytics", "com.miui.weather2",
+                      "com.oplus.statistics.rom", "com.tencent.mm",
+                      "com.miui.foo", "com.coloros.findmyphone",
+                      "com.oplus.pay"},
+            paths={"com.oplus.statistics.rom": "/my_heytap/app/Stat/Stat.apk",
+                   "com.miui.player": "/system/app/Music/Music.apk"},
+            third_party={"com.tencent.mm"},
+            home="com.miui.home/.Launcher")
+        self.db = {
+            "com.miui.player": {"r": "Recommended", "d": "音乐", "s": ["uad-ng"]},
+            "com.miui.video": {"r": "Advanced", "d": "视频", "s": ["uad-ng"]},
+            "com.miui.msa.global": {"r": "Recommended", "d": "MSA 广告",
+                                    "s": ["uad-ng", "gh:a/b"], "a": "disable"},
+            "com.miui.weather2": {"r": "Expert", "d": "天气", "s": ["uad-ng"]},
+            "com.miui.analytics": {"r": "Unsafe", "d": "统计(危险)",
+                                   "s": ["uad-ng"]},
+            "com.miui.home": {"r": "Recommended", "d": "桌面", "s": ["uad-ng"]},
+            "com.android.settings": {"r": "Recommended", "d": "设置",
+                                     "s": ["uad-ng"]},
+            "com.tencent.mm": {"r": "Recommended", "d": "微信", "s": ["uad-ng"]},
+            "com.miui.foo": {"r": "Recommended", "d": "被桌面依赖的服务",
+                             "s": ["uad-ng"], "nb": ["com.miui.home"]},
+            "com.coloros.findmyphone": {"r": "Recommended", "d": "查找手机",
+                                        "s": ["uad-ng"]},
+            "com.oplus.pay": {"r": "Recommended", "d": "OPPO 支付",
+                              "s": ["uad-ng"]},
+        }
+
+    def _pkgs(self, res):
+        return {r["pkg"] for r in res["rows"]}
+
+    def test_standard_tier(self):
+        res = phone.auto_candidates(self.dev, self.db, tier="standard",
+                                    log=lambda *a: None)
+        got = self._pkgs(res)
+        self.assertIn("com.miui.player", got)          # Recommended
+        self.assertIn("com.miui.video", got)           # Advanced
+        self.assertIn("com.miui.msa.global", got)
+        self.assertNotIn("com.miui.weather2", got)     # Expert, 需 aggressive
+        self.assertNotIn("com.miui.analytics", got)    # Unsafe 永不处理
+        self.assertNotIn("com.miui.home", got)         # 桌面(安全规则)
+        self.assertNotIn("com.android.settings", got)  # 设置(安全规则)
+        self.assertIn("com.miui.analytics", res["blocked"])
+        # 动作: 服务型包用 disable
+        msa = next(r for r in res["rows"] if r["pkg"] == "com.miui.msa.global")
+        self.assertEqual(msa["action"], "disable")
+
+    def test_aggressive_includes_expert_and_heuristic(self):
+        res = phone.auto_candidates(self.dev, self.db, tier="aggressive",
+                                    log=lambda *a: None)
+        got = self._pkgs(res)
+        self.assertIn("com.miui.weather2", got)
+        # 知识库未收录但命中厂商广告/统计特征
+        self.assertIn("com.oplus.statistics.rom", got)
+        h = next(r for r in res["rows"] if r["pkg"] == "com.oplus.statistics.rom")
+        self.assertEqual(h["level"], "Heuristic")
+        self.assertEqual(h["partition"], "my_heytap")
+
+    def test_standard_no_heuristic(self):
+        res = phone.auto_candidates(self.dev, self.db, tier="standard",
+                                    include_heuristic=False,
+                                    log=lambda *a: None)
+        self.assertNotIn("com.oplus.statistics.rom", self._pkgs(res))
+
+    def test_third_party_excluded_by_default(self):
+        res = phone.auto_candidates(self.dev, self.db, tier="aggressive",
+                                    log=lambda *a: None)
+        self.assertNotIn("com.tencent.mm", self._pkgs(res))
+        res2 = phone.auto_candidates(self.dev, self.db, tier="aggressive",
+                                     include_third_party=True,
+                                     log=lambda *a: None)
+        self.assertIn("com.tencent.mm", self._pkgs(res2))
+
+    def test_dependency_guard(self):
+        """被"保留包"依赖的候选应被剔除。"""
+        res = phone.auto_candidates(self.dev, self.db, tier="standard",
+                                    log=lambda *a: None)
+        self.assertNotIn("com.miui.foo", self._pkgs(res))
+        self.assertIn("com.miui.foo", res["skipped_dep"])
+
+    def test_caution_blocked_by_default(self):
+        """查找手机/支付这类删了丢功能的包, 默认只提示不处理。"""
+        res = phone.auto_candidates(self.dev, self.db, tier="standard",
+                                    log=lambda *a: None)
+        got = self._pkgs(res)
+        self.assertNotIn("com.coloros.findmyphone", got)
+        self.assertNotIn("com.oplus.pay", got)
+        caution = {p for p, _ in res["caution"]}
+        self.assertIn("com.coloros.findmyphone", caution)
+        self.assertIn("com.oplus.pay", caution)
+
+    def test_caution_can_be_allowed(self):
+        res = phone.auto_candidates(self.dev, self.db, tier="standard",
+                                    allow_caution=True, log=lambda *a: None)
+        got = self._pkgs(res)
+        self.assertIn("com.coloros.findmyphone", got)
+        self.assertIn("com.oplus.pay", got)
+        fp = next(r for r in res["rows"] if r["pkg"] == "com.coloros.findmyphone")
+        self.assertIn("谨慎", fp["desc"])
+
+    def test_min_sources(self):
+        res = phone.auto_candidates(self.dev, self.db, tier="standard",
+                                    min_sources=2, log=lambda *a: None)
+        got = self._pkgs(res)
+        self.assertIn("com.miui.msa.global", got)      # 2 个来源
+        self.assertNotIn("com.miui.player", got)       # 只有 1 个来源
+
+    def test_exclude_regex(self):
+        res = phone.auto_candidates(self.dev, self.db, tier="standard",
+                                    exclude_re="player|video",
+                                    log=lambda *a: None)
+        got = self._pkgs(res)
+        self.assertNotIn("com.miui.player", got)
+        self.assertNotIn("com.miui.video", got)
+
+    def test_write_auto_list(self):
+        res = phone.auto_candidates(self.dev, self.db, tier="standard",
+                                    log=lambda *a: None)
+        with tempfile.TemporaryDirectory() as d:
+            out = phone.write_auto_list(
+                res["rows"], Path(d) / "auto.txt",
+                {"brand": "Xiaomi", "model": "M2102K1C", "android": "14"})
+            entries = phone.parse_list(out.read_text(encoding="utf-8"))
+            pkgs = {e["pkg"] for e in entries}
+            self.assertIn("com.miui.player", pkgs)
+            msa = next(e for e in entries if e["pkg"] == "com.miui.msa.global")
+            self.assertEqual(msa["action"], "disable")
+
+    def test_load_known_db_missing(self):
+        with tempfile.TemporaryDirectory() as d:
+            with self.assertRaises(FileNotFoundError):
+                phone.load_known_db(Path(d) / "nope.json")
+
+
+class HarvestParseTest(unittest.TestCase):
+    """harvest.extract: 从社区列表/教程帖里提取包名。"""
+
+    @classmethod
+    def setUpClass(cls):
+        sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "tools"))
+        import harvest
+        cls.h = harvest
+
+    def test_list_format(self):
+        text = ("# 注释\n"
+                "com.miui.player uninstall  # 音乐\n"
+                "com.miui.video disable\n"
+                "adb shell pm uninstall --user 0 com.xiaomi.ab\n"
+                "pm disable-user --user 0 com.miui.msa.global\n"
+                "com.tencent.mm\n")
+        r = self.h.extract(text, "list")
+        self.assertEqual(r["com.miui.player"]["action"], "uninstall")
+        self.assertEqual(r["com.miui.player"]["comment"], "音乐")
+        self.assertEqual(r["com.miui.video"]["action"], "disable")
+        self.assertIn("com.xiaomi.ab", r)
+        self.assertEqual(r["com.miui.msa.global"]["action"], "disable")
+        self.assertIn("com.tencent.mm", r)
+
+    def test_post_mode_ignores_bare_names(self):
+        text = ("执行 `adb shell pm uninstall --user 0 com.miui.analytics`。\n"
+                "另外 com.miui.player 是音乐应用。\n")
+        r = self.h.extract(text, "post")
+        self.assertIn("com.miui.analytics", r)
+        self.assertNotIn("com.miui.player", r)
+
+    def test_safety_filter(self):
+        self.assertFalse(self.h.is_safe("com.android.settings"))
+        self.assertFalse(self.h.is_safe("com.miui.home"))
+        self.assertFalse(self.h.is_safe("com.google.android.gms"))
+        self.assertTrue(self.h.is_safe("com.miui.player"))
+
+    def test_merge_keeps_most_conservative_level(self):
+        db = {}
+        self.h.merge(db, "com.miui.video", source="a", removal="Recommended")
+        self.h.merge(db, "com.miui.video", source="b", removal="Expert")
+        self.h.merge(db, "com.miui.video", source="c", removal="Recommended")
+        self.assertEqual(db["com.miui.video"]["r"], "Expert")
+        self.assertEqual(sorted(db["com.miui.video"]["s"]), ["a", "b", "c"])
+
+    def test_merge_blocks_dangerous(self):
+        db = {}
+        self.h.merge(db, "com.miui.home", source="x", removal="Recommended")
+        self.h.merge(db, "com.android.settings", source="x")
+        self.assertEqual(db, {})
+
+    def test_community_default_level(self):
+        db = {}
+        self.h.merge(db, "com.example.bloat", source="gh:a/b")
+        self.assertEqual(db["com.example.bloat"]["r"], "Community")
 
 
 if __name__ == "__main__":

@@ -5,6 +5,9 @@ __pycache__/
 # UAD-NG 同步缓存
 tools/uad_data_cache.json
 
+# 抓取缓存(harvest.py 下载的原始文件, 可重新生成)
+tools/.cache/
+
 # 本地虚拟环境(如使用)
 tools/venv/
 .venv/

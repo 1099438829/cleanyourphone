@@ -8,6 +8,7 @@
 **无需 root、无需解锁、不在手机上安装任何软件、不替换桌面启动器, 全部操作可一键恢复。**
 
 三层清理策略: **卸载预装应用** · **关闭广告与统计服务** · **设置级去广告 + 摇一摇封杀**。
+外加**自动清单**: 抓取互联网 debloat 知识库, 与本机预装求交集后一键清理(见"自动清单")。
 (卸载/禁用被 ROM 拒绝时自动降级, 禁用被拒时自动挂起, 见下方"真机实测")
 
 ## 仓库地址
@@ -87,6 +88,53 @@ tools/restore.sh --all
 
 Windows 用户: 把本仓库放在**不含中文的路径**下, 用 `python tools/phone.py ...` 代替 `.sh` 脚本。
 
+## 自动清单: 互联网知识库 × 本机预装
+
+不想逐条挑列表? 让工具自己算: 先抓取互联网上公开的 debloat 知识, 再和**你手机里
+实际装着的预装应用**求交集, 生成一份只属于这台手机的清单。
+
+```bash
+python3 tools/harvest.py                 # 1. 抓取聚合(1-5 分钟, 可重复跑更新)
+python3 tools/phone.py auto              # 2. 预演: 看会动哪些, 不碰手机
+python3 tools/phone.py auto --apply      # 3. 执行(自动备份 + 确认)
+```
+
+### 数据来源(全部公开, 只读, 不上传任何东西)
+
+| 源 | 内容 | 规模 |
+| --- | --- | --- |
+| UAD-NG 结构化库 | Universal Android Debloater Next Generation, 带 Recommended / Advanced / Expert / Unsafe 分级与依赖关系 | 5381 条 |
+| GitHub 代码搜索 | 用 `pm uninstall --user 0`、`debloat` 等关键词自动发现社区列表与教程帖 | 每轮 12-30 个文件 |
+| 内置精选仓库 | CleanYourTV 等已知高质量列表 | 11 个文件 |
+| Gitee 中文社区 | 搜索接口已改为 JS 渲染, 默认跳过; 可用 `--gitee-repo owner/repo` 手动指定 | 可选 |
+
+多源同一包按**最保守**原则合并(任一源标 Unsafe 就保持 Unsafe); 命中本项目安全规则的包永不入库。
+产出: `rules/known-packages.json`(结构化知识库)、`rules/ALL-BLOAT.txt`(人类可读全量清单)、
+`rules/harvest-report.md`(抓取报告)。国内访问 GitHub 不稳时自动走 ghproxy / jsdelivr 镜像。
+
+### 三档力度
+
+| 力度 | 包含 | 适用 |
+| --- | --- | --- |
+| `--tier safe` | 仅 Recommended | 第一次用, 最保守 |
+| `--tier standard`(默认) | Recommended + Advanced | 常规清理 |
+| `--tier aggressive` | 再加 Expert + 启发式(厂商广告/遥测特征) | 想清得更彻底 |
+
+### 自动清单的六道保险
+
+1. 只处理**系统分区预装**(`pm list packages -s`), 用户自己装的应用默认不碰
+   (`--include-third-party` 才会纳入 /data/app)
+2. 命中安全规则(桌面/电话/短信/系统 UI/输入法/GMS)直接剔除
+3. 知识库标 `Unsafe` 的永不处理
+4. **依赖保护**: 依赖核心组件的、或被"要保留的包"依赖的, 一律跳过
+5. **谨慎名单**: 查找手机、支付、密码本、云服务、厂商账号、系统更新、备份恢复、
+   语音识别、无障碍、设备认证、当前默认浏览器 —— 默认只列出不处理。
+   (UAD 常把这些标成"推荐", 删了会丢功能/丢数据; 确认不需要再加 `--allow-caution`)
+6. 执行前照旧自动备份 + 状态记录, `restore --all` 一键还原
+
+> 真机实测(OPPO ColorOS 13, 310 个系统应用, 5021 条知识库): `safe` 命中 84、
+> `standard` 138、`aggressive` 182; 另有 27 个被标 Unsafe、15 个被谨慎名单拦下。
+
 ## 支持品牌与列表
 
 | 品牌/ROM | 列表目录 | 清理重点 |
@@ -120,17 +168,20 @@ Windows 用户: 把本仓库放在**不含中文的路径**下, 用 `python tool
 6. **分批+截图**: `--batch N --screenshot` 每处理 N 个自动截图, 逐段验证不出事再继续
 7. **DNS 自愈**: Private DNS 开启后自动探测解析, 失败(网络封锁 853 端口)立即回退, 手机网络不受影响
 8. **确认与预演**: 非 `--dry-run` 执行前必须输入 y 确认; 管道/非交互环境默认拒绝
+9. **谨慎名单**(自动清单): 查找手机/支付/密码本/云服务/账号/系统更新/备份/语音识别/
+   无障碍/设备认证/默认浏览器, 默认只提示不处理 —— UAD 常把这些标成"推荐", 删了会丢功能
 
 ## 工具一览(tools/)
 
 | 工具 | 作用 |
 | --- | --- |
-| `phone.py` | 核心工具(Python 标准库, 跨平台, 18 个子命令) |
+| `phone.py` | 核心工具(Python 标准库, 跨平台, 19 个子命令) |
+| `harvest.py` | 抓取聚合互联网 debloat 知识 -> `rules/known-packages.json` |
 | `clean.sh` | 全流程编排(备份→debloat→settings→shake, 可分阶段) |
 | `disable.sh` / `restore.sh` / `check.sh` | 应用/恢复/检查列表 |
 | `install-adb.sh` | 安装官方 Android 平台工具 |
-| `sync_uad.py` | 从 UAD-NG 社区数据库同步品牌候选列表 |
-| `../tests/test_phone.py` | 单元测试(模拟设备): `python3 -I tests/test_phone.py` |
+| `sync_uad.py` | 从 UAD-NG 社区数据库同步品牌候选列表(轻量版, 只要品牌候选时用它) |
+| `../tests/test_phone.py` | 单元测试(模拟设备, 47 个用例): `python3 -I tests/test_phone.py` |
 
 ## 真机实测(2026-10-23, OPPO PEQM00 / Android 13 / ColorOS 13)
 
@@ -162,6 +213,15 @@ Windows 用户: 把本仓库放在**不含中文的路径**下, 用 `python tool
 
 **Q: OTA 升级后失效了怎么办?**
 `tools/check.sh <列表> --fix` 会检查哪些被厂商改回并重新应用。
+
+**Q: `auto` 会不会删太多?**
+默认 `--tier standard` 只处理 Recommended + Advanced, 且过六道保险(见上文)。
+想先看看不动手就 `python3 tools/phone.py auto`; 觉得太激进就 `--tier safe`,
+想更彻底用 `--tier aggressive`, 还能 `--exclude 'browser|music'` 排除。
+
+**Q: 知识库多久更新一次?**
+`python3 tools/harvest.py` 随时可重跑, 会重新抓取 UAD-NG 与社区列表;
+`rules/harvest-report.md` 里有生成时间和每个源的记录数。
 
 **Q: 会不会变砖?**
 不会。所有操作都是 Android 标准的用户级包管理, 可逆; 核心组件被安全规则硬性拦截。
@@ -220,13 +280,18 @@ cleanyourphone/
 ├── README.md / PROMPT.md / AGENTS.md / CONTRIBUTING.md / LICENSE
 ├── tools/
 │   ├── phone.py         核心工具(标准库, 跨平台)
+│   ├── harvest.py       抓取聚合互联网 debloat 知识
 │   ├── clean.sh         全流程编排(可分阶段)
 │   ├── disable.sh       应用列表
 │   ├── restore.sh       恢复
 │   ├── check.sh         OTA 后检查
 │   ├── install-adb.sh   安装 adb
 │   └── sync_uad.py      同步 UAD-NG 候选列表
-├── tests/test_phone.py  单元测试(模拟设备, 30 个用例)
+├── rules/               自动清单知识库(harvest.py 生成)
+│   ├── known-packages.json   5021 个包的分级/描述/依赖/来源
+│   ├── ALL-BLOAT.txt         人类可读全量清单(按厂商分组)
+│   └── harvest-report.md     抓取报告(来源与失败原因)
+├── tests/test_phone.py  单元测试(模拟设备, 47 个用例)
 └── examples/            各品牌列表 + settings.conf + 手动关广告/优化设置说明
     └── shake_apps.txt   全品牌摇一摇封杀清单(22 款 App)
     └── oppo-coloros/device-inventory.md  真机实测记录(OPPO PEQM00)

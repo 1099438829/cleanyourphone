@@ -6,6 +6,7 @@
 #   tools/clean.sh --debloat     仅执行阶段一: 卸载/禁用预装与广告包
 #   tools/clean.sh --settings    仅执行阶段二: 写入系统设置(关闭广告/限制追踪)
 #   tools/clean.sh --shake       仅执行阶段三: 封杀第三方 App 摇一摇
+#   tools/clean.sh --auto        自动清单: 按本机预装匹配互联网知识库后清理
 #   tools/clean.sh --dry-run     全流程预演(不执行任何写操作)
 #   tools/clean.sh --help        显示帮助
 set -euo pipefail
@@ -25,7 +26,7 @@ for arg in "$@"; do
 done
 
 if [ "${1:-}" = "--help" ] || [ "${1:-}" = "-h" ]; then
-  sed -n '2,14p' "$0" | sed 's/^# \{0,1\}//'
+  sed -n '2,11p' "$0" | sed 's/^# \{0,1\}//'
   exit 0
 fi
 
@@ -43,6 +44,14 @@ echo "== 设备规则目录: $BRAND_ID =="
 run_backup() { "${PHONE[@]}" backup; }
 run_debloat() { "${PHONE[@]}" apply "$DEBLOAT" "${DRY_RUN[@]}"; }
 run_settings() { "${PHONE[@]}" settings "$SETTINGS" "${DRY_RUN[@]}"; }
+# 自动清单: 预演模式只列清单, 实跑时由 phone.py 内部再确认一次
+run_auto() {
+  if [ ${#DRY_RUN[@]} -gt 0 ]; then
+    "${PHONE[@]}" auto
+  else
+    "${PHONE[@]}" auto --apply
+  fi
+}
 # shake 无 dry-run 参数, 预演模式下跳过
 run_shake() {
   if [ ${#DRY_RUN[@]} -gt 0 ]; then
@@ -57,6 +66,7 @@ case "${1:-all}" in
   --debloat) run_debloat ;;
   --settings) run_settings ;;
   --shake)   run_shake ;;
+  --auto)    run_auto ;;
   all)
     run_backup
     run_debloat

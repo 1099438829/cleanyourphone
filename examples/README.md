@@ -23,6 +23,9 @@
 | [universal](universal/) | 全品牌通用 | Android 广告服务、Google 组件、AOSP 彩蛋 |
 | [shake_apps.txt](shake_apps.txt) | 全品牌摇一摇封杀清单 | 微信/淘宝/抖音等 22 款第三方 App |
 
+> 不想手工挑? 用**自动清单**: `python3 tools/harvest.py` 抓取互联网知识库后,
+> `python3 tools/phone.py auto` 会按**本机实际预装**自动生成清单(见根目录 README)。
+
 ## 使用
 
 ```bash
@@ -45,6 +48,11 @@ python3 tools/phone.py dns on dot.pub
 # 恢复 / OTA 后检查
 tools/restore.sh --all
 tools/check.sh examples/xiaomi-hyperos/debloat.txt --fix
+
+# 自动清单(按本机预装自动匹配)
+python3 tools/harvest.py            # 更新互联网知识库
+python3 tools/phone.py auto         # 预演
+python3 tools/phone.py auto --apply # 执行
 ```
 
 ## 列表格式

@@ -28,6 +28,8 @@
   restore <列表.txt>|--all        恢复(包/设置/传感器限制一并还原)
   check <列表.txt> [--fix]        检查(OTA 后)并可选重新应用
   audit [--write 文件]            扫描设备上的广告/遥测候选包
+  auto [--tier safe|standard|aggressive] [--apply]
+                                  自动识别本机预装, 匹配互联网聚合知识库后清理
   settings <settings.conf> [--dry-run]   写入系统设置(关闭广告/限制追踪)
   dns on [主机名] | off | status   Private DNS 去广告(带自愈: 解析失败自动关闭)
   shake on|off|status [清单]       封杀第三方 App "摇一摇"开屏广告(appops)
@@ -50,7 +52,7 @@ import urllib.request
 import zipfile
 from pathlib import Path
 
-VERSION = "2.0.0"
+VERSION = "2.1.0"
 HOME_DIR = Path.home() / ".cleanyourphone"
 DEFAULT_WIRELESS_PORT = 5555
 
@@ -1091,6 +1093,290 @@ def write_audit_list(dev: Adb, path, log=print) -> Path:
 
 
 # ---------------------------------------------------------------------------
+# 自动清单: 本机预装应用 × 互联网聚合知识库
+#   知识库由 tools/harvest.py 生成(rules/known-packages.json),
+#   收录 UAD-NG 结构化分级 + GitHub/Gitee 社区列表与教程帖的共识。
+# ---------------------------------------------------------------------------
+KNOWN_DB_FILE = Path(__file__).resolve().parent.parent / "rules" / "known-packages.json"
+
+# 系统分区前缀(命中即视为"出厂预装", 而非用户自己装的)
+SYSTEM_PARTITIONS = (
+    "/system/", "/system_ext/", "/product/", "/vendor/", "/odm/", "/oem/",
+    "/my_product/", "/my_heytap/", "/my_stock/", "/my_preload/",
+    "/my_carrier/", "/prism/", "/opt/", "/cust/", "/version/", "/special_preload/",
+)
+
+# 分级 -> 允许自动处理的等级
+TIER_LEVELS = {
+    "safe": ("Recommended",),
+    "standard": ("Recommended", "Advanced"),
+    "aggressive": ("Recommended", "Advanced", "Expert"),
+}
+
+# 服务型包优先"禁用"而非"卸载"(避免依赖它的功能报错)
+SERVICE_HINTS = (
+    "service", "provider", "daemon", "analytics", "statistics", "statistic",
+    "telemetry", "push", "mcs", "msa", "tracker", "agent", "sdk", "receiver",
+    "collect", "report",
+)
+
+# 启发式规则: 只对厂商预装命名空间生效(不会误伤用户自己装的应用)
+HEURISTIC_RULES = (
+    ("广告/推广服务", ("systemadsolution", "msa", "adservices", "adservice",
+                       "pictorial", "spage", "mipicks", "contentextension",
+                       "habit.analysis", "magazine", "livecontent",
+                       "advert", "promotion", "splash", "dsp")),
+    ("统计/遥测上报", ("analytics", "statistics", "statistic", "mab", "imonitor",
+                       "logkit", "bugreport", "telemetry", "onetrack", "onetrace",
+                       "crashbox", "diagnos", "experience")),
+    ("内容推荐/信息流", ("personalassistant", "quicksearchbox", "searchbox",
+                         "reader", "news", "feed", "hiboard", "video", "music",
+                         "browser", "game", "mall", "shop", "store")),
+)
+VENDOR_NS = ("com.miui.", "com.xiaomi.", "com.mi.", "com.huawei.", "com.hihonor.",
+             "com.oppo.", "com.coloros.", "com.heytap.", "com.oplus.",
+             "com.nearme.", "com.realme.", "com.vivo.", "com.bbk.", "com.iqoo.",
+             "com.samsung.", "com.sec.", "com.meizu.")
+
+# ---------------------------------------------------------------------------
+# 谨慎名单: 这些包 UAD 常标"推荐", 但在国内机型上删了会丢功能/丢数据/丢保修,
+# 默认只提示不处理; 确认不需要时加 --allow-caution。
+# (真机实测 OPPO ColorOS 13 时发现的问题, 见 examples/oppo-coloros/device-inventory.md)
+# ---------------------------------------------------------------------------
+CAUTION_RULES = (
+    (r"findmyphone|findmydevice|find_my|antitheft|anti_theft|remoteguard",
+     "防盗/查找手机(删了无法定位与远程锁定)"),
+    (r"securepay|payment|wallet|(^|\.)pay($|\.)", "支付与支付安全"),
+    (r"codebook|password", "密码本(可能存有已保存的密码)"),
+    (r"(^|\.)cloud($|\.)|cloudservice|cloudsync", "云同步/云备份"),
+    (r"usercenter|(^|\.)account($|\.)|(^|\.)auth", "厂商账号(删了会退出登录)"),
+    (r"softsim|esim", "虚拟 SIM"),
+    (r"(^|\.)ota($|\.)|updater|softwareupdate", "系统更新"),
+    (r"backup|restore", "备份恢复"),
+    (r"speechsuite|iflytek", "语音识别(语音输入/语音助手依赖)"),
+    (r"accessibility", "无障碍服务"),
+    (r"remoteprovisioner|attestation", "设备认证(部分银行/支付 App 会校验)"),
+    (r"childrenspace|parental", "儿童/家长模式"),
+)
+CAUTION_RE = [(re.compile(p, re.I), why) for p, why in CAUTION_RULES]
+
+
+def caution_reason(pkg: str):
+    for r, why in CAUTION_RE:
+        if r.search(pkg):
+            return why
+    return None
+
+
+def resolve_default_browser(dev: Adb):
+    """当前默认浏览器包名(删了它, 点链接会没有应用可打开)。"""
+    try:
+        out = dev.shell(
+            "cmd package resolve-activity -a android.intent.action.VIEW "
+            "-d https://example.com --brief")
+    except Exception:
+        return None
+    for raw in reversed(out.splitlines()):
+        line = raw.strip()
+        if not line or line.startswith(("priority=", "match=", "name=")):
+            continue
+        pkg = line.split("/")[0].strip()
+        if pkg and "." in pkg and " " not in pkg:
+            return pkg
+    return None
+
+
+def partition_of(path: str) -> str:
+    if not path:
+        return "?"
+    for p in SYSTEM_PARTITIONS:
+        if path.startswith(p):
+            return p.strip("/")
+    if path.startswith("/data/app"):
+        return "data"
+    return path.strip("/").split("/", 1)[0] or "?"
+
+
+def _parse_pm_list_f(out: str) -> dict:
+    """解析 `pm list packages -f`: package:<apk路径>=<包名> -> {包名: 路径}。"""
+    rows = {}
+    for line in out.splitlines():
+        line = line.strip()
+        if not line.startswith("package:"):
+            continue
+        body = line[len("package:"):]
+        if "=" in body:
+            path, pkg = body.rsplit("=", 1)
+        else:
+            path, pkg = "", body
+        rows[pkg.strip()] = path.strip()
+    return rows
+
+
+def preinstalled_packages(dev: Adb, include_third_party: bool = False) -> dict:
+    """列出出厂预装应用 -> {包名: 安装路径}。
+
+    默认只取 `pm list packages -s`(系统分区应用); include_third_party=True
+    时把 /data/app 下的第三方包也纳入(部分国产 ROM 会把合作 App 预装到
+    data 分区), 这类包无法与"用户自己安装"区分, 需谨慎。
+    """
+    rows = _parse_pm_list_f(dev.shell("pm list packages -s -f"))
+    if include_third_party:
+        for pkg, path in _parse_pm_list_f(
+                dev.shell("pm list packages -3 -f")).items():
+            rows.setdefault(pkg, path)
+    return rows
+
+
+def load_known_db(path=None) -> tuple:
+    """读取聚合知识库, 返回 (meta, packages)。"""
+    p = Path(path) if path else KNOWN_DB_FILE
+    if not p.exists():
+        raise FileNotFoundError(
+            f"知识库不存在: {p}\n"
+            "请先运行: python3 tools/harvest.py  (从 UAD-NG/GitHub/Gitee 聚合)")
+    data = json.loads(p.read_text(encoding="utf-8"))
+    pkgs = data.get("packages") or {}
+    if not isinstance(pkgs, dict) or not pkgs:
+        raise ValueError(f"知识库格式异常或为空: {p}")
+    return data.get("meta") or {}, pkgs
+
+
+def default_action(pkg: str) -> str:
+    low = pkg.lower()
+    return "disable" if any(h in low for h in SERVICE_HINTS) else "uninstall"
+
+
+def heuristic_hit(pkg: str):
+    """厂商预装命名空间里的广告/遥测特征命中, 返回 (分类, 关键词) 或 None。"""
+    if not pkg.startswith(VENDOR_NS):
+        return None
+    low = pkg.lower()
+    for cat, keys in HEURISTIC_RULES:
+        for k in keys:
+            if k in low:
+                return cat, k
+    return None
+
+
+def auto_candidates(dev: Adb, db: dict, tier: str = "standard",
+                    include_third_party: bool = False,
+                    include_heuristic: bool = True,
+                    min_sources: int = 1, allow_caution: bool = False,
+                    exclude_re: str = "", log=print) -> dict:
+    """生成自动候选: 本机预装 ∩ 知识库(按分级) + 启发式补充。
+
+    安全护栏(与 apply 一致, 但更严):
+      * 命中 DENY 规则/显式核心清单 -> 剔除
+      * 当前桌面/最近任务/输入法/默认浏览器 -> 剔除
+      * 知识库标 Unsafe -> 剔除
+      * 依赖核心组件、或被核心组件依赖 -> 剔除
+      * 命中谨慎名单(查找手机/支付/账号/云服务/系统更新等) -> 默认只提示
+    """
+    levels = TIER_LEVELS.get(tier, TIER_LEVELS["standard"])
+    installed = preinstalled_packages(dev, include_third_party)
+    protect = protected_targets(dev)
+    prot = {p for p in protect.values() if p}
+    browser = resolve_default_browser(dev)
+
+    ex = re.compile(exclude_re) if exclude_re else None
+    rows, blocked, skipped_dep, caution = [], [], [], []
+    for pkg, path in sorted(installed.items()):
+        if is_denied(pkg) or pkg in prot:
+            continue
+        if ex and ex.search(pkg):
+            continue
+        rec = db.get(pkg)
+        cand = None
+        if rec:
+            lvl = rec.get("r") or "Community"
+            if lvl == "Unsafe":
+                blocked.append(pkg)
+                continue
+            if lvl not in levels:
+                continue
+            if len(rec.get("s") or []) < min_sources:
+                continue
+            dep = set(rec.get("dep") or [])
+            if dep & PROTECTED_PACKAGES:
+                skipped_dep.append(pkg)
+                continue
+            nb = set(rec.get("nb") or [])
+            if nb & PROTECTED_PACKAGES:
+                # 被核心系统组件依赖(如"设置"依赖某个服务)
+                skipped_dep.append(pkg)
+                continue
+            cand = {
+                "pkg": pkg, "level": lvl, "action": rec.get("a") or default_action(pkg),
+                "desc": (rec.get("d") or "").strip(), "path": path,
+                "partition": partition_of(path), "sources": len(rec.get("s") or []),
+                "nb": nb, "kind": "kb",
+            }
+        elif include_heuristic:
+            hit = heuristic_hit(pkg)
+            if hit:
+                cat, kw = hit
+                cand = {
+                    "pkg": pkg, "level": "Heuristic", "action": "disable",
+                    "desc": f"{cat}(命中关键词 {kw}, 知识库未收录)",
+                    "path": path, "partition": partition_of(path), "sources": 0,
+                    "nb": set(), "kind": "heuristic",
+                }
+        if cand is None:
+            continue
+        # 谨慎名单: 删了会丢功能/丢数据, 默认只提示
+        why = caution_reason(pkg)
+        if not why and pkg == browser:
+            why = "当前默认浏览器(删了点链接没有应用可打开)"
+        if why and not allow_caution:
+            caution.append((pkg, why))
+            continue
+        if why:
+            cand["desc"] = f"[谨慎:{why}] {cand['desc']}"
+        rows.append(cand)
+
+    # 依赖保护: 候选包若是某个"将被保留的包"的依赖, 则剔除
+    remove = {r["pkg"] for r in rows}
+    kept = set(installed) - remove
+    for r in list(rows):
+        if r["nb"] & kept and r["kind"] == "kb":
+            rows.remove(r)
+            skipped_dep.append(r["pkg"])
+
+    order = {"Recommended": 0, "Advanced": 1, "Expert": 2, "Community": 3,
+             "Heuristic": 4}
+    rows.sort(key=lambda r: (order.get(r["level"], 9), r["pkg"]))
+    return {
+        "rows": rows, "installed": len(installed), "blocked": blocked,
+        "skipped_dep": skipped_dep, "caution": caution, "tier": tier,
+        "protect": protect, "browser": browser,
+        "protected_hit": sorted(set(installed) & prot),
+    }
+
+
+def write_auto_list(rows: list, path, desc: dict) -> Path:
+    lines = [
+        f"# CleanYourPhone 自动生成清单 — {desc.get('brand','')} {desc.get('model','')}",
+        f"# 生成时间: {now_ts()}  Android {desc.get('android','')} "
+        f"{('ROM ' + desc['rom']) if desc.get('rom') else ''}",
+        "# 来源: rules/known-packages.json (UAD-NG + GitHub/Gitee 社区共识)",
+        "# 恢复: python3 tools/phone.py restore --all",
+        "",
+    ]
+    cur = None
+    for r in rows:
+        if r["level"] != cur:
+            cur = r["level"]
+            lines.append(f"# ---------- {cur} ----------")
+        note = r["desc"].replace("\n", " ")[:90]
+        lines.append(f"{r['pkg']} {r['action']}  # {note}".rstrip())
+    out = Path(path)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return out
+
+
+# ---------------------------------------------------------------------------
 # 命令行接口
 # ---------------------------------------------------------------------------
 def confirm(prompt: str) -> bool:
@@ -1160,6 +1446,29 @@ def build_parser() -> argparse.ArgumentParser:
 
     p = sub.add_parser("audit", help="扫描广告/遥测候选包")
     p.add_argument("--write", metavar="文件", help="把候选写入列表文件")
+
+    p = sub.add_parser("auto", help="自动识别本机预装并清理(基于互联网聚合库)")
+    p.add_argument("--tier", choices=["safe", "standard", "aggressive"],
+                   default="standard",
+                   help="清理力度: safe=仅推荐项 / standard=推荐+进阶(默认) / "
+                        "aggressive=再加专家项与启发式")
+    p.add_argument("--apply", action="store_true",
+                   help="真正执行(默认只生成清单, 不动手机)")
+    p.add_argument("--yes", "-y", action="store_true", help="执行时跳过确认")
+    p.add_argument("--write", metavar="文件", help="清单保存路径")
+    p.add_argument("--db", metavar="文件", help="指定知识库(默认 rules/known-packages.json)")
+    p.add_argument("--include-third-party", action="store_true",
+                   help="把 /data/app 下的预装第三方 App 也纳入(默认不含)")
+    p.add_argument("--no-heuristic", action="store_true",
+                   help="只按知识库匹配, 不用启发式规则补充")
+    p.add_argument("--min-sources", type=int, default=1, metavar="N",
+                   help="知识库条目至少被 N 个来源收录才处理(默认 1)")
+    p.add_argument("--allow-caution", action="store_true",
+                   help="允许处理谨慎名单(查找手机/支付/账号/云服务/系统更新等)")
+    p.add_argument("--exclude", default="", metavar="正则",
+                   help="排除匹配该正则的包名, 如 --exclude 'browser|music'")
+    p.add_argument("--limit", type=int, default=0, metavar="N",
+                   help="最多列出/处理 N 项(0=不限)")
 
     p = sub.add_parser("settings", help="写入系统设置(settings.conf)")
     p.add_argument("file", help="如 examples/xiaomi-hyperos/settings.conf")
@@ -1368,6 +1677,90 @@ def cmd_audit(args) -> int:
     return 0
 
 
+def cmd_auto(args) -> int:
+    """自动清单: 本机预装 × 互联网聚合知识库。"""
+    _, dev = _need_device(args)
+    try:
+        meta, db = load_known_db(args.db)
+    except (FileNotFoundError, ValueError) as e:
+        print(f"[失败] {e}")
+        return 2
+
+    desc = describe_device(dev)
+    print(f"设备: {desc['brand']} {desc['model']} | Android {desc['android']}"
+          + (f" | ROM {desc['rom']}" if desc["rom"] else ""))
+    print(f"知识库: {len(db)} 个包 (生成于 {meta.get('generated_at', '未知')})")
+    print(f"力度: {args.tier} | 启发式: {'关' if args.no_heuristic else '开'} | "
+          f"最少来源数: {args.min_sources}")
+
+    res = auto_candidates(
+        dev, db, tier=args.tier,
+        include_third_party=args.include_third_party,
+        include_heuristic=not args.no_heuristic,
+        min_sources=args.min_sources, allow_caution=args.allow_caution,
+        exclude_re=args.exclude)
+
+    rows = res["rows"]
+    if args.limit and args.limit > 0:
+        rows = rows[:args.limit]
+
+    print(f"本机预装 {res['installed']} 个, 命中可清理 {len(rows)} 个")
+    for label, key in (("桌面", "home"), ("最近任务", "recents"), ("输入法", "ime")):
+        if res["protect"].get(key):
+            print(f"[保护] 当前{label}: {res['protect'][key]}")
+    if res["blocked"]:
+        print(f"[跳过] {len(res['blocked'])} 个被知识库标为 Unsafe(会破坏系统): "
+              f"{', '.join(res['blocked'][:5])}"
+              + (" ..." if len(res["blocked"]) > 5 else ""))
+    if res["skipped_dep"]:
+        print(f"[跳过] {len(res['skipped_dep'])} 个被其他组件依赖: "
+              f"{', '.join(res['skipped_dep'][:5])}"
+              + (" ..." if len(res["skipped_dep"]) > 5 else ""))
+    if res["caution"]:
+        print(f"[谨慎] {len(res['caution'])} 个涉及查找手机/支付/账号/云服务等, "
+              "默认不动(确认不需要可加 --allow-caution):")
+        for pkg, why in res["caution"][:8]:
+            print(f"        {pkg}  — {why}")
+        if len(res["caution"]) > 8:
+            print(f"        ... 其余 {len(res['caution']) - 8} 个")
+
+    if not rows:
+        print("\n没有可自动清理的预装应用。")
+        print("提示: 想更激进可加 --tier aggressive; 或先运行 "
+              "python3 tools/harvest.py 更新知识库。")
+        return 0
+
+    cur = None
+    for r in rows:
+        if r["level"] != cur:
+            cur = r["level"]
+            n = sum(1 for x in rows if x["level"] == cur)
+            print(f"\n== {cur} ({n}) ==")
+        note = r["desc"].replace("\n", " ")[:64]
+        src = f"{r['sources']}源" if r["sources"] else "启发式"
+        print(f"  {r['action']:9s} {r['pkg']:44s} {r['partition']:12s} "
+              f"{src:5s} {note}")
+
+    out = Path(args.write) if args.write else (
+        Path(HOME_DIR) / dev.serial / "auto-list.txt")
+    saved = write_auto_list(rows, out, desc)
+    print(f"\n清单已保存: {saved}")
+
+    if not args.apply:
+        print("这是预演(未改动手机)。确认无误后执行:")
+        print(f"  python3 tools/phone.py auto --tier {args.tier} --apply")
+        return 0
+
+    if not args.yes and not confirm(f"将处理 {len(rows)} 个预装应用, 继续? [y/N] "):
+        print("已取消。")
+        return 1
+    entries = [{"pkg": r["pkg"], "action": r["action"], "comment": r["desc"]}
+               for r in rows]
+    apply_list(dev, entries, list_file=str(saved), base=HOME_DIR)
+    print("\n恢复: python3 tools/phone.py restore --all")
+    return 0
+
+
 def cmd_settings(args) -> int:
     _, dev = _need_device(args)
     entries = parse_settings_file(args.file)
@@ -1450,6 +1843,7 @@ def main(argv=None) -> int:
         "tcpip": cmd_tcpip, "shell": cmd_shell, "packages": cmd_packages,
         "screenshot": cmd_screenshot, "backup": cmd_backup, "apply": cmd_apply,
         "restore": cmd_restore, "check": cmd_check, "audit": cmd_audit,
+        "auto": cmd_auto,
         "settings": cmd_settings, "dns": cmd_dns, "shake": cmd_shake,
         "finish": cmd_finish,
     }
