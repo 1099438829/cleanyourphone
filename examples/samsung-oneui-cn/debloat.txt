@@ -1,0 +1,28 @@
+# CleanYourPhone 清理列表 — 三星国行 (One UI 5/6/7/8, Android 13-16)
+# 用法: tools/disable.sh examples/samsung-oneui-cn/debloat.txt
+# 更多候选(自动生成): examples/samsung-oneui-cn/uad-recommended.txt
+
+# ---------- 广告与推荐服务(禁用) ----------
+com.samsung.android.app.spage disable  # 三星智能助手/Samsung Free(负一屏资讯广告, 重点)
+
+# ---------- 预装应用(卸载, 可恢复) ----------
+com.samsung.android.video  uninstall # 三星视频(可选)
+com.samsung.android.email  uninstall # 电子邮件(可选)
+com.samsung.android.svoice uninstall # Bixby 语音(可选)
+com.samsung.android.bixby.wakeup uninstall # Bixby 语音唤醒(不用语音助手可卸)
+com.samsung.android.game.gamehome uninstall # 游戏启动器(内置游戏推广, 可选)
+com.samsung.android.forest uninstall # 数字健康(可选)
+com.samsung.android.voc    uninstall # 意见反馈(安全)
+
+# ---------- 可选(按需保留) ----------
+com.samsung.android.sm.devicesecurity disable # McAfee 安全扫描(弹窗推广; 卸载后无病毒扫描, 按需)
+com.sec.android.app.samsungapps uninstall # 三星应用商店(Galaxy Store; 不用可卸)
+
+# ---------- 谨慎操作(默认注释, 确有需要再取消注释) ----------
+# com.samsung.android.spay  uninstall # Samsung Pay(不用可卸)
+
+# ---------- 请勿操作(脚本安全规则会自动拒绝, 列此备查) ----------
+# com.sec.android.app.launcher  桌面
+# com.samsung.android.messaging 短信(默认保留)
+# com.samsung.android.dialer    电话(默认保留)
+# com.samsung.android.scloud    三星云(查找手机依赖它, 默认保留)

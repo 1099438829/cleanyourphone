@@ -1,0 +1,91 @@
+# CleanYourPhone 清理列表 — 小米 / 红米 / POCO (MIUI 12-14 / HyperOS 1-2, 国行)
+# 用法: tools/disable.sh examples/xiaomi-hyperos/debloat.txt
+# 规则: 行首 # 为注释; uninstall=对当前用户卸载(可恢复); disable=禁用(可恢复)
+#       本机不存在的包会自动跳过; 命中安全规则的包会被拒绝并提示
+# 更多候选(自动生成): examples/xiaomi-hyperos/uad-recommended.txt (tools/sync_uad.py 生成)
+
+# ---------- 推荐: 广告与统计服务(禁用, 强烈建议) ----------
+com.miui.analytics         disable   # 小米统计(行为统计/广告SDK)
+com.miui.systemAdSolution  disable   # 小米系统广告解决方案(MSA 国行版, 广告核心)
+com.miui.msa.global        disable   # 小米广告服务 MSA(国际版/部分国行, 与上一行二选一存在)
+com.miui.daemon            disable   # MIUI 守护进程(数据采集上报)
+com.miui.misightservice    disable   # 遥测与诊断收集(每日后台收发数据)
+com.miui.spock             disable   # 后台统计分析(持续上传设备信息)
+com.miui.uireporter        disable   # UI 埋点上报
+com.miui.klo.blogreport    disable   # KLO 崩溃日志上报(不存在会自动跳过)
+com.miui.tv.analytics      disable   # 电视端统计(手机上不存在会自动跳过)
+com.xiaomi.security.onetrack disable # 安全中心 OneTrack 统计
+com.xiaomi.aon             disable   # AON 事件追踪(人脸/行为分析)
+com.mfashiongallery.emag   disable   # 小米锁屏画报(锁屏动态广告壁纸)
+com.miui.android.fashiongallery disable # 锁屏壁纸轮播(杂志锁屏)
+
+# ---------- 推荐: 内容推广与快应用(禁用/卸载) ----------
+com.mi.android.globalminusscreen disable # 负一屏(App Vault, 资讯与广告)
+com.mi.globalminusscreen    disable   # 负一屏(国际版包名)
+com.miui.personalassistant  uninstall # 智能助理(负一屏, 含内容推荐)
+com.miui.hybrid            disable   # 小米快应用服务(诱导点击拉起全屏推广)
+com.miui.hybrid.accessory  disable   # 快应用辅助服务
+com.miui.yellowpage        disable   # 小米黄页(来电推荐与商业广告)
+com.miui.greenguard        disable   # 安全守护(扫描推广与弹窗)
+com.miui.thirdappassistant disable   # 第三方应用助手(推广)
+com.mi.globalbrowser       disable   # 小米浏览器(国际版包名)
+com.android.browser        uninstall # 小米浏览器(含资讯与广告; 常用浏览器者保留)
+com.mi.globalTrendNews     disable   # 资讯流(不存在会自动跳过)
+
+# ---------- 推荐: 预装应用(卸载, 可恢复) ----------
+com.miui.player            uninstall # 小米音乐
+com.miui.video             uninstall # 小米视频(含广告与内容推荐)
+com.miui.videoplayer       uninstall # 小米视频(部分版本包名)
+com.miui.weather2          uninstall # 小米天气(底部有广告; 需要桌面天气小组件者保留)
+com.miui.bugreport         uninstall # 问题反馈
+com.xiaomi.payment         uninstall # 小米支付(不使用小米支付可卸)
+com.xiaomi.jr              uninstall # 小米金融(借贷推广)
+com.mi.global.shop         uninstall # 小米商城
+com.mi.global.bbs          uninstall # 小米社区
+com.mi.global.pocostore    uninstall # POCO 商店(不存在会自动跳过)
+com.mi.health              uninstall # 小米运动健康(不用可卸)
+com.miui.fm                uninstall # 小米收音机
+com.miui.fmservice         uninstall # 收音机服务
+com.miui.translation.kingsoft uninstall # 翻译(金山词霸定制版)
+com.xiaomi.gamecenter      uninstall # 小米游戏中心(含游戏推广)
+com.mi.emapal              uninstall # 游戏模式追踪菜单(不存在会自动跳过)
+
+# ---------- 可选(按需保留) ----------
+com.xiaomi.ab              disable   # MAB 实验平台(A/B实验; 禁用后个别新特性不可用)
+com.miui.antispam          disable   # 来电拦截(依赖云标识; 常用拦截功能者保留)
+com.miui.phrase            disable   # 常用短语(输入框快捷粘贴)
+com.miui.touchassistant    disable   # 悬浮球(不用可卸)
+com.miui.contentextension  disable   # 传送门(长按识别图文)
+com.miui.virtualsim        disable   # 虚拟SIM(境外流量; 不出国可卸)
+com.miui.vsimcore          disable   # 虚拟SIM核心服务
+com.xiaomi.midrop          uninstall # 小米互传(不用文件快传可卸)
+com.xiaomi.scanner         uninstall # 小米扫一扫(常用扫码者保留)
+com.miui.userguide         uninstall # 使用指南
+com.miui.vipservice        uninstall # 我的服务(客服入口)
+com.miui.cit               uninstall # 硬件检测(工程模式入口)
+com.xiaomi.migameservice   uninstall # 游戏服务框架
+com.xiaomi.barrage         uninstall # 弹幕通知(游戏服务组件)
+
+# ---------- 谨慎操作(默认注释, 确有需要再取消注释) ----------
+# com.miui.cleaner         uninstall # 垃圾清理(手机管家组件, 卸载后清理功能不可用)
+# com.miui.cleanmaster     uninstall # 垃圾清理(旧版包名)
+# com.miui.backup          uninstall # 本地备份恢复(设置→更多设置→本地备份)
+# com.miui.cloudbackup     uninstall # 小米云备份(不用云备份可卸)
+# com.miui.cloudservice    uninstall # 小米云服务(不用云同步/查找手机可卸)
+# com.miui.micloudsync     uninstall # 小米云同步组件
+# com.miui.notes           uninstall # 小米笔记(自带笔记好用, 默认保留)
+# com.miui.compass         uninstall # 指南针
+# com.miui.screenrecorder  uninstall # 屏幕录制
+# com.miui.calculator      uninstall # 计算器(默认保留)
+# com.miui.huanji          uninstall # 小米换机(换机迁移需要, 默认保留)
+# com.xiaomi.smarthome     uninstall # 米家(智能家居用户必留)
+# com.xiaomi.mi_connect_service uninstall # 小米互联服务(IoT 设备联动)
+# com.miui.securityinputmethod disable   # 小米安全键盘(密码输入场景; 禁用后部分输入可能异常)
+# com.miui.smsextra        disable   # 短信扩展(依赖默认短信应用; 用第三方短信可卸)
+# com.xiaomi.simactivate.service disable # SIM 激活服务(影响查找设备/Mi 消息, 谨慎)
+# com.mi.webkit.core       disable   # MI WebView(卸载前必须装其他 WebView, 否则部分应用白屏)
+
+# ---------- 请勿操作(脚本安全规则会自动拒绝, 列此备查) ----------
+# com.miui.home            桌面
+# com.miui.securitycenter  手机管家(权限管理/拦截依赖它, 默认保留)
+# com.miui.core            系统核心

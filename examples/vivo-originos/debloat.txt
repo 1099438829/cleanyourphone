@@ -1,0 +1,33 @@
+# CleanYourPhone 清理列表 — vivo / iQOO (OriginOS 1-4 / Funtouch OS 10-13, 国行)
+# 用法: tools/disable.sh examples/vivo-originos/debloat.txt
+# 更多候选(自动生成): examples/vivo-originos/uad-recommended.txt
+
+# ---------- 推荐: 广告与统计服务(禁用) ----------
+com.vivo.magazine          disable   # vivo 锁屏画报/杂志壁纸(锁屏广告, 重点)
+com.vivo.space             disable   # vivo 营销中心/生活服务商业推广
+com.vivo.hiboard           disable   # 负一屏/智慧桌面资讯信息流
+
+# ---------- 推荐: 预装应用(卸载, 可恢复) ----------
+com.vivo.browser           uninstall # vivo 浏览器(含广告与资讯)
+com.vivo.game              uninstall # 游戏中心
+com.vivo.reader            uninstall # vivo 阅读(免费小说)
+com.vivo.gamewatch         uninstall # 游戏魔盒(可选)
+com.vivo.email             uninstall # 电子邮件(可选)
+com.vivo.music             uninstall # 音乐(可选)
+com.vivo.video             uninstall # 视频(可选)
+com.vivo.videoeditor       uninstall # 视频剪辑(可选)
+com.vivo.childrenmode      uninstall # 儿童模式(可选)
+com.bbk.appstore.game      uninstall # 游戏推荐服务
+
+# ---------- 可选(按需保留) ----------
+com.vivo.pushservice       disable   # vivo 营销推送通道(禁用后部分应用收不到推送, 按需)
+
+# ---------- 谨慎操作(默认注释, 确有需要再取消注释) ----------
+# com.vivo.easyshare       uninstall # 互传(换机需要, 默认保留)
+# com.vivo.doubleapp       uninstall # 应用分身(需要双开者保留)
+# com.bbk.account          uninstall # vivo 账号(卸载后云服务/查找手机可能不可用)
+# com.vivo.appstore        uninstall # 应用商店(默认保留)
+# com.vivo.wallet          uninstall # 钱包(默认保留)
+
+# ---------- 请勿操作(脚本安全规则会自动拒绝, 列此备查) ----------
+# com.vivo.launcher       桌面

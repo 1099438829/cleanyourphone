@@ -1,0 +1,29 @@
+# 全品牌通用: 常见含“摇一摇”流氓开屏广告的第三方应用清单
+# 用法: python3 tools/phone.py shake on
+# 原理: 通过 appops 限制这些 App 获取加速度计/陀螺仪/身体传感器数据,
+#       使其无法通过“摇一摇”触发开屏广告跳转; 不影响 App 其他功能。
+# 注意: 计步器、AR、运动健康类 App 若出现异常, 可单独还原:
+#       python3 tools/phone.py shake off <包名>
+
+com.tencent.mm                     # 微信
+com.taobao.taobao                  # 手机淘宝
+com.jingdong.app.mall              # 京东
+com.xunmeng.pinduoduo              # 拼多多
+com.zhihu.android                  # 知乎
+com.sina.weibo                     # 微博
+com.bilibili.app.in                # 哔哩哔哩
+com.xingin.xhs                     # 小红书
+com.autonavi.minimap               # 高德地图
+com.baidu.BaiduMap                 # 百度地图
+com.sankuai.meituan                # 美团
+com.dianping.v1                    # 大众点评
+com.ss.android.ugc.aweme           # 抖音
+com.kuaishou.nebula                # 快手极速版 / 快手
+com.netease.cloudmusic             # 网易云音乐
+com.tencent.qqmusic                # QQ音乐
+com.qiyi.video                     # 爱奇艺
+com.tencent.qqlive                 # 腾讯视频
+com.youku.phone                    # 优酷视频
+com.ximalaya.ting.android          # 喜马拉雅
+com.coolapk.market                 # 酷安
+com.dragon.read                    # 番茄免费小说

@@ -1,0 +1,25 @@
+# CleanYourPhone 清理列表 — 全品牌通用(Google 组件 / AOSP 内置 / 广告服务)
+# 用法: tools/disable.sh examples/universal/debloat.txt
+# 说明: 国行机型大多未预装 Google 组件, 本机不存在的包会自动跳过
+
+# ---------- 广告服务(禁用) ----------
+com.android.adservices      disable  # Android 广告服务(隐私沙盒/共享广告ID)
+
+# ---------- Google 预装(未使用可卸) ----------
+com.google.android.apps.tachyon uninstall # Google Duo(已停止服务)
+com.google.android.videos   uninstall # Google TV 影视(可选)
+com.google.android.music    uninstall # YouTube Music(可选)
+com.google.android.apps.wellbeing uninstall # 数字健康(可选)
+com.google.android.apps.turbo uninstall # 设备健康服务(可选)
+com.google.android.feedback uninstall # 反馈(安全)
+com.google.android.printservice.recommendation uninstall # 打印服务推荐(安全)
+com.google.ar.core          uninstall # ARCore(不使用 AR 应用可卸)
+com.google.android.googlequicksearchbox uninstall # Google 应用(信息流含推荐, 可选)
+
+# ---------- AOSP 内置(可选) ----------
+com.android.egg             uninstall # 安卓彩蛋(安全)
+com.android.soundrecorder   uninstall # 录音机(部分 ROM 无此包, 可选)
+com.android.email           uninstall # AOSP 邮件(可选)
+com.android.music           uninstall # AOSP 音乐(可选)
+com.android.dreams.phototable uninstall # 照片屏保(可选)
+com.android.dreams.basic    uninstall # 基本屏保(可选)

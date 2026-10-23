@@ -1,0 +1,36 @@
+# CleanYourPhone 清理列表 — 华为 (EMUI 10/11, HarmonyOS 2-5, 国行)
+# 用法: tools/disable.sh examples/huawei-harmonyos/debloat.txt
+# 注意: 华为对 com.huawei.* 系统应用保护较严, 卸不掉的会自动降级为禁用
+# 更多候选(自动生成): examples/huawei-harmonyos/uad-recommended.txt
+
+# ---------- 推荐: 预装应用(卸载, 可恢复) ----------
+com.huawei.browser         uninstall # 华为浏览器(资讯与广告较多)
+com.huawei.himovie         uninstall # 华为视频
+com.huawei.music           uninstall # 华为音乐
+com.huawei.tips            uninstall # 玩机技巧(服务/应用推荐)
+com.huawei.search          uninstall # 华为搜索(全局搜索, 含资讯与广告)
+com.huawei.imonitor        uninstall # 系统监测日志(不影响使用)
+com.huawei.parentcontrol   uninstall # 家长控制(可选)
+com.huawei.email           uninstall # 电子邮件(可选)
+
+# ---------- 推荐: 广告与统计服务(禁用) ----------
+com.huawei.livecontent     disable   # 情景智能(商业信息流)
+com.huawei.hms.analytics  disable   # HMS 遥测与数据分析上报(可选; 影响 HMS 统计)
+com.huawei.fastapp         disable   # 华为快应用(可选)
+
+# ---------- 可选(按需保留) ----------
+com.huawei.android.pushagent disable # 华为推送通道(禁用后部分应用收不到推送, 按需)
+com.huawei.welink          uninstall # WeLink(不用可卸)
+com.huawei.compass         uninstall # 指南针
+com.huawei.skytone         uninstall # 天际通(出境上网用户保留)
+com.huawei.smarthome       uninstall # 智慧生活(智能家居用户必留)
+
+# ---------- 谨慎操作(默认注释, 确有需要再取消注释) ----------
+# com.huawei.systemmanager uninstall # 手机管家(含广告; 卸载后清理/权限管理不可用, 谨慎)
+# com.huawei.hwid          uninstall # 华为账号(卸载后 HMS/云服务/查找设备可能不可用)
+# com.huawei.magazine      disable   # 杂志锁刊(锁屏画报; 也可在 设置→桌面和壁纸→杂志锁屏 关闭)
+
+# ---------- 请勿操作(脚本安全规则会自动拒绝, 列此备查) ----------
+# com.huawei.android.launcher  桌面
+# com.huawei.hicloud           云服务(查找手机依赖它, 默认保留)
+# com.huawei.appmarket         应用市场(默认保留)

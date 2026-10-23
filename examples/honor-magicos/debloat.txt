@@ -1,0 +1,30 @@
+# CleanYourPhone 清理列表 — 荣耀 (MagicOS 7/8/9, 部分包名与华为通用)
+# 用法: tools/disable.sh examples/honor-magicos/debloat.txt
+# 更多候选(自动生成): examples/honor-magicos/uad-recommended.txt
+
+# ---------- 推荐: 预装应用(卸载, 可恢复) ----------
+com.hihonor.browser        uninstall # 荣耀浏览器(含广告与资讯)
+com.hihonor.video          uninstall # 荣耀视频
+com.hihonor.music          uninstall # 荣耀音乐
+com.hihonor.tips           uninstall # 服务推荐(部分版本存在)
+com.hihonor.search         uninstall # 荣耀搜索(含资讯, 可选)
+com.hihonor.imonitor       uninstall # 系统监测日志
+com.hihonor.parentcontrol  uninstall # 家长控制(可选)
+
+# ---------- 推荐: 广告与统计服务(禁用) ----------
+com.hihonor.magazinelock   disable   # 荣耀杂志锁屏(锁屏画报广告; 也可在设置里关闭)
+com.hihonor.pushagent      disable   # 荣耀推送通道(可选; 禁用后部分应用收不到推送)
+
+# ---------- 可选(按需保留) ----------
+com.hihonor.compass        uninstall # 指南针
+com.hihonor.smarthome      uninstall # 智慧生活(智能家居用户必留)
+
+# ---------- 谨慎操作(默认注释, 确有需要再取消注释) ----------
+# com.hihonor.systemmanager uninstall # 手机管家(含广告, 卸载后清理/权限管理不可用, 谨慎)
+# com.hihonor.themestore   uninstall # 主题商店(需要字体/主题者保留)
+# com.hihonor.hwid         uninstall # 荣耀账号(卸载后云服务/查找设备可能不可用)
+# com.huawei.hwid          uninstall # 华为账号包名(老机型可能存在)
+
+# ---------- 请勿操作(脚本安全规则会自动拒绝, 列此备查) ----------
+# com.hihonor.launcher / com.hihonor.android.launcher  桌面
+# com.hihonor.cloud      云服务(查找手机依赖它, 默认保留)

@@ -1,0 +1,16 @@
+# CleanYourPhone 清理列表 — 魅族 (Flyme 9/10/AI, 国行)
+# 用法: tools/disable.sh examples/meizu-flyme/debloat.txt
+# 更多候选(自动生成): examples/meizu-flyme/uad-recommended.txt
+
+# ---------- 预装应用(卸载, 可恢复) ----------
+com.meizu.browser          uninstall # 魅族浏览器(含广告)
+com.meizu.media.video      uninstall # 视频
+com.meizu.reader           uninstall # 阅读(可选)
+
+# ---------- 谨慎操作(默认注释, 确有需要再取消注释) ----------
+# com.meizu.flyme.push     uninstall # Flyme 推送(卸载后部分应用收不到推送, 谨慎)
+
+# ---------- 请勿操作(脚本安全规则会自动拒绝, 列此备查) ----------
+# com.meizu.flyme.launcher 桌面
+# com.meizu.mstore         应用商店(默认保留)
+# com.meizu.cloud          云服务(默认保留)

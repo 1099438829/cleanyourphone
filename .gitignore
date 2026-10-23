@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.pyc
+
+# UAD-NG 同步缓存
+tools/uad_data_cache.json
+
+# 本地虚拟环境(如使用)
+tools/venv/
+.venv/
+
+# 运行时数据(备份与状态记录保存在用户目录, 不入库)
+.cleanyourphone/
+
+# 系统文件
+.DS_Store
+Thumbs.db
