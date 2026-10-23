@@ -9,6 +9,19 @@
 
 三层清理策略: **卸载预装应用** · **关闭广告与统计服务** · **设置级去广告 + 摇一摇封杀**。
 
+## 仓库地址
+
+| 平台 | 地址 |
+| --- | --- |
+| GitHub | https://github.com/1099438829/cleanyourphone |
+| Gitee(国内访问更快) | https://gitee.com/muziys/cleanyourphone |
+
+```bash
+git clone https://github.com/1099438829/cleanyourphone.git
+# 或
+git clone https://gitee.com/muziys/cleanyourphone.git
+```
+
 ---
 
 ## 原理
