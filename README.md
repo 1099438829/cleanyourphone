@@ -56,12 +56,44 @@ git clone https://gitee.com/muziys/cleanyourphone.git
 bash tools/install-adb.sh        # 或 brew install android-platform-tools
 ```
 
+> HarmonyOS NEXT 用的 hdc 不会自动下载(华为无公开直链): 装一个
+> [DevEco Studio](https://developer.huawei.com/consumer/cn/deveco-studio/)
+> 即可拿到命令行 hdc, 或用 `--hdc <路径>` 指过去。
+
 ## 前置条件(仅手机端)
 
 1. 设置 → 关于手机 → 连点"版本号"7 次 → 返回 → 系统/更多设置 → **开发者选项** → 打开 **USB 调试**
 2. 无线调试(Android 11+, 免数据线): 开发者选项 → 无线调试 → 配对码配对
    (`python3 tools/phone.py pair 192.168.x.x:端口 配对码`, 再 `connect 192.168.x.x:端口`)
 3. 首次连接在手机上点"允许"USB 调试授权
+
+## HarmonyOS NEXT(5.x 起): 没有 adb, 改用 hdc
+
+HarmonyOS NEXT 5.0 开始华为**移除了 adb**, 调试走 **hdc**(HarmonyOS Debug Bridge)。
+工具会自动探测: `adb` 连不上时若找到 hdc, 就切到 hdc 通道; 也可强制指定
+`--hdc /path/to/hdc`。
+
+```bash
+# 自动探测(先 adb 后 hdc), 无需额外参数
+python3 tools/phone.py doctor
+
+# 手动指定 hdc 路径(DevEco Studio 自带: DevEco Studio/sdk/default/.../hdc)
+python3 tools/phone.py --hdc ~/DevEcoStudio/sdk/default/hms/hdc packages
+```
+
+**NEXT 上的能力边界(bm 工具决定, 不是工具的锅)**:
+
+| 操作 | adb 通道(EMUI/HarmonyOS 4 及以下) | hdc 通道(NEXT 5.x+) |
+| --- | --- | --- |
+| 卸载 | `pm uninstall --user 0` | `bm uninstall -n <包名> -k`(保留数据) |
+| 禁用/挂起 | `pm disable-user` / `pm suspend` | **不支持**, 只能卸载 |
+| 区分预装分区 | `pm list packages -s -f` | 不支持, 按包名清单匹配 |
+| 恢复 | `pm install-existing` | 不支持, 需按品牌 README 手动重装 |
+| 系统设置/摇一摇 | `settings put` / `appops set` | 不支持, 按 README 手动改 |
+
+因此 HarmonyOS NEXT 上: 清单里写 `uninstall` 的条目正常执行; 写 `disable` 的条目
+工具会明确报告"bm 不支持禁用"而不是静默失败。华为鸿蒙请配合
+`examples/huawei-harmonyos/README.md` 里的手动开关使用。
 
 ## 快速开始
 
@@ -78,6 +110,9 @@ python3 tools/phone.py apply examples/xiaomi-hyperos/debloat.txt --dry-run
 
 # 2. 执行(自动先备份包列表与系统设置, 需输入 y 确认)
 tools/disable.sh examples/xiaomi-hyperos/debloat.txt
+
+# 2.5 或者更保守: 只冻结不删除(参考 Hail / FreezeYou, 随时可解冻)
+python3 tools/phone.py freeze --tier safe --apply
 
 # 3. 设置级去广告(关闭限制广告跟踪等, 旧值自动记录可还原)
 python3 tools/phone.py settings examples/xiaomi-hyperos/settings.conf
@@ -173,7 +208,7 @@ $ python3 tools/phone.py rom
 | --- | --- | --- | --- |
 | ColorOS / realme UI / OxygenOS | OPPO、一加、realme | `ro.build.version.oplusrom[.display]`、`ro.build.version.opporom`、`ro.build.version.realmeui` | 12.0(真机验证 13.1) |
 | MIUI / HyperOS | 小米、红米、POCO、黑鲨 | `ro.mi.os.version.name`(HyperOS)、`ro.miui.ui.version.name`(MIUI) | HyperOS 1(可比序 15) |
-| HarmonyOS / EMUI | 华为、老荣耀 | `hw_sc.build.platform.version`、`ro.build.version.emui` | 无(NEXT 5.x 不支持 adb) |
+| HarmonyOS / EMUI | 华为、老荣耀 | `hw_sc.build.platform.version`、`ro.build.version.emui` | NEXT 5.x 起改用 hdc(见下) |
 | MagicOS | 荣耀 | `ro.build.version.magic` | 8.0 |
 | OriginOS / Funtouch | vivo、iQOO | `ro.vivo.os.version`、`ro.build.version.funtouch` | 4.0 |
 | One UI | 三星国行 | `ro.build.version.oneui`(60100 → 6.1) | 无 |
@@ -217,7 +252,7 @@ com.heytap.browser              disable    [v>=12]  # 高版本只能禁用
 | 品牌/ROM | 列表目录 | 清理重点 |
 | --- | --- | --- |
 | 小米/红米/POCO MIUI、HyperOS | `examples/xiaomi-hyperos/` | MSA/遥测/锁屏画报、负一屏、视频/音乐/浏览器 |
-| 华为 EMUI、HarmonyOS 2-4 | `examples/huawei-harmonyos/` | 华为视频/音乐/搜索、玩机技巧、HMS 遥测 |
+| 华为 EMUI、HarmonyOS 2-5(NEXT 走 hdc) | `examples/huawei-harmonyos/` | 华为视频/音乐/搜索、玩机技巧、HMS 遥测 |
 | 荣耀 MagicOS 6-9 | `examples/honor-magicos/` | 杂志锁屏、浏览器/视频/音乐、推送通道 |
 | OPPO ColorOS 7-15 | `examples/oppo-coloros/` | 乐划锁屏、锁屏杂志、欢太统计、浏览器 |
 | 一加国行 ColorOS/OxygenOS | `examples/oneplus-coloros/` | 禅定模式、游戏空间、图标包、乐划锁屏 |
@@ -237,6 +272,61 @@ com.heytap.browser              disable    [v>=12]  # 高版本只能禁用
 部分目录含 `device-inventory.md` + `device-system-packages.txt`:
 真机拉取的系统应用清单与实测结论(见下节)。
 
+## 冻结列表: 不删除, 只是让它闭嘴
+
+参考 [Hail(雹)](https://github.com/aistra0528/Hail) 与
+[FreezeYou(自冻)](https://github.com/FreezeYou/FreezeYou) 的冻结语义:
+**冻结 = 应用无法启动, 但 APK 与数据都保留, 随时可以解冻**。
+适合"这个预装我不想用, 但也不敢删"的场景, 也是高版本 ROM(卸载被拦截时)
+唯一能彻底停掉它的手段。
+
+| 模式 | 命令 | 效果 | 解冻 |
+| --- | --- | --- | --- |
+| `disable`(默认) | `pm disable-user --user 0 <包>` | 应用从桌面消失, 不可启动 | `pm enable` |
+| `suspend`(兜底) | `pm suspend --user 0 <包>` | 图标变灰, 系统提示"已挂起" | `pm unsuspend` |
+| `hide` | `pm hide --user 0 <包>` | 需要 root 或设备所有者, adb 做不到 | 本工具不使用 |
+
+工具里的 `freeze` 动作 = `disable` + `am force-stop`, 禁用被 ROM 静默拒绝时
+自动降级为 `suspend`(与 Hail 的降级路径一致), 解冻统一用
+`pm enable` + `pm unsuspend` 双保险 —— Hail 的教训是**解冻必须覆盖实际生效的那个模式**。
+
+```bash
+# 1. 按冻结清单预演(只列清单, 不动手机)
+python3 tools/phone.py freeze --tier safe
+
+# 2. 执行(共 127 个候选, 按本机实际安装过滤; 需输入 y 确认)
+python3 tools/phone.py freeze --tier safe --apply
+
+# 3. 更全一点: safe + recommended(推送通道/内容预装/负一屏等, 影响明确)
+python3 tools/phone.py freeze --tier recommended --apply
+
+# 4. 按品牌过滤 / 手动保存清单再执行
+python3 tools/phone.py freeze --tier safe --brand xiaomi --write /tmp/xm-freeze.txt
+python3 tools/phone.py apply /tmp/xm-freeze.txt
+
+# 5. 解冻(冻结的包/卸载的包/改过的设置一起还原)
+python3 tools/phone.py restore --all
+```
+
+三级分级(数据在 `rules/freeze-packages.json`, 每条都带"冻结后影响"说明):
+
+| 分级 | 数量 | 含义 |
+| --- | --- | --- |
+| `safe` | 71 | 纯广告/统计/遥测/日志/工厂测试组件, 冻结后几乎无感知 |
+| `recommended` | 49 | 推送通道/内容预装/负一屏/快应用等, 影响明确可预期 |
+| `caution` | 7 | 会关掉某个功能(人脸解锁/推送/主题个性化), 冻结前先看影响 |
+
+`examples/freeze-recommended.txt` 是整理好的成品清单, 可直接
+`python3 tools/phone.py apply examples/freeze-recommended.txt`。
+清单由 `tools/build_freeze_db.py` 从 14 个品牌 debloat 列表的 `disable` 条目生成
+(即"这些包本来就是我们建议禁用的"), 手工分级表在
+`tools/freeze-curated.tsv`, 改完跑一次生成脚本即可。
+
+**不要冻结的**: 桌面/电话/短信/账号/同步适配器/GMS 等核心组件,
+见 `rules/freeze-packages.json` 的 `never_freeze` 段(与 `phone.py` 的
+`DENY_PATTERNS`/`PROTECTED_PACKAGES` 保持同步); 每次执行前还会动态保护
+**当前桌面、最近任务提供者、当前输入法**。
+
 ## 安全设计(来自 CleanYourAndroid 的护栏实践)
 
 1. **硬性拒绝名单**: 桌面、电话、短信、系统 UI、设置、WebView、GMS、账号体系等
@@ -247,27 +337,30 @@ com.heytap.browser              disable    [v>=12]  # 高版本只能禁用
    `~/.cleanyourphone/<序列号>/backup-时间戳/`
 4. **状态记录**: 每个被处理的包/设置/传感器限制都记录到 `~/.cleanyourphone/<序列号>/state.json`
 5. **降级策略**: `pm uninstall` 被 ROM 拒绝时自动降级为 `pm disable-user`;
-   `pm disable-user` 被 ROM 静默拒绝时自动降级为 `pm suspend`(挂起, 无法启动)
+   `pm disable-user` 被 ROM 静默拒绝时自动降级为 `pm suspend`(挂起, 无法启动);
+   冻结(`freeze`)被拒时同样降级为挂起, 解冻统一 `pm enable` + `pm unsuspend` 双保险
 6. **分批+截图**: `--batch N --screenshot` 每处理 N 个自动截图, 逐段验证不出事再继续
 7. **DNS 自愈**: Private DNS 开启后自动探测解析, 失败(网络封锁 853 端口)立即回退, 手机网络不受影响
 8. **确认与预演**: 非 `--dry-run` 执行前必须输入 y 确认; 管道/非交互环境默认拒绝
 9. **谨慎名单**(自动清单): 查找手机/支付/密码本/云服务/账号/系统更新/备份/语音识别/
    无障碍/设备认证/默认浏览器, 默认只提示不处理 —— UAD 常把这些标成"推荐", 删了会丢功能
 10. **版本门槛**(v2.2): 清单条目可带 `[v>=13]` 版本标注, 与当前 ROM 版本不符的直接跳过;
-    识别到不支持的版本(HarmonyOS NEXT)会拒绝执行而不是瞎试
+    HarmonyOS NEXT(5.x+)自动切 hdc 通道, bm 做不到的操作(禁用/挂起)明确报告不静默失败
 
 ## 工具一览(tools/)
 
 | 工具 | 作用 |
 | --- | --- |
-| `phone.py` | 核心工具(Python 标准库, 跨平台, 20 个子命令) |
+| `phone.py` | 核心工具(Python 标准库, 跨平台, 21 个子命令) |
 | `harvest.py` | 抓取聚合互联网 debloat 知识 -> `rules/known-packages.json` |
+| `build_freeze_db.py` | 由品牌清单 + `tools/freeze-curated.tsv` 生成冻结清单 -> `rules/freeze-packages.json` |
 | `clean.sh` | 全流程编排(备份→debloat→settings→shake, 可分阶段) |
 | `disable.sh` / `restore.sh` / `check.sh` | 应用/恢复/检查列表 |
 | `install-adb.sh` | 安装官方 Android 平台工具 |
 | `sync_uad.py` | 从 UAD-NG 社区数据库同步品牌候选列表(轻量版, 只要品牌候选时用它) |
 | `../rules/rom-profiles.json` | 版本规则库: 家族属性/版本说明/分版本动作覆盖 |
-| `../tests/test_phone.py` | 单元测试(模拟设备, 61 个用例): `python3 -I tests/test_phone.py` |
+| `../rules/freeze-packages.json` | 冻结清单: 127 个可冻结预装 + 分级/影响 + never_freeze 黑名单 |
+| `../tests/test_phone.py` | 单元测试(模拟设备, 90 个用例): `python3 -I tests/test_phone.py` |
 
 ## 真机实测(2026-10-23, OPPO PEQM00 / Android 13 / ColorOS 13)
 
@@ -294,8 +387,15 @@ com.heytap.browser              disable    [v>=12]  # 高版本只能禁用
 `uninstall --user 0` 让应用从当前用户消失(图标消失, 可恢复); `disable` 保留图标位置但停用组件。
 广告服务类建议 `disable`, 预装应用类用 `uninstall`。
 
+**Q: 那"冻结"又是什么? 和禁用一样吗?**
+`freeze` = `disable` + 强制停止, 语义上参考 Hail/FreezeYou: 应用不可启动、不进后台,
+但 APK 与数据都保留, `pm enable` 即解冻。适合"不敢删但也不想用它"的预装;
+高版本 ROM 卸载被拦截时, 冻结是唯一能彻底停掉它的手段。
+禁用被 ROM 拒绝时会自动降级为 `pm suspend`(挂起)。详见上文"冻结列表"。
+
 **Q: 怎么恢复?**
 `tools/restore.sh --all`(包+设置+传感器限制一并还原), 或恢复出厂设置。
+只解冻某几个包: `python3 tools/phone.py shell "pm enable --user 0 <包名>"`。
 
 **Q: OTA 升级后失效了怎么办?**
 `tools/check.sh <列表> --fix` 会检查哪些被厂商改回并重新应用。
@@ -327,8 +427,10 @@ com.heytap.browser              disable    [v>=12]  # 高版本只能禁用
 `ro.build.display.id` 里, 识别不出时会提示"未识别 ROM", 此时按 Android 版本保守处理。
 
 **Q: HarmonyOS NEXT 能用吗?**
-不能。HarmonyOS NEXT(5.x)移除了 adb, 改用 hdc + HAP 包格式, 本工具会直接提示不支持。
-HarmonyOS 4.x 及以下正常使用。
+可以, 但能力受限。NEXT(5.x)移除了 adb, 工具会自动切到 **hdc 通道**
+(或 `--hdc <路径>` 指定 DevEco Studio 自带的 hdc), 卸载走 `bm uninstall`;
+禁用/挂起/系统设置/摇一摇这些 bm 做不到的动作会明确报告"不支持", 需按
+`examples/huawei-harmonyos/README.md` 手动操作。HarmonyOS 4.x 及以下走 adb, 全部功能可用。
 
 **Q: `settings` 提示"该 ROM 禁止 adb 写入系统设置"?**
 实测 ColorOS 13 等 ROM 禁止 adb shell 写入 settings(SecurityException),
@@ -390,13 +492,15 @@ cleanyourphone/
 ├── rules/               规则库
 │   ├── known-packages.json   5009 个包的分级/描述/依赖/来源(harvest.py 生成)
 │   ├── rom-profiles.json     版本规则: 11 个 ROM 家族 + 分版本动作覆盖
+│   ├── freeze-packages.json  冻结清单: 127 个可冻结预装 + 分级/影响 + never_freeze
 │   ├── ALL-BLOAT.txt         人类可读全量清单(按厂商分组)
 │   └── harvest-report.md     抓取报告(来源与失败原因)
-├── tests/test_phone.py  单元测试(模拟设备, 61 个用例)
+├── tests/test_phone.py  单元测试(模拟设备, 90 个用例)
 └── examples/            各品牌列表 + settings.conf + 手动关广告/优化设置说明
     ├── xiaomi-hyperos/ huawei-harmonyos/ honor-magicos/ oppo-coloros/
     ├── oneplus-coloros/ realme-ui/ vivo-originos/ samsung-oneui-cn/ meizu-flyme/
     ├── zte-nubia/ moto-myiui/ lenovo-zui/ transsion-hios/ universal/
+    ├── freeze-recommended.txt  成品冻结清单(可直接 apply)
     ├── shake_apps.txt   全品牌摇一摇封杀清单(22 款 App)
     └── oppo-coloros/device-inventory.md  真机实测记录(OPPO PEQM00)
 ```
@@ -405,6 +509,9 @@ cleanyourphone/
 
 - 思路与组织方式参考 [CleanYourTV](https://github.com/Gathin23/cleanyourtv)(MIT)
 - 安全护栏与分批截图实践参考 [CleanYourAndroid](https://github.com/Bhargi777/cleanyourandroid)(MIT)
+- 冻结语义(disable/hide/suspend 三态、解冻同模式、降级路径)参考
+  [Hail(雹)](https://github.com/aistra0528/Hail)(GPL-3.0) 与
+  [FreezeYou(自冻)](https://github.com/FreezeYou/FreezeYou)(GPL-3.0)
 - 零门槛 adb、UAD-NG 同步、设置级去广告与摇一摇封杀参考
   [cleanyourphone(upfind)](https://github.com/upfind/cleanyourphone)(MIT)
 - 列表基于上述项目与社区 debloat 实践整理, MIT 许可, 详见 [LICENSE](LICENSE)

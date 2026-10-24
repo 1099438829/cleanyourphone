@@ -1,0 +1,141 @@
+# CleanYourPhone 推荐冻结清单(可冻结预装)
+#
+# 冻结 = 应用无法启动但不删除, 数据保留, 随时可恢复
+#   disable: 应用从桌面消失, 不可启动(默认)
+#   suspend: 图标变灰, 系统提示已挂起(禁用被拒时自动兜底)
+# 恢复: python3 tools/phone.py restore --all
+# 语义参考 Hail(aistra0528/Hail) 与 FreezeYou(FreezeYou/FreezeYou)
+# 用法: python3 tools/phone.py apply examples/freeze-recommended.txt
+
+# ================= safe 几乎无感知(71) =================
+com.hihonor.magazinelock freeze  # 杂志锁屏(锁屏画报广告)停用
+com.huawei.hms.analytics freeze  # 仅 HMS 统计少一份数据
+com.zui.bugtogo freeze  # 无感知(隐藏的数据采集)
+com.zui.deviceidservice freeze  # 无感知(设备 ID 与日志)
+com.zui.radioinfo freeze  # 无感知(隐藏硬件测试)
+com.zui.legalinfo freeze  # 无感知(隐私政策页(隐藏 Activity))
+com.motorola.demo.env freeze  # 无感知(演示模式环境)
+com.motorola.bug2go freeze  # 无感知(崩溃上报)
+com.motorola.bach.modemstats freeze  # 无感知(基带统计日志)
+com.motorola.dciservice freeze  # 无感知(IMS 信号测试与统计)
+com.motorola.appforecast freeze  # 无感知(内存/存储"优化"(伪优化))
+com.motorola.android.jvtcmd freeze  # 无感知(Java 测试命令)
+com.motorola.android.nativedropboxagent freeze  # 无感知(日志收集(与云盘无关))
+com.motorola.android.providers.chromehomepage freeze  # 无感知(Chrome 主页提供器)
+com.motorola.ccc.devicemanagement freeze  # 无感知(企业设备管理(MDM))
+com.motorola.ccc.mainplm freeze  # 无感知(产品生命周期上报)
+com.motorola.ccc.notification freeze  # 无感知(Moto 通知服务)
+com.oneplus.bttestmode freeze  # 无感知(蓝牙测试模式)
+com.oneplus.factorymode freeze  # 无感知(工厂模式)
+com.oneplus.factorymode.specialtest freeze  # 无感知(工程模式专项测试)
+com.oneplus.diagnosemanager freeze  # 无感知(诊断日志)
+com.oneplus.commonoverlay.com.oneplus freeze  # 无感知(调试用覆盖层)
+com.heytap.pictorial freeze [v>=12]  # 乐划锁屏(锁屏广告)停用; 锁屏恢复普通样式
+com.oplus.statistics.rom freeze [v>=12]  # ROM 统计上报停止
+com.coloros.lockscreen.magazine freeze [v<12]  # 锁屏杂志停用(12 起并入乐划锁屏)
+com.nearme.statistics freeze [v<12]  # 欢太数据统计上报停止(旧版包名)
+com.heytap.habit.analysis freeze  # 习惯分析与广告画像停采
+com.mediatek.gnssdebugreport freeze  # 无感知(MTK 定位调试日志上报(真机审计发现))
+com.oplus.onetrace freeze  # 追踪日志收集停止
+com.oplus.crashbox freeze  # 崩溃日志收集停止
+com.oplus.interconnectcollectkit freeze  # 互联设备数据收集停止
+com.google.android.printservice.recommendation freeze  # 无感知(Google 打印推荐服务(遥测))
+com.realme.logtool freeze  # 无感知(隐藏日志工具)
+com.transsion.aisettings freeze  # 无感知(AI 设置入口)
+com.transsion.chromecustomization freeze  # 无感知(Chrome 主页定制(用广告 ID))
+com.transsion.aftersalecalibrationtool freeze  # 无感知(售后校准)
+com.transsion.agingfunction freeze  # 无感知(老化测试)
+com.transsion.autotest.factory freeze  # 无感知(工厂硬件测试)
+com.transsion.deadcycletest freeze  # 无感知(死循环测试)
+com.transsion.hamal freeze  # 无感知(售后体验日志)
+com.android.adservices freeze  # 无感知; 仅广告 ID 不再共享
+com.vivo.magazine freeze  # 锁屏画报/杂志壁纸(锁屏广告)停止
+com.miui.analytics freeze  # 无感知; 仅小米侧统计少一份数据
+com.miui.systemAdSolution freeze  # 系统广告(MSA)停投; 系统应用内推广位变空白
+com.miui.msa.global freeze  # 系统广告(MSA)停投; 与 systemAdSolution 二选一存在
+com.miui.daemon freeze  # 无感知(仅数据上报停止)
+com.miui.misightservice freeze  # 无感知; 反馈 App 日志不再自动上传
+com.miui.spock freeze  # 无感知(后台统计分析(持续上传设备信息))
+com.miui.uireporter freeze  # 无感知(UI 埋点上报)
+com.miui.klo.blogreport freeze  # 无感知(KLO 崩溃日志上报(不存在会自动跳过))
+com.miui.tv.analytics freeze  # 无感知(手机端本就不存在)
+com.xiaomi.security.onetrack freeze  # 无感知(安全中心 OneTrack 统计)
+com.mfashiongallery.emag freeze  # 锁屏画报(动态广告壁纸)停止
+com.miui.android.fashiongallery freeze  # 杂志锁屏壁纸轮播停止
+com.miui.hybrid freeze  # 快应用容器停用; 快应用链接会提示无法打开
+com.miui.hybrid.accessory freeze  # 无感知(快应用辅助服务)
+com.miui.thirdappassistant freeze  # 第三方应用推广位停止
+com.mi.globalTrendNews freeze  # 资讯流停止
+cn.nubia.owlsystem freeze  # 无感知(努比亚数据采集(权限极多))
+cn.nubia.behaviordetection freeze  # 无感知(应用行为采集(广告画像))
+cn.nubia.identity freeze  # 无感知(个性化推荐)
+cn.nubia.contrycode freeze  # 无感知(国家码统计上报)
+cn.nubia.advanced freeze  # 无感知(隐藏的高级测试(蓝牙/WiFi))
+cn.nubia.factory freeze  # 无感知(工厂硬件测试)
+cn.nubia.autoagingtest freeze  # 无感知(老化测试)
+cn.nubia.aftersale freeze  # 无感知(售后调试(带定位权限))
+cn.nubia.error.dialog freeze  # 无感知(系统错误弹窗(不影响日志))
+com.zte.burntest.camera freeze  # 无感知(相机烧机测试)
+com.zte.emode freeze  # 无感知(工程模式)
+com.zte.emodeservice freeze  # 无感知(工程模式服务)
+com.zte.heartyservice.strategy freeze  # 无感知(健康服务策略(统计))
+
+# ================= recommended 推荐冻结(49) =================
+com.hihonor.pushagent freeze  # 推送通道停用; 部分应用收不到推送
+com.huawei.livecontent freeze  # 情景智能(商业信息流)停用
+com.huawei.fastapp freeze  # 快应用不可用
+com.huawei.android.pushagent freeze  # 推送通道停用; 部分应用收不到推送
+com.zui.game.service freeze  # 游戏服务(登录/统计)不可用
+com.zui.continuity freeze  # 手机-电脑互联不可用
+com.zui.freeform.sidebar freeze  # 自由窗口侧边栏不可用
+com.zui.camera.avatar freeze  # 相机虚拟形象不可用
+com.zui.camera.assistant freeze  # 相机助手不可用
+com.motorola.aiservices freeze  # Moto AI 服务不可用
+com.motorola.camera3.consent.ai freeze  # 相机 AI 授权流程不可用
+com.motorola.camera3.content.ai freeze  # 相机 AI 内容识别不可用
+com.oneplus.appupgrader freeze  # 内置应用更新器不可用(可用应用商店更新)
+com.heytap.browser freeze [v>=12]  # 浏览器不可用; 链接改用其它应用打开
+com.heytap.quicksearchbox freeze [v>=12]  # 全局/桌面搜索不可用(应用内搜索仍可用)
+com.heytap.yoli freeze [v>=12]  # 短视频信息流不可用
+com.heytap.mcs freeze  # 营销推送停止; 部分第三方推送也收不到
+com.coloros.video freeze  # 视频信息流不可用
+com.heytap.dictation freeze  # 语音听写不可用(键盘语音输入失效)
+com.android.adservices.api freeze  # 部分 App 取不到广告 ID, 广告相关性下降
+com.coloros.assistantscreen freeze  # 负一屏(智能助手)不可用, 桌面右滑空白
+com.samsung.android.app.spage freeze  # 智能助手/Samsung Free 负一屏停用
+com.transsion.dtsaudio freeze  # DTS 音效不可用
+com.transsion.dynamicbar freeze  # 灵动岛不可用
+com.transsion.auto freeze  # 驾驶模式不可用
+com.transsion.dualapp freeze  # 应用分身不可用
+com.transsion.audioshare freeze  # 蓝牙音频共享不可用
+com.vivo.space freeze  # 营销中心/生活服务商业推广停用
+com.vivo.hiboard freeze  # 负一屏信息流不可用
+com.vivo.pushservice freeze  # 营销推送停止; 部分第三方推送受影响
+com.xiaomi.aon freeze  # AON 事件追踪停止; 人脸/行为相关新特性可能不生效
+com.mi.android.globalminusscreen freeze  # 负一屏(App Vault/资讯)不可用
+com.mi.globalminusscreen freeze  # 负一屏(国际版)不可用
+com.miui.yellowpage freeze  # 黄页来电识别/商业推荐停止
+com.miui.greenguard freeze  # 扫描推广与弹窗的守护停止(仍可手动清理)
+com.mi.globalbrowser freeze  # 国际版浏览器不可用; 链接改用其它浏览器打开
+com.xiaomi.ab freeze  # A/B 实验平台停用; 个别灰度新特性不可用
+com.miui.phrase freeze  # 常用短语不可用
+com.miui.touchassistant freeze  # 悬浮球不可用
+com.miui.contentextension freeze  # 传送门(长按识别图文)不可用
+com.miui.virtualsim freeze  # 境外流量购买不可用(不出国无影响)
+com.miui.vsimcore freeze  # 境外流量核心服务不可用
+cn.nubia.hybrid freeze  # 快应用容器停用; 快应用链接打不开
+cn.nubia.entertainmenttoolbox freeze  # 娱乐工具箱不可用
+cn.nubia.neopush freeze  # 推送通道停用; 第三方推送可能受影响
+cn.nubia.doubleapp freeze  # 应用分身不可用
+cn.nubia.keymapcenter freeze  # 游戏按键映射(肩键)不可用
+com.zte.assistant freeze  # 语音助手不可用
+com.zte.beautify freeze  # 主题商店不可用(已下载主题保留)
+
+# ================= caution 冻结前先看影响(7) =================
+com.zui.homesettings freeze  # 桌面角标设置不可用
+com.zui.davdroid freeze  # iCloud 联系人/日历同步不可用
+com.heytap.push freeze  # 推送通道停用; 较多应用收不到推送
+com.oplus.customize.coreapp freeze  # 主题/字体等个性化可能异常
+com.samsung.android.sm.devicesecurity freeze  # 病毒扫描与推广弹窗均不可用
+com.miui.antispam freeze  # 来电拦截云标识更新停止, 拦截准确率下降
+com.zte.faceverify freeze  # 人脸解锁可能不可用

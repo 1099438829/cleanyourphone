@@ -1,0 +1,1741 @@
+{
+  "meta": {
+    "name": "CleanYourPhone 可冻结预装清单",
+    "generated_at": "2026-10-24T17:44:11",
+    "total": 127,
+    "concept": "冻结(freeze)= 让应用无法运行但不删除: pm disable-user 后应用消失且不可启动, 数据与 APK 都保留, pm enable 即恢复",
+    "tiers": {
+      "safe": "纯广告/统计/遥测/日志/测试组件, 冻结后几乎无感知",
+      "recommended": "推荐冻结, 影响明确且可预期(推送通道/内容预装/负一屏等)",
+      "caution": "会关掉某个功能, 冻结前先读 i(影响)字段"
+    },
+    "modes": {
+      "disable": "pm disable-user --user 0: 应用从桌面消失, 不可启动(默认)",
+      "suspend": "pm suspend --user 0: 图标变灰, 系统弹窗提示已挂起(部分 ROM 禁用被拒时兜底)",
+      "hide": "pm hide --user 0: 需要 root 或设备所有者, adb shell 做不到, 本工具不使用"
+    },
+    "sources": [
+      {
+        "id": "hail",
+        "note": "aistra0528/Hail: 冻结三态与工作模式矩阵; 解冻必须用同一模式; 恢复用 pm enable / pm unsuspend"
+      },
+      {
+        "id": "freezeyou",
+        "note": "FreezeYou/FreezeYou: 手动/计划任务冻结, 省电流畅"
+      },
+      {
+        "id": "cleanyourphone",
+        "note": "本项目 14 个品牌 debloat 清单中的 disable 条目"
+      }
+    ],
+    "warnings": [
+      "冻结不是删除: 图标与数据都还在, 随时可恢复",
+      "解冻必须用同一模式: disable 冻结的用 pm enable, suspend 挂起的用 pm unsuspend",
+      "suspend 只挡住用户交互, 不阻止后台运行; 要彻底停后台用 disable",
+      "冻结推送通道(如 com.heytap.push)会导致第三方应用收不到推送"
+    ]
+  },
+  "packages": {
+    "cn.nubia.advanced": {
+      "b": [
+        "zte"
+      ],
+      "t": "safe",
+      "r": "隐藏的高级测试(蓝牙/WiFi)",
+      "i": "无感知",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "cn.nubia.aftersale": {
+      "b": [
+        "zte"
+      ],
+      "t": "safe",
+      "r": "售后调试(带定位权限)",
+      "i": "无感知",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "cn.nubia.autoagingtest": {
+      "b": [
+        "zte"
+      ],
+      "t": "safe",
+      "r": "老化测试",
+      "i": "无感知",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "cn.nubia.behaviordetection": {
+      "b": [
+        "zte"
+      ],
+      "t": "safe",
+      "r": "应用行为采集(广告画像)",
+      "i": "无感知",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "cn.nubia.contrycode": {
+      "b": [
+        "zte"
+      ],
+      "t": "safe",
+      "r": "国家码统计上报",
+      "i": "无感知",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "cn.nubia.doubleapp": {
+      "b": [
+        "zte"
+      ],
+      "t": "recommended",
+      "r": "应用分身(需要分身功能则保留)",
+      "i": "应用分身不可用",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "cn.nubia.entertainmenttoolbox": {
+      "b": [
+        "zte"
+      ],
+      "t": "recommended",
+      "r": "娱乐工具箱(含统计)",
+      "i": "娱乐工具箱不可用",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "cn.nubia.error.dialog": {
+      "b": [
+        "zte"
+      ],
+      "t": "safe",
+      "r": "系统错误弹窗(不影响日志)",
+      "i": "无感知",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "cn.nubia.factory": {
+      "b": [
+        "zte"
+      ],
+      "t": "safe",
+      "r": "工厂硬件测试",
+      "i": "无感知",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "cn.nubia.hybrid": {
+      "b": [
+        "zte"
+      ],
+      "t": "recommended",
+      "r": "快应用/广告容器(中文组件多)",
+      "i": "快应用容器停用; 快应用链接打不开",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "cn.nubia.identity": {
+      "b": [
+        "zte"
+      ],
+      "t": "safe",
+      "r": "个性化推荐",
+      "i": "无感知",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "cn.nubia.keymapcenter": {
+      "b": [
+        "zte"
+      ],
+      "t": "recommended",
+      "r": "游戏按键映射(红魔游戏肩键相关)",
+      "i": "游戏按键映射(肩键)不可用",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "cn.nubia.neopush": {
+      "b": [
+        "zte"
+      ],
+      "t": "recommended",
+      "r": "努比亚推送(营销推送; 禁用后第三方推送可能受影响)",
+      "i": "推送通道停用; 第三方推送可能受影响",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "cn.nubia.owlsystem": {
+      "b": [
+        "zte"
+      ],
+      "t": "safe",
+      "r": "努比亚数据采集(权限极多)",
+      "i": "无感知",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.android.adservices": {
+      "b": [
+        "universal"
+      ],
+      "t": "safe",
+      "r": "Android 广告服务(隐私沙盒/共享广告ID)",
+      "i": "无感知; 仅广告 ID 不再共享",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.android.adservices.api": {
+      "b": [
+        "oppo"
+      ],
+      "t": "recommended",
+      "r": "Android 广告服务 API(部分 App 拿它取广告 ID, 卸了可能影响广告相关功能)",
+      "i": "部分 App 取不到广告 ID, 广告相关性下降",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.coloros.assistantscreen": {
+      "b": [
+        "oppo"
+      ],
+      "t": "recommended",
+      "r": "智能助手负一屏(资讯/卡片推荐; 关闭后负一屏不可用)",
+      "i": "负一屏(智能助手)不可用, 桌面右滑空白",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.coloros.lockscreen.magazine": {
+      "b": [
+        "oppo"
+      ],
+      "t": "safe",
+      "r": "ColorOS 11 及以下的锁屏杂志(12 起并入乐划锁屏)",
+      "i": "锁屏杂志停用(12 起并入乐划锁屏)",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ],
+      "v": [
+        "[v<12]"
+      ]
+    },
+    "com.coloros.video": {
+      "b": [
+        "oppo"
+      ],
+      "t": "recommended",
+      "r": "视频(内容推荐/信息流, 真机审计发现)",
+      "i": "视频信息流不可用",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.google.android.printservice.recommendation": {
+      "b": [
+        "oppo"
+      ],
+      "t": "safe",
+      "r": "Google 打印推荐服务(遥测)",
+      "i": "无感知",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.heytap.browser": {
+      "b": [
+        "oppo"
+      ],
+      "t": "recommended",
+      "r": "浏览器(高版本只能禁用)",
+      "i": "浏览器不可用; 链接改用其它应用打开",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ],
+      "v": [
+        "[v>=12]"
+      ]
+    },
+    "com.heytap.dictation": {
+      "b": [
+        "oppo"
+      ],
+      "t": "recommended",
+      "r": "语音听写(不用语音输入可卸)",
+      "i": "语音听写不可用(键盘语音输入失效)",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.heytap.habit.analysis": {
+      "b": [
+        "oppo"
+      ],
+      "t": "safe",
+      "r": "用户习惯分析与个性化广告画像",
+      "i": "习惯分析与广告画像停采",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.heytap.mcs": {
+      "b": [
+        "oppo"
+      ],
+      "t": "recommended",
+      "r": "欢太移动云推送(营销广告推送; 禁用后部分第三方推送也收不到, 按需)",
+      "i": "营销推送停止; 部分第三方推送也收不到",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.heytap.pictorial": {
+      "b": [
+        "oppo"
+      ],
+      "t": "safe",
+      "r": "乐划锁屏(锁屏广告)",
+      "i": "乐划锁屏(锁屏广告)停用; 锁屏恢复普通样式",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ],
+      "v": [
+        "[v>=12]"
+      ]
+    },
+    "com.heytap.push": {
+      "b": [
+        "oppo"
+      ],
+      "t": "caution",
+      "r": "推送服务(禁用后部分应用收不到推送, 谨慎)",
+      "i": "推送通道停用; 较多应用收不到推送",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.heytap.quicksearchbox": {
+      "b": [
+        "oppo"
+      ],
+      "t": "recommended",
+      "r": "全局搜索",
+      "i": "全局/桌面搜索不可用(应用内搜索仍可用)",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ],
+      "v": [
+        "[v>=12]"
+      ]
+    },
+    "com.heytap.yoli": {
+      "b": [
+        "oppo"
+      ],
+      "t": "recommended",
+      "r": "视频/短视频信息流(高版本卸载被拒, 直接禁用)",
+      "i": "短视频信息流不可用",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ],
+      "v": [
+        "[v>=12]"
+      ]
+    },
+    "com.hihonor.magazinelock": {
+      "b": [
+        "honor"
+      ],
+      "t": "safe",
+      "r": "荣耀杂志锁屏(锁屏画报广告; 也可在设置里关闭)",
+      "i": "杂志锁屏(锁屏画报广告)停用",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.hihonor.pushagent": {
+      "b": [
+        "honor"
+      ],
+      "t": "recommended",
+      "r": "荣耀推送通道(可选; 禁用后部分应用收不到推送)",
+      "i": "推送通道停用; 部分应用收不到推送",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.huawei.android.pushagent": {
+      "b": [
+        "huawei"
+      ],
+      "t": "recommended",
+      "r": "华为推送通道(禁用后部分应用收不到推送, 按需)",
+      "i": "推送通道停用; 部分应用收不到推送",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.huawei.fastapp": {
+      "b": [
+        "huawei"
+      ],
+      "t": "recommended",
+      "r": "华为快应用(可选)",
+      "i": "快应用不可用",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.huawei.hms.analytics": {
+      "b": [
+        "huawei"
+      ],
+      "t": "safe",
+      "r": "HMS 遥测与数据分析上报(可选; 影响 HMS 统计)",
+      "i": "仅 HMS 统计少一份数据",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.huawei.livecontent": {
+      "b": [
+        "huawei"
+      ],
+      "t": "recommended",
+      "r": "情景智能(商业信息流)",
+      "i": "情景智能(商业信息流)停用",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.mediatek.gnssdebugreport": {
+      "b": [
+        "oppo"
+      ],
+      "t": "safe",
+      "r": "MTK 定位调试日志上报(真机审计发现)",
+      "i": "无感知",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.mfashiongallery.emag": {
+      "b": [
+        "xiaomi"
+      ],
+      "t": "safe",
+      "r": "小米锁屏画报(锁屏动态广告壁纸)",
+      "i": "锁屏画报(动态广告壁纸)停止",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.mi.android.globalminusscreen": {
+      "b": [
+        "xiaomi"
+      ],
+      "t": "recommended",
+      "r": "负一屏(App Vault, 资讯与广告)",
+      "i": "负一屏(App Vault/资讯)不可用",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.mi.globalTrendNews": {
+      "b": [
+        "xiaomi"
+      ],
+      "t": "safe",
+      "r": "资讯流(不存在会自动跳过)",
+      "i": "资讯流停止",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.mi.globalbrowser": {
+      "b": [
+        "xiaomi"
+      ],
+      "t": "recommended",
+      "r": "小米浏览器(国际版包名)",
+      "i": "国际版浏览器不可用; 链接改用其它浏览器打开",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.mi.globalminusscreen": {
+      "b": [
+        "xiaomi"
+      ],
+      "t": "recommended",
+      "r": "负一屏(国际版包名)",
+      "i": "负一屏(国际版)不可用",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.miui.analytics": {
+      "b": [
+        "xiaomi"
+      ],
+      "t": "safe",
+      "r": "小米统计(行为统计/广告SDK)",
+      "i": "无感知; 仅小米侧统计少一份数据",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.miui.android.fashiongallery": {
+      "b": [
+        "xiaomi"
+      ],
+      "t": "safe",
+      "r": "锁屏壁纸轮播(杂志锁屏)",
+      "i": "杂志锁屏壁纸轮播停止",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.miui.antispam": {
+      "b": [
+        "xiaomi"
+      ],
+      "t": "caution",
+      "r": "来电拦截(依赖云标识; 常用拦截功能者保留)",
+      "i": "来电拦截云标识更新停止, 拦截准确率下降",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.miui.contentextension": {
+      "b": [
+        "xiaomi"
+      ],
+      "t": "recommended",
+      "r": "传送门(长按识别图文)",
+      "i": "传送门(长按识别图文)不可用",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.miui.daemon": {
+      "b": [
+        "xiaomi"
+      ],
+      "t": "safe",
+      "r": "MIUI 守护进程(数据采集上报)",
+      "i": "无感知(仅数据上报停止)",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.miui.greenguard": {
+      "b": [
+        "xiaomi"
+      ],
+      "t": "recommended",
+      "r": "安全守护(扫描推广与弹窗)",
+      "i": "扫描推广与弹窗的守护停止(仍可手动清理)",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.miui.hybrid": {
+      "b": [
+        "xiaomi"
+      ],
+      "t": "safe",
+      "r": "小米快应用服务(诱导点击拉起全屏推广)",
+      "i": "快应用容器停用; 快应用链接会提示无法打开",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.miui.hybrid.accessory": {
+      "b": [
+        "xiaomi"
+      ],
+      "t": "safe",
+      "r": "快应用辅助服务",
+      "i": "无感知",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.miui.klo.blogreport": {
+      "b": [
+        "xiaomi"
+      ],
+      "t": "safe",
+      "r": "KLO 崩溃日志上报(不存在会自动跳过)",
+      "i": "无感知",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.miui.misightservice": {
+      "b": [
+        "xiaomi"
+      ],
+      "t": "safe",
+      "r": "遥测与诊断收集(每日后台收发数据)",
+      "i": "无感知; 反馈 App 日志不再自动上传",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.miui.msa.global": {
+      "b": [
+        "xiaomi"
+      ],
+      "t": "safe",
+      "r": "小米广告服务 MSA(国际版/部分国行, 与上一行二选一存在)",
+      "i": "系统广告(MSA)停投; 与 systemAdSolution 二选一存在",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.miui.phrase": {
+      "b": [
+        "xiaomi"
+      ],
+      "t": "recommended",
+      "r": "常用短语(输入框快捷粘贴)",
+      "i": "常用短语不可用",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.miui.spock": {
+      "b": [
+        "xiaomi"
+      ],
+      "t": "safe",
+      "r": "后台统计分析(持续上传设备信息)",
+      "i": "无感知",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.miui.systemAdSolution": {
+      "b": [
+        "xiaomi"
+      ],
+      "t": "safe",
+      "r": "小米系统广告解决方案(MSA 国行版, 广告核心)",
+      "i": "系统广告(MSA)停投; 系统应用内推广位变空白",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.miui.thirdappassistant": {
+      "b": [
+        "xiaomi"
+      ],
+      "t": "safe",
+      "r": "第三方应用助手(推广)",
+      "i": "第三方应用推广位停止",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.miui.touchassistant": {
+      "b": [
+        "xiaomi"
+      ],
+      "t": "recommended",
+      "r": "悬浮球(不用可卸)",
+      "i": "悬浮球不可用",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.miui.tv.analytics": {
+      "b": [
+        "xiaomi"
+      ],
+      "t": "safe",
+      "r": "电视端统计(手机上不存在会自动跳过)",
+      "i": "无感知(手机端本就不存在)",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.miui.uireporter": {
+      "b": [
+        "xiaomi"
+      ],
+      "t": "safe",
+      "r": "UI 埋点上报",
+      "i": "无感知",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.miui.virtualsim": {
+      "b": [
+        "xiaomi"
+      ],
+      "t": "recommended",
+      "r": "虚拟SIM(境外流量; 不出国可卸)",
+      "i": "境外流量购买不可用(不出国无影响)",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.miui.vsimcore": {
+      "b": [
+        "xiaomi"
+      ],
+      "t": "recommended",
+      "r": "虚拟SIM核心服务",
+      "i": "境外流量核心服务不可用",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.miui.yellowpage": {
+      "b": [
+        "xiaomi"
+      ],
+      "t": "recommended",
+      "r": "小米黄页(来电推荐与商业广告)",
+      "i": "黄页来电识别/商业推荐停止",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.motorola.aiservices": {
+      "b": [
+        "moto"
+      ],
+      "t": "recommended",
+      "r": "Moto AI 服务",
+      "i": "Moto AI 服务不可用",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.motorola.android.jvtcmd": {
+      "b": [
+        "moto"
+      ],
+      "t": "safe",
+      "r": "Java 测试命令",
+      "i": "无感知",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.motorola.android.nativedropboxagent": {
+      "b": [
+        "moto"
+      ],
+      "t": "safe",
+      "r": "日志收集(与云盘无关)",
+      "i": "无感知",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.motorola.android.providers.chromehomepage": {
+      "b": [
+        "moto"
+      ],
+      "t": "safe",
+      "r": "Chrome 主页提供器",
+      "i": "无感知",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.motorola.appforecast": {
+      "b": [
+        "moto"
+      ],
+      "t": "safe",
+      "r": "内存/存储\"优化\"(伪优化)",
+      "i": "无感知",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.motorola.bach.modemstats": {
+      "b": [
+        "moto"
+      ],
+      "t": "safe",
+      "r": "基带统计日志",
+      "i": "无感知",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.motorola.bug2go": {
+      "b": [
+        "moto"
+      ],
+      "t": "safe",
+      "r": "崩溃上报",
+      "i": "无感知",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.motorola.camera3.consent.ai": {
+      "b": [
+        "moto"
+      ],
+      "t": "recommended",
+      "r": "相机 AI 授权",
+      "i": "相机 AI 授权流程不可用",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.motorola.camera3.content.ai": {
+      "b": [
+        "moto"
+      ],
+      "t": "recommended",
+      "r": "相机 AI 内容",
+      "i": "相机 AI 内容识别不可用",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.motorola.ccc.devicemanagement": {
+      "b": [
+        "moto"
+      ],
+      "t": "safe",
+      "r": "企业设备管理(MDM)",
+      "i": "无感知",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.motorola.ccc.mainplm": {
+      "b": [
+        "moto"
+      ],
+      "t": "safe",
+      "r": "产品生命周期上报",
+      "i": "无感知",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.motorola.ccc.notification": {
+      "b": [
+        "moto"
+      ],
+      "t": "safe",
+      "r": "Moto 通知服务",
+      "i": "无感知",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.motorola.dciservice": {
+      "b": [
+        "moto"
+      ],
+      "t": "safe",
+      "r": "IMS 信号测试与统计",
+      "i": "无感知",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.motorola.demo.env": {
+      "b": [
+        "moto"
+      ],
+      "t": "safe",
+      "r": "演示模式环境",
+      "i": "无感知",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.nearme.statistics": {
+      "b": [
+        "oppo"
+      ],
+      "t": "safe",
+      "r": "欢太数据统计与遥测上报(旧版包名)",
+      "i": "欢太数据统计上报停止(旧版包名)",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ],
+      "v": [
+        "[v<12]"
+      ]
+    },
+    "com.oneplus.appupgrader": {
+      "b": [
+        "oppo"
+      ],
+      "t": "recommended",
+      "r": "内置应用更新器",
+      "i": "内置应用更新器不可用(可用应用商店更新)",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.oneplus.bttestmode": {
+      "b": [
+        "oppo"
+      ],
+      "t": "safe",
+      "r": "蓝牙测试模式",
+      "i": "无感知",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.oneplus.commonoverlay.com.oneplus": {
+      "b": [
+        "oppo"
+      ],
+      "t": "safe",
+      "r": "调试用覆盖层",
+      "i": "无感知",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.oneplus.diagnosemanager": {
+      "b": [
+        "oppo"
+      ],
+      "t": "safe",
+      "r": "诊断日志",
+      "i": "无感知",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.oneplus.factorymode": {
+      "b": [
+        "oppo"
+      ],
+      "t": "safe",
+      "r": "工厂模式",
+      "i": "无感知",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.oneplus.factorymode.specialtest": {
+      "b": [
+        "oppo"
+      ],
+      "t": "safe",
+      "r": "工程模式专项测试",
+      "i": "无感知",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.oplus.crashbox": {
+      "b": [
+        "oppo"
+      ],
+      "t": "safe",
+      "r": "崩溃日志收集(遥测, 真机清单发现)",
+      "i": "崩溃日志收集停止",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.oplus.customize.coreapp": {
+      "b": [
+        "oppo"
+      ],
+      "t": "caution",
+      "r": "个性化定制核心(禁用后主题/字体等个性化可能异常, 谨慎)",
+      "i": "主题/字体等个性化可能异常",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.oplus.interconnectcollectkit": {
+      "b": [
+        "oppo"
+      ],
+      "t": "safe",
+      "r": "互联设备数据收集(遥测, 真机清单发现)",
+      "i": "互联设备数据收集停止",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.oplus.onetrace": {
+      "b": [
+        "oppo"
+      ],
+      "t": "safe",
+      "r": "追踪日志收集(遥测, 真机清单发现)",
+      "i": "追踪日志收集停止",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.oplus.statistics.rom": {
+      "b": [
+        "oppo"
+      ],
+      "t": "safe",
+      "r": "ROM 统计",
+      "i": "ROM 统计上报停止",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ],
+      "v": [
+        "[v>=12]"
+      ]
+    },
+    "com.realme.logtool": {
+      "b": [
+        "oppo"
+      ],
+      "t": "safe",
+      "r": "隐藏日志工具",
+      "i": "无感知",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.samsung.android.app.spage": {
+      "b": [
+        "samsung"
+      ],
+      "t": "recommended",
+      "r": "三星智能助手/Samsung Free(负一屏资讯广告, 重点)",
+      "i": "智能助手/Samsung Free 负一屏停用",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.samsung.android.sm.devicesecurity": {
+      "b": [
+        "samsung"
+      ],
+      "t": "caution",
+      "r": "McAfee 安全扫描(弹窗推广; 卸载后无病毒扫描, 按需)",
+      "i": "病毒扫描与推广弹窗均不可用",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.transsion.aftersalecalibrationtool": {
+      "b": [
+        "transsion"
+      ],
+      "t": "safe",
+      "r": "售后校准",
+      "i": "无感知",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.transsion.agingfunction": {
+      "b": [
+        "transsion"
+      ],
+      "t": "safe",
+      "r": "老化测试",
+      "i": "无感知",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.transsion.aisettings": {
+      "b": [
+        "transsion"
+      ],
+      "t": "safe",
+      "r": "AI 设置入口",
+      "i": "无感知",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.transsion.audioshare": {
+      "b": [
+        "transsion"
+      ],
+      "t": "recommended",
+      "r": "蓝牙音频共享",
+      "i": "蓝牙音频共享不可用",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.transsion.auto": {
+      "b": [
+        "transsion"
+      ],
+      "t": "recommended",
+      "r": "驾驶模式",
+      "i": "驾驶模式不可用",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.transsion.autotest.factory": {
+      "b": [
+        "transsion"
+      ],
+      "t": "safe",
+      "r": "工厂硬件测试",
+      "i": "无感知",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.transsion.chromecustomization": {
+      "b": [
+        "transsion"
+      ],
+      "t": "safe",
+      "r": "Chrome 主页定制(用广告 ID)",
+      "i": "无感知",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.transsion.deadcycletest": {
+      "b": [
+        "transsion"
+      ],
+      "t": "safe",
+      "r": "死循环测试",
+      "i": "无感知",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.transsion.dtsaudio": {
+      "b": [
+        "transsion"
+      ],
+      "t": "recommended",
+      "r": "DTS 音效(不用可禁)",
+      "i": "DTS 音效不可用",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.transsion.dualapp": {
+      "b": [
+        "transsion"
+      ],
+      "t": "recommended",
+      "r": "应用分身(需要则保留)",
+      "i": "应用分身不可用",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.transsion.dynamicbar": {
+      "b": [
+        "transsion"
+      ],
+      "t": "recommended",
+      "r": "灵动岛",
+      "i": "灵动岛不可用",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.transsion.hamal": {
+      "b": [
+        "transsion"
+      ],
+      "t": "safe",
+      "r": "售后体验日志",
+      "i": "无感知",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.vivo.hiboard": {
+      "b": [
+        "vivo"
+      ],
+      "t": "recommended",
+      "r": "负一屏/智慧桌面资讯信息流",
+      "i": "负一屏信息流不可用",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.vivo.magazine": {
+      "b": [
+        "vivo"
+      ],
+      "t": "safe",
+      "r": "vivo 锁屏画报/杂志壁纸(锁屏广告, 重点)",
+      "i": "锁屏画报/杂志壁纸(锁屏广告)停止",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.vivo.pushservice": {
+      "b": [
+        "vivo"
+      ],
+      "t": "recommended",
+      "r": "vivo 营销推送通道(禁用后部分应用收不到推送, 按需)",
+      "i": "营销推送停止; 部分第三方推送受影响",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.vivo.space": {
+      "b": [
+        "vivo"
+      ],
+      "t": "recommended",
+      "r": "vivo 营销中心/生活服务商业推广",
+      "i": "营销中心/生活服务商业推广停用",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.xiaomi.ab": {
+      "b": [
+        "xiaomi"
+      ],
+      "t": "recommended",
+      "r": "MAB 实验平台(A/B实验; 禁用后个别新特性不可用)",
+      "i": "A/B 实验平台停用; 个别灰度新特性不可用",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.xiaomi.aon": {
+      "b": [
+        "xiaomi"
+      ],
+      "t": "recommended",
+      "r": "AON 事件追踪(人脸/行为分析)",
+      "i": "AON 事件追踪停止; 人脸/行为相关新特性可能不生效",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.xiaomi.security.onetrack": {
+      "b": [
+        "xiaomi"
+      ],
+      "t": "safe",
+      "r": "安全中心 OneTrack 统计",
+      "i": "无感知",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.zte.assistant": {
+      "b": [
+        "zte"
+      ],
+      "t": "recommended",
+      "r": "中兴语音助手(不用可禁)",
+      "i": "语音助手不可用",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.zte.beautify": {
+      "b": [
+        "zte"
+      ],
+      "t": "recommended",
+      "r": "中兴主题(需要主题功能则保留)",
+      "i": "主题商店不可用(已下载主题保留)",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.zte.burntest.camera": {
+      "b": [
+        "zte"
+      ],
+      "t": "safe",
+      "r": "相机烧机测试",
+      "i": "无感知",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.zte.emode": {
+      "b": [
+        "zte"
+      ],
+      "t": "safe",
+      "r": "工程模式",
+      "i": "无感知",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.zte.emodeservice": {
+      "b": [
+        "zte"
+      ],
+      "t": "safe",
+      "r": "工程模式服务",
+      "i": "无感知",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.zte.faceverify": {
+      "b": [
+        "zte"
+      ],
+      "t": "caution",
+      "r": "人脸校验(用人脸解锁则保留)",
+      "i": "人脸解锁可能不可用",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.zte.heartyservice.strategy": {
+      "b": [
+        "zte"
+      ],
+      "t": "safe",
+      "r": "健康服务策略(统计)",
+      "i": "无感知",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.zui.bugtogo": {
+      "b": [
+        "lenovo"
+      ],
+      "t": "safe",
+      "r": "隐藏的数据采集",
+      "i": "无感知",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.zui.camera.assistant": {
+      "b": [
+        "lenovo"
+      ],
+      "t": "recommended",
+      "r": "相机助手",
+      "i": "相机助手不可用",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.zui.camera.avatar": {
+      "b": [
+        "lenovo"
+      ],
+      "t": "recommended",
+      "r": "相机虚拟形象",
+      "i": "相机虚拟形象不可用",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.zui.continuity": {
+      "b": [
+        "lenovo"
+      ],
+      "t": "recommended",
+      "r": "联想 One 手机-电脑互联",
+      "i": "手机-电脑互联不可用",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.zui.davdroid": {
+      "b": [
+        "lenovo"
+      ],
+      "t": "caution",
+      "r": "iCloud 联系人/日历同步",
+      "i": "iCloud 联系人/日历同步不可用",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.zui.deviceidservice": {
+      "b": [
+        "lenovo"
+      ],
+      "t": "safe",
+      "r": "设备 ID 与日志",
+      "i": "无感知",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.zui.freeform.sidebar": {
+      "b": [
+        "lenovo"
+      ],
+      "t": "recommended",
+      "r": "自由窗口侧边栏",
+      "i": "自由窗口侧边栏不可用",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.zui.game.service": {
+      "b": [
+        "lenovo"
+      ],
+      "t": "recommended",
+      "r": "游戏服务(登录/统计)",
+      "i": "游戏服务(登录/统计)不可用",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.zui.homesettings": {
+      "b": [
+        "lenovo"
+      ],
+      "t": "caution",
+      "r": "桌面角标设置(中文组件)",
+      "i": "桌面角标设置不可用",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.zui.legalinfo": {
+      "b": [
+        "lenovo"
+      ],
+      "t": "safe",
+      "r": "隐私政策页(隐藏 Activity)",
+      "i": "无感知",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    },
+    "com.zui.radioinfo": {
+      "b": [
+        "lenovo"
+      ],
+      "t": "safe",
+      "r": "隐藏硬件测试",
+      "i": "无感知",
+      "s": [
+        "cleanyourphone",
+        "hail",
+        "freezeyou"
+      ]
+    }
+  },
+  "never_freeze": {
+    "reason": "冻结这些包会导致桌面/通话/短信/账号同步等核心功能不可用; 与 tools/phone.py 的 DENY_PATTERNS/PROTECTED_PACKAGES 保持同步",
+    "patterns": [
+      "com.miui.home",
+      "com.android.launcher",
+      "com.hihonor.android.launcher",
+      "com.android.systemui",
+      "com.android.settings",
+      "com.android.phone",
+      "com.android.dialer",
+      "com.android.incallui",
+      "com.android.telecom",
+      "com.android.mms",
+      "com.android.messaging",
+      "com.android.contacts",
+      "com.miui.contentprovider",
+      "com.lbe.security.miui",
+      "com.xiaomi.account",
+      "com.huawei.hwid",
+      "com.heytap.usercenter",
+      "com.bbk.account",
+      "com.oplus.account",
+      "com.zhihu.inputmethod",
+      "com.baidu.input",
+      "com.sohu.inputmethod.sogou",
+      "com.google.android.gms",
+      "com.google.android.gsf"
+    ]
+  }
+}

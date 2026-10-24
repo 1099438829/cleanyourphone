@@ -36,14 +36,30 @@
 
 ## 四、版本差异(重要)
 
-| 版本 | adb 支持 | 说明 |
+| 版本 | 调试通道 | 说明 |
 | --- | --- | --- |
-| EMUI 10/11 (Android 10) | 可用 | 卸载基本可用 |
-| HarmonyOS 2 (Android 10-11) | 可用 | 开发者选项需打开「仅充电时允许 ADB 调试」 |
-| HarmonyOS 3 (Android 12) | 可用 | 部分预装卸载后会自动恢复, 用 `check --fix` |
-| HarmonyOS 4/4.2 (Android 12) | 可用 | 华为账号/云空间/钱包已列入谨慎名单 |
-| **HarmonyOS NEXT 5.x** | **不可用** | 已移除 adb, 改用 hdc + HAP 包格式, 本工具无法连接 |
+| EMUI 10/11 (Android 10) | adb | 卸载基本可用 |
+| HarmonyOS 2 (Android 10-11) | adb | 开发者选项需打开「仅充电时允许 ADB 调试」 |
+| HarmonyOS 3 (Android 12) | adb | 部分预装卸载后会自动恢复, 用 `check --fix` |
+| HarmonyOS 4/4.2 (Android 12) | adb | 华为账号/云空间/钱包已列入谨慎名单 |
+| **HarmonyOS NEXT 5.x** | **hdc** | 华为移除了 adb; 工具自动切 hdc 通道, 只能卸载(见下) |
 
-- 版本识别: `python3 tools/phone.py rom`(HarmonyOS NEXT 会直接提示不支持)
+- 版本识别: `python3 tools/phone.py rom`(NEXT 5.x 会提示改用 hdc)
 - 想确认版本: 设置 → 关于手机 → 版本号; 或 `adb shell getprop hw_sc.build.platform.version`
+
+### HarmonyOS NEXT 5.x: hdc 怎么用
+
+1. **装 hdc**: 电脑上装 [DevEco Studio](https://developer.huawei.com/consumer/cn/deveco-studio/),
+   命令行 hdc 在 `DevEco Studio/sdk/default/.../hdc`(macOS/Linux 下也可 `ln -s` 到 PATH)
+2. **手机端**: 设置 → 系统 → 开发者选项 → 打开「HDC 调试」, 插线后手机点允许
+3. **跑工具**(自动探测, 无需参数; 多通道时手动指定):
+   ```bash
+   python3 tools/phone.py doctor
+   python3 tools/phone.py --hdc ~/DevEcoStudio/sdk/default/hms/hdc apply examples/huawei-harmonyos/debloat.txt --dry-run
+   ```
+4. **能力边界**(bm 工具决定):
+   - 能: `bm uninstall -n <包名> -k` 卸载(保留数据), 恢复需按上文手动重装
+   - 不能: 禁用/挂起(`pm disable-user`/`pm suspend` 不存在)、`settings put` 系统设置、
+     `appops` 摇一摇封杀、区分预装分区 —— 这些请按本 README「一、关闭广告」手动操作
+   - 清单里 `disable` 条目会明确报告"bm 不支持禁用", 想处理就把动作改成 `uninstall`
 

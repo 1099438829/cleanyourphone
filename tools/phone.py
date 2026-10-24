@@ -156,15 +156,17 @@ def is_denied(pkg: str) -> bool:
 
 # ---------------------------------------------------------------------------
 # 清理列表解析
-# 行格式: <包名> [uninstall|disable] [[v>=13]] [# 注释]
+# 行格式: <包名> [uninstall|disable|freeze] [[v>=13]] [# 注释]
 #   - 行首 # 为注释, 空行忽略; 兼容 CRLF 与 UTF-8 BOM
 #   - 动作缺省为 uninstall
+#   - freeze = 冻结: pm disable-user + 强制停止, 应用不可启动但数据/APK 保留,
+#     pm enable 即恢复; 禁用被拒时自动降级 pm suspend(参考 Hail 的冻结语义)
 #   - 版本标注可写在行尾或注释里: [v>=13] [v<12] [v=13.1] [v12-13]
 #     版本不符的条目在 apply/check 时自动跳过(见 rom-profiles.json)
 # ---------------------------------------------------------------------------
 LIST_LINE_RE = re.compile(
     r"^(?P<pkg>[A-Za-z][A-Za-z0-9_]*(?:\.[A-Za-z0-9_]+)+)"   # 包名
-    r"(?:\s+(?P<action>uninstall|disable))?"                  # 可选动作
+    r"(?:\s+(?P<action>uninstall|disable|freeze))?"           # 可选动作
     r"(?:\s+(?P<gate>(?:\[[^\]]*\]\s*)+))?"                   # 可选版本标注
     r"(?:\s+#\s?(?P<comment>.*))?$"                           # 可选注释
 )
@@ -313,6 +315,8 @@ def ensure_adb(verbose=True) -> str:
 class Adb:
     """官方 adb 的轻量封装(仅使用标准库)。"""
 
+    transport = "adb"
+
     def __init__(self, adb_path=None, serial=None):
         self.adb = adb_path or ensure_adb()
         self.serial = serial
@@ -369,6 +373,213 @@ class Adb:
                 "raw": line,
             })
         return out
+
+
+# ---------------------------------------------------------------------------
+# hdc(HarmonyOS Debug Bridge)通道
+#   HarmonyOS NEXT 5.x 起只提供 hdc, 没有 adb; 包管理换成 bm 工具:
+#     hdc shell bm dump -a           列出所有已安装 bundle
+#     hdc shell bm uninstall -n 包名  卸载(可加 -k 保留数据)
+#     hdc shell bm clean -d -n 包名   清数据
+#   注意: bm 没有 pm 的 disable/suspend 能力, 也拿不到安装分区,
+#   因此 HarmonyOS NEXT 上"禁用/挂起/区分预装"都做不到, 只能卸载。
+# ---------------------------------------------------------------------------
+HDC_BIN_NAMES = ("hdc", "hdc_std", "hdc.exe", "hdc_std.exe")
+HDC_HINT = (
+    "未找到 hdc 工具。HarmonyOS NEXT(5.x)只能通过 hdc 调试:\n"
+    "  方式一: 安装 DevEco Studio, hdc 在其 sdk/default/openharmony/toolchains/ 下\n"
+    "          或安装「命令行工具」: https://device.harmonyos.com/cn/docs/apiref/"
+    "harmonyos-guides/ide-commandline-get\n"
+    "  方式二: 已有 hdc 时用环境变量指定: HDC=/path/to/hdc python3 tools/phone.py ..."
+)
+
+
+def _hdc_candidates() -> list:
+    paths = []
+    home = Path.home()
+    if platform.system() == "Darwin":
+        paths += [
+            home / "command-line-tools/sdk/default/toolchains",
+            home / "Library/Huawei/Sdk/toolchains",
+            Path("/Applications/DevEco-Studio.app/Contents/sdk/default/openharmony/toolchains"),
+            Path("/Applications/DevEco-Studio.app/Contents/sdk/hms/toolchains"),
+            Path("/Applications/DevEco Studio.app/Contents/sdk/default/openharmony/toolchains"),
+        ]
+    elif platform.system() == "Windows":
+        local = Path(os.environ.get("LOCALAPPDATA", str(home / "AppData/Local")))
+        paths += [
+            home / "command-line-tools/sdk/default/toolchains",
+            local / "Huawei/Sdk/toolchains",
+            Path("C:/DevEco Studio/sdk/default/openharmony/toolchains"),
+            Path("D:/DevEco Studio/sdk/default/openharmony/toolchains"),
+        ]
+    else:
+        paths += [
+            home / "command-line-tools/sdk/default/toolchains",
+            Path("/opt/command-line-tools/sdk/default/toolchains"),
+            Path("/usr/local/command-line-tools/sdk/default/toolchains"),
+        ]
+    return paths
+
+
+def ensure_hdc(verbose=True) -> str:
+    """返回可用的 hdc 路径(不自动下载: 工具包较大且版本相关, 引导安装)。"""
+    cand = os.environ.get("HDC")
+    if cand and Path(cand).exists():
+        return str(cand)
+    found = None
+    for name in HDC_BIN_NAMES:
+        found = shutil.which(name)
+        if found:
+            return found
+    for d in _hdc_candidates():
+        for name in HDC_BIN_NAMES:
+            p = d / name
+            try:
+                if p.is_file():
+                    return str(p)
+            except OSError:
+                continue
+    raise AdbError(HDC_HINT)
+
+
+class Hdc:
+    """hdc 的轻量封装, 接口与 Adb 对齐(transport="hdc")。"""
+
+    transport = "hdc"
+
+    def __init__(self, hdc_path=None, serial=None):
+        self.adb = hdc_path or ensure_hdc()
+        self.serial = serial
+
+    def _cmd(self, *args):
+        cmd = [self.adb]
+        if self.serial:
+            cmd += ["-t", self.serial]
+        return cmd + [str(a) for a in args]
+
+    def run(self, *args, timeout=120):
+        return subprocess.run(
+            self._cmd(*args), capture_output=True, text=True, timeout=timeout
+        )
+
+    def shell(self, command, timeout=120) -> str:
+        proc = self.run("shell", command, timeout=timeout)
+        return proc.stdout.strip().replace("\r", "")
+
+    def shell_all(self, command, timeout=120) -> str:
+        proc = self.run("shell", command, timeout=timeout)
+        return (proc.stdout + proc.stderr).strip().replace("\r", "")
+
+    def screenshot(self, path) -> Path:
+        p = Path(path)
+        p.parent.mkdir(parents=True, exist_ok=True)
+        tmp = "/data/local/tmp/cyp_shot.png"
+        out = self.shell(f"snapshot_display -f {tmp}")
+        if "fail" in out.lower() and "success" not in out.lower():
+            raise AdbError(f"截图失败: {out or '无输出'}(屏幕可能关闭, 请唤醒后重试)")
+        proc = self.run("file", "recv", tmp, str(p), timeout=60)
+        if not p.is_file() or p.stat().st_size == 0:
+            raise AdbError(f"截图保存失败: {proc.stderr.strip() or '无输出'}")
+        self.shell(f"rm -f {tmp}")
+        return p
+
+    def devices(self) -> list:
+        try:
+            proc = self.run("list", "targets")
+        except Exception:
+            return []
+        out = []
+        for line in proc.stdout.splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            serial = line.split()[0]
+            out.append({"serial": serial, "state": "device",
+                        "transport": "wifi" if ":" in serial else "usb",
+                        "raw": line})
+        return out
+
+
+def is_hdc(dev) -> bool:
+    return getattr(dev, "transport", "adb") == "hdc"
+
+
+def hdc_list_bundles(dev) -> set:
+    """`hdc shell bm dump -a` 解析出所有已安装 bundle 名。"""
+    out = dev.shell("bm dump -a")
+    pkgs = set()
+    for line in out.splitlines():
+        name = line.strip()
+        if not name or " " in name or not name.startswith(("com.", "cn.", "org.",
+                                                           "net.", "io.", "android.",
+                                                           "ohos.")):
+            continue
+        pkgs.add(name)
+    return pkgs
+
+
+def hdc_uninstall(dev, pkg: str) -> tuple:
+    """卸载 bundle(保留数据)。返回 (是否成功, 输出)。"""
+    out = dev.shell(f"bm uninstall -n {pkg} -k")
+    low = out.lower()
+    ok = ("uninstall bundle successfully" in low or "successfully" in low
+          or low.startswith("success"))
+    return ok, out
+
+
+def hdc_clean_data(dev, pkg: str) -> tuple:
+    out = dev.shell(f"bm clean -d -n {pkg}")
+    return "successfully" in out.lower(), out
+
+
+def pick_any_device(serial=None):
+    """自动选择通道: 先 adb, 再 hdc。返回 (adb_or_none, dev)。"""
+    problems = []
+    try:
+        adb_path = ensure_adb(verbose=False)
+        adb = Adb(adb_path)
+        devs = [d for d in adb.devices() if d["state"] == "device"]
+        if devs:
+            return adb, Adb(adb_path, pick_device(adb, serial))
+    except AdbError as e:
+        problems.append(f"adb: {e}")
+    except Exception as e:  # adb 存在但执行异常
+        problems.append(f"adb: {e}")
+    try:
+        hdc = Hdc()
+        devs = hdc.devices()
+        if devs:
+            if len(devs) > 1 and not serial:
+                raise AdbError(
+                    "检测到多台 HarmonyOS 设备, 请用 --serial 指定: "
+                    + ", ".join(d["serial"] for d in devs))
+            target = serial or devs[0]["serial"]
+            return None, Hdc(hdc.adb, target)
+    except AdbError as e:
+        problems.append(f"hdc: {e}")
+    except Exception as e:
+        problems.append(f"hdc: {e}")
+    detail = " | ".join(problems) if problems else "没有已连接的设备"
+    raise AdbError(
+        f"没有可用设备(adb 与 hdc 都没找到在线设备)。{detail}\n"
+        "Android 手机: 打开 USB 调试; HarmonyOS NEXT: 安装 hdc 并开启调试模式")
+
+
+def _need_device(args):
+    """需要设备的命令统一入口: adb 优先, HarmonyOS NEXT 走 hdc。"""
+    serial = getattr(args, "serial", None)
+    forced = getattr(args, "hdc", None)
+    if forced:
+        hdc = Hdc(forced)
+        devs = hdc.devices()
+        if not devs:
+            raise AdbError("指定了 --hdc 但没有找到 HarmonyOS 设备"
+                           "(请在手机上开启调试模式并信任此电脑)")
+        if len(devs) > 1 and not serial:
+            raise AdbError("检测到多台 HarmonyOS 设备, 请用 --serial 指定")
+        return None, Hdc(forced, serial or devs[0]["serial"])
+    return pick_any_device(serial)
 
 
 def pick_device(adb: Adb, serial=None) -> str:
@@ -523,7 +734,12 @@ def _ver_eq(a: tuple, b: tuple) -> bool:
 
 
 def read_all_props(dev: Adb) -> dict:
-    """一次 `getprop` 取全量属性 -> {键: 值}。失败返回 {}。"""
+    """一次 `getprop` 取全量属性 -> {键: 值}。失败返回 {}。
+
+    hdc 通道(HarmonyOS NEXT)没有 getprop, 改用 `param get` 取系统参数。
+    """
+    if is_hdc(dev):
+        return _read_all_params(dev)
     try:
         out = dev.shell("getprop")
     except Exception:
@@ -536,8 +752,39 @@ def read_all_props(dev: Adb) -> dict:
     return props
 
 
+PARAM_LINE_RE = re.compile(r"^([A-Za-z0-9_.\-]+)\s*[:=]\s*(.*)$")
+
+
+def _read_all_params(dev) -> dict:
+    """`hdc shell param get` 全量参数 -> {名: 值}。"""
+    try:
+        out = dev.shell("param get")
+    except Exception:
+        out = ""
+    props = {}
+    for line in out.splitlines():
+        m = PARAM_LINE_RE.match(line.strip())
+        if m:
+            props[m.group(1)] = m.group(2).strip()
+    if not props:  # 兜底: 逐个取关键参数
+        for key in ("const.ohos.version", "const.harmony.version",
+                    "const.product.software.model", "const.ohos.apiversion",
+                    "hw_sc.build.platform.version",
+                    "const.product.brand", "const.product.model",
+                    "const.product.manufacturer", "const.product.name"):
+            try:
+                v = dev.shell(f"param get {key}")
+            except Exception:
+                v = ""
+            if v and "fail" not in v.lower():
+                props[key] = v.strip()
+    return props
+
+
 def _norm_brand(props: dict) -> str:
-    for key in ("ro.product.brand", "ro.product.manufacturer", "ro.product.name"):
+    for key in ("ro.product.brand", "const.product.brand",
+                "ro.product.manufacturer", "const.product.manufacturer",
+                "ro.product.name", "const.product.name"):
         v = (props.get(key) or "").strip().lower()
         if v:
             return v.split()[0]
@@ -616,6 +863,18 @@ def _build_rom(family, cfg, raw, vt, edition, source, brand, android,
         if legacy_below:
             legacy = _ver_lt(gen, parse_version(legacy_below))
     unsupported = None
+    hdc_required = False
+    if cfg.get("hdc_from") and gen and not _ver_lt(
+            gen, parse_version(cfg["hdc_from"])):
+        # 只有"原生鸿蒙/OHOS"版本才走 hdc; EMUI 12 / MagicOS 8 这类基于
+        # Android 的版本号(12/8)远大于 5, 但 adb 完全可用, 不能误判
+        hdc_props = cfg.get("hdc_props") or []
+        hdc_native = bool(hdc_props) and (
+            source in hdc_props
+            or (edition or "") in ("HarmonyOS", "HarmonyOS NEXT", "OHOS"))
+        if hdc_native:
+            hdc_required = True
+            unsupported = cfg.get("hdc_note") or "该版本只提供 hdc 调试, 没有 adb"
     if cfg.get("unsupported_from") and gen and not _ver_lt(
             gen, parse_version(cfg["unsupported_from"])):
         eds = cfg.get("unsupported_editions")
@@ -660,20 +919,24 @@ def _build_rom(family, cfg, raw, vt, edition, source, brand, android,
         "uninstall_blocked_from": blocked,
         "protected_namespaces": cfg.get("protected_namespaces") or [],
         "unsupported": unsupported,
+        "hdc_required": hdc_required,
         "confidence": confidence,
         "verified": cfg.get("verified") or "",
     }
 
 
 def detect_rom(dev: Adb = None, props: dict = None, override: str = None,
-               profiles: dict = None) -> dict:
+               profiles: dict = None, channel: str = None) -> dict:
     """识别 ROM 家族与版本。override 形如 "13.1" 或 "coloros:13.1"(手动指定)。"""
     profiles = profiles or load_rom_profiles()
     families = profiles.get("families") or {}
     if props is None:
         props = read_all_props(dev) if dev is not None else {}
+    if channel is None:
+        channel = "hdc" if is_hdc(dev) else "adb"
     brand = _norm_brand(props)
-    android = (props.get("ro.build.version.release") or "").strip()
+    android = (props.get("ro.build.version.release")
+               or props.get("const.ohos.apiversion") or "").strip()
 
     rom = None
     if override:
@@ -716,15 +979,23 @@ def detect_rom(dev: Adb = None, props: dict = None, override: str = None,
             "uninstall_blocked_from": None, "protected_namespaces": [],
             "unsupported": None, "confidence": "unknown", "verified": "",
         }
+    rom["channel"] = channel
     return rom
 
 
-def rom_policy_lines(rom: dict) -> list:
+def rom_policy_lines(rom: dict, channel: str = None) -> list:
     """该 ROM 版本下的清理策略说明(给 CLI 打印)。"""
     if not rom or not rom.get("family"):
         return ["版本策略: 未识别 ROM 家族, 只按 Android 版本与包名安全规则处理"
                 "(可加 --rom-version coloros:13.1 手动指定)"]
+    if channel is None:
+        channel = rom.get("channel") or "adb"
     out = []
+    if rom.get("hdc_required"):
+        out.append(f"版本策略: {rom['display']} 只提供 hdc 调试(HarmonyOS Debug Bridge), "
+                   f"已{'切换到 hdc 通道' if channel == 'hdc' else '无法用 adb 连接'}")
+        out.append("          包管理用 bm: bm dump -a 列 bundle / bm uninstall -n 卸载; "
+                   "没有 disable/suspend, 也拿不到安装分区, 系统预装通常卸不掉")
     if rom.get("legacy"):
         out.append(f"版本策略: {rom['display']} 低于卸载拦截门槛"
                    f"(>= {rom.get('uninstall_blocked_from')}), "
@@ -735,7 +1006,7 @@ def rom_policy_lines(rom: dict) -> list:
                    "禁用被拒再挂起; 想少刷失败日志可加 --prefer-disable")
     else:
         out.append(f"版本策略: {rom['display']} 未记录卸载拦截, 按普通流程执行")
-    if rom.get("unsupported"):
+    if rom.get("unsupported") and not rom.get("hdc_required"):
         out.append(f"[不支持] {rom['unsupported']}")
     return out
 
@@ -838,7 +1109,10 @@ def get_props(dev: Adb, all_props: dict = None) -> dict:
     props = {}
     for key in INFO_PROPS:
         try:
-            props[key] = dev.shell(f"getprop {key}")
+            if is_hdc(dev):
+                props[key] = dev.shell(f"param get {key}")
+            else:
+                props[key] = dev.shell(f"getprop {key}")
         except Exception:
             props[key] = ""
     return props
@@ -847,17 +1121,21 @@ def get_props(dev: Adb, all_props: dict = None) -> dict:
 def describe_device(dev: Adb) -> dict:
     all_props = read_all_props(dev)
     props = get_props(dev, all_props)
-    brand = (props.get("ro.product.brand") or "").strip()
-    model = (props.get("ro.product.model") or "").strip()
+    brand = (props.get("ro.product.brand") or props.get("const.product.brand")
+             or "").strip()
+    model = (props.get("ro.product.model") or props.get("const.product.model")
+             or "").strip()
     rom_info = detect_rom(dev, props=all_props or props)
     example = BRAND_TO_EXAMPLE.get(brand.lower(), "examples/universal")
     return {
         "brand": brand, "model": model, "rom": rom_info.get("display") or "",
         "rom_info": rom_info,
         "marketname": props.get("ro.product.marketname", ""),
-        "android": props.get("ro.build.version.release", ""),
+        "android": props.get("ro.build.version.release", "")
+                   or props.get("const.ohos.apiversion", ""),
         "sdk": props.get("ro.build.version.sdk", ""),
-        "display": props.get("ro.build.display.id", ""),
+        "display": props.get("ro.build.display.id", "")
+                   or props.get("const.product.software.model", ""),
         "example": example,
         "props": props,
     }
@@ -911,7 +1189,13 @@ def current_ime(dev: Adb):
 
 
 def protected_targets(dev: Adb) -> dict:
-    """本次运行的动态保护目标: 桌面 / Recents / 输入法。"""
+    """本次运行的动态保护目标: 桌面 / Recents / 输入法。
+
+    hdc 通道(HarmonyOS NEXT)没有 pm resolve-activity / settings 命令,
+    动态保护拿不到, 只能依赖静态安全规则 + 人工确认。
+    """
+    if is_hdc(dev):
+        return {"home": None, "recents": None, "ime": None}
     return {
         "home": resolve_home(dev),
         "recents": resolve_recents(dev),
@@ -932,18 +1216,24 @@ def _parse_pm_list(out: str) -> set:
 
 
 def list_packages(dev: Adb) -> set:
-    """当前用户已安装的包。"""
+    """当前用户已安装的包。hdc 通道用 `bm dump -a` 列 bundle。"""
+    if is_hdc(dev):
+        return hdc_list_bundles(dev)
     return _parse_pm_list(dev.shell("pm list packages"))
 
 
 def list_disabled(dev: Adb) -> set:
-    """已被禁用的包。"""
+    """已被禁用的包。HarmonyOS NEXT 没有 disable 概念, 恒为空。"""
+    if is_hdc(dev):
+        return set()
     return _parse_pm_list(dev.shell("pm list packages -d"))
 
 
 def list_suspended(dev: Adb) -> set:
     """已被挂起(pm suspend)的包; 部分 ROM(如 ColorOS 乐划锁屏)禁止
     pm disable-user, 但允许 suspend, 挂起后应用无法启动, 效果等同禁用。"""
+    if is_hdc(dev):
+        return set()
     out = dev.shell("dumpsys package")
     pkgs = set()
     cur = None
@@ -998,6 +1288,21 @@ def backup_device(dev: Adb, label=None, base=HOME_DIR) -> Path:
     ts = now_ts()
     d = Path(base) / dev.serial / f"backup-{ts}"
     d.mkdir(parents=True, exist_ok=True)
+    if is_hdc(dev):
+        # HarmonyOS NEXT: 没有 pm list/settings/getprop, 用 bm dump -a 备份
+        (d / "bundles.txt").write_text(
+            dev.shell("bm dump -a") + "\n", encoding="utf-8")
+        (d / "packages.txt").write_text(
+            dev.shell("bm dump -a") + "\n", encoding="utf-8")
+        manifest = {
+            "serial": dev.serial, "label": label, "channel": "hdc",
+            "ts": dt.datetime.now().isoformat(timespec="seconds"),
+            "device": {k: v for k, v in get_props(dev).items() if v},
+            "home": None, "recents": None, "ime": None,
+        }
+        (d / "manifest.json").write_text(
+            json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
+        return d
     (d / "packages.txt").write_text(
         dev.shell("pm list packages -u -f") + "\n", encoding="utf-8")
     (d / "packages-disabled.txt").write_text(
@@ -1023,6 +1328,7 @@ def backup_device(dev: Adb, label=None, base=HOME_DIR) -> Path:
     manifest = {
         "serial": dev.serial,
         "label": label,
+        "channel": "adb",
         "ts": dt.datetime.now().isoformat(timespec="seconds"),
         "device": {k: v for k, v in get_props(dev).items() if v},
         "home": protect["home"],
@@ -1065,7 +1371,7 @@ def apply_list(dev: Adb, entries: list, list_file: str = "", dry_run: bool = Fal
             "标注了其他 ROM 版本的条目"
             f"({', '.join(e['pkg'] for e in skipped_version[:3])}"
             + (" ..." if len(skipped_version) > 3 else "") + ")")
-    for line in rom_policy_lines(rom):
+    for line in rom_policy_lines(rom, channel=getattr(dev, "transport", "adb")):
         log(f"[ROM] {line}")
     if protect.get("ime"):
         log(f"[保护] 当前输入法: {protect['ime']}(禁用后重启将无法解锁, 已加入保护)")
@@ -1077,7 +1383,7 @@ def apply_list(dev: Adb, entries: list, list_file: str = "", dry_run: bool = Fal
     state = load_state(dev.serial, base)
     result = {"ok": [], "skipped_deny": [], "skipped_missing": [],
               "skipped_protected": [], "skipped_version": skipped_version,
-              "already": [], "fail": []}
+              "skipped_unsupported": [], "already": [], "fail": []}
 
     if do_backup and not dry_run:
         bdir = backup_device(dev, label=f"before-apply:{list_file}", base=base)
@@ -1099,13 +1405,30 @@ def apply_list(dev: Adb, entries: list, list_file: str = "", dry_run: bool = Fal
             result["skipped_missing"].append(pkg)
             log(f"[跳过] {pkg} 未在本机安装(可能该机型/版本无此应用)")
             return
-        if action == "disable" and (pkg in disabled or pkg in suspended):
+        if action in ("disable", "freeze") and (pkg in disabled or pkg in suspended):
             result["already"].append(pkg)
             log(f"[跳过] {pkg} 已处于禁用/挂起状态")
             return
         if dry_run:
             result["ok"].append(pkg)
             log(f"[预演] {action:9s} {pkg}  # {e['comment']}")
+            return
+        if is_hdc(dev):
+            # HarmonyOS NEXT: 包管理只有 bm 工具, 没有 disable/suspend
+            if action != "uninstall":
+                result["skipped_unsupported"].append(pkg)
+                log(f"[不支持] {pkg}: HarmonyOS NEXT 的 bm 工具没有禁用/冻结/挂起能力, "
+                    "只能卸载(把列表里的 disable/freeze 改成 uninstall 再试)")
+                return
+            ok, out = hdc_uninstall(dev, pkg)
+            if ok:
+                record_pkg(state, pkg, "uninstall", list_file, base)
+                result["ok"].append(pkg)
+                log(f"[已卸载] {pkg}  # {e['comment']}")
+            else:
+                result["fail"].append(pkg)
+                log(f"[失败] {pkg}: {out.strip() or '无输出'}"
+                    "(系统 bundle 可能不允许卸载)")
             return
         if action == "uninstall":
             if (prefer_disable and rom.get("uninstall_ok") is False
@@ -1128,9 +1451,15 @@ def apply_list(dev: Adb, entries: list, list_file: str = "", dry_run: bool = Fal
         # 成功输出为 "new state: disabled-user"; 部分 ROM(如 ColorOS 的
         # 乐划锁屏)会返回 "new state: default" 静默拒绝, 退出码仍为 0
         if "disabled-user" in low:
+            if action == "freeze":
+                # 冻结 = 禁用 + 强制停止(参考 Hail: 冻结后应用不得在后台运行)
+                dev.shell(f"am force-stop {pkg}")
             record_pkg(state, pkg, action, list_file, base)
             result["ok"].append(pkg)
-            log(f"[已禁用] {pkg}  # {e['comment']}")
+            if action == "freeze":
+                log(f"[已冻结] {pkg}(不可启动, 数据保留; pm enable 可恢复)  # {e['comment']}")
+            else:
+                log(f"[已禁用] {pkg}  # {e['comment']}")
             return
         # 兜底: 改用 pm suspend 挂起(应用无法启动, 效果等同禁用)
         out2 = dev.shell(f"pm suspend --user 0 {pkg}")
@@ -1166,9 +1495,10 @@ def apply_list(dev: Adb, entries: list, list_file: str = "", dry_run: bool = Fal
         f"版本不符跳过 {len(result['skipped_version'])} | "
         f"已处于目标状态 {len(result['already'])} | 安全拒绝 "
         f"{len(result['skipped_deny']) + len(result['skipped_protected'])} | "
+        f"通道不支持 {len(result['skipped_unsupported'])} | "
         f"失败 {len(result['fail'])}")
     if result["fail"]:
-        log("失败项通常是因为该 ROM 受保护, 可尝试重启后重试或在列表中改为 disable。")
+        log("失败项通常是因为该 ROM 受保护, 可尝试重启后重试或在列表中改为 disable/freeze。")
     return result
 
 
@@ -1183,6 +1513,11 @@ def restore_pkgs(dev: Adb, pkgs: list, state: dict, base=HOME_DIR, log=print,
         info = state.get("packages", {}).get(pkg, {})
         action = info.get("action", "uninstall")
         if action == "uninstall":
+            if is_hdc(dev):
+                log(f"[未恢复] {pkg}: HarmonyOS NEXT 没有 install-existing, "
+                    "已卸载的 bundle 需在应用市场手动重装")
+                result["fail"].append(pkg)
+                continue
             out = dev.shell(f"cmd package install-existing --user 0 {pkg}")
             if "installed for user" in out.lower():
                 log(f"[已恢复] {pkg}")
@@ -1191,10 +1526,12 @@ def restore_pkgs(dev: Adb, pkgs: list, state: dict, base=HOME_DIR, log=print,
             else:
                 log(f"[未恢复] {pkg}: {out.strip() or '无输出'}")
                 result["fail"].append(pkg)
-        elif action == "suspend":
+        elif action in ("freeze", "suspend"):
+            # 冻结/挂起都用 enable + unsuspend 双保险解冻
+            # (Hail 的教训: 解冻必须覆盖实际生效的那个模式)
             dev.shell(f"pm unsuspend --user 0 {pkg}")
             dev.shell(f"pm enable --user 0 {pkg}")
-            log(f"[已恢复] {pkg}(取消挂起)")
+            log(f"[已解冻] {pkg}(取消挂起/禁用)")
             result["ok"].append(pkg)
             state.get("packages", {}).pop(pkg, None)
         else:
@@ -1203,28 +1540,32 @@ def restore_pkgs(dev: Adb, pkgs: list, state: dict, base=HOME_DIR, log=print,
             result["ok"].append(pkg)
             state.get("packages", {}).pop(pkg, None)
     if revert_extra:
-        for ns_key, old in list(state.get("settings", {}).items()):
-            ns, _, key = ns_key.partition(":")
-            if old in ("", "null"):
-                dev.shell_all(f"settings delete {ns} {key}")
-                log(f"[已还原] 设置 {ns} {key}(删除, 原值: {old or '空'})")
-                state["settings"].pop(ns_key, None)
-            else:
-                out = dev.shell_all(f"settings put {ns} {key} {old}")
-                back = dev.shell(f"settings get {ns} {key}")
-                if back == str(old):
-                    log(f"[已还原] 设置 {ns} {key} -> {old}")
+        if is_hdc(dev):
+            log("[提示] HarmonyOS NEXT 没有 settings/appops 命令, "
+                "设置与传感器限制需按 README 手动改回")
+        else:
+            for ns_key, old in list(state.get("settings", {}).items()):
+                ns, _, key = ns_key.partition(":")
+                if old in ("", "null"):
+                    dev.shell_all(f"settings delete {ns} {key}")
+                    log(f"[已还原] 设置 {ns} {key}(删除, 原值: {old or '空'})")
                     state["settings"].pop(ns_key, None)
                 else:
-                    hint = ("ROM 禁止 adb 写入系统设置, 请手动改回"
-                            if "SecurityException" in out or "not granted" in out
-                            else out)
-                    log(f"[未还原] 设置 {ns} {key}(期望 {old}, 实际 {back or '空'}): {hint}")
-        for pkg, ops in list(state.get("shake", {}).items()):
-            for op in ops:
-                dev.shell(f"appops set {pkg} {op} default")
-            log(f"[已还原] 传感器限制: {pkg}")
-            state["shake"].pop(pkg, None)
+                    out = dev.shell_all(f"settings put {ns} {key} {old}")
+                    back = dev.shell(f"settings get {ns} {key}")
+                    if back == str(old):
+                        log(f"[已还原] 设置 {ns} {key} -> {old}")
+                        state["settings"].pop(ns_key, None)
+                    else:
+                        hint = ("ROM 禁止 adb 写入系统设置, 请手动改回"
+                                if "SecurityException" in out or "not granted" in out
+                                else out)
+                        log(f"[未还原] 设置 {ns} {key}(期望 {old}, 实际 {back or '空'}): {hint}")
+            for pkg, ops in list(state.get("shake", {}).items()):
+                for op in ops:
+                    dev.shell(f"appops set {pkg} {op} default")
+                log(f"[已还原] 传感器限制: {pkg}")
+                state["shake"].pop(pkg, None)
     state["updated"] = dt.datetime.now().isoformat(timespec="seconds")
     save_state(state, base)
     return result
@@ -1249,6 +1590,7 @@ def check_list(dev: Adb, entries: list, fix: bool = False,
     protect = protected_targets(dev)
     protected = {p for p in protect.values() if p}
     rows = []
+    hdc_mode = is_hdc(dev)
     for e in entries:
         pkg, action = e["pkg"], e["action"]
         if is_denied(pkg) or pkg in protected:
@@ -1256,11 +1598,13 @@ def check_list(dev: Adb, entries: list, fix: bool = False,
         actual = state.get("packages", {}).get(pkg, {}).get("action", "")
         if pkg not in installed and action == "uninstall":
             cur, ok = "已卸载", True
+        elif hdc_mode and action != "uninstall":
+            cur, ok = "通道不支持(只能卸载)", False
         elif pkg in suspended:
-            cur, ok = "已挂起" + ("(卸载降级)" if action == "uninstall" else ""), True
-        elif action == "disable":
+            cur, ok = ("已挂起" if action != "uninstall" else "已挂起(卸载降级)"), True
+        elif action in ("disable", "freeze"):
             ok = pkg in disabled
-            cur = "已禁用" if ok else "仍启用"
+            cur = ("已冻结" if action == "freeze" else "已禁用") if ok else "仍启用"
         elif actual == "disable" and pkg in disabled:
             # 列表写 uninstall 但 ROM 禁止卸载, 执行时已降级为禁用
             cur, ok = "已禁用(卸载降级)", True
@@ -1647,7 +1991,12 @@ def preinstalled_packages(dev: Adb, include_third_party: bool = False) -> dict:
     默认只取 `pm list packages -s`(系统分区应用); include_third_party=True
     时把 /data/app 下的第三方包也纳入(部分国产 ROM 会把合作 App 预装到
     data 分区), 这类包无法与"用户自己安装"区分, 需谨慎。
+
+    hdc 通道(HarmonyOS NEXT): bm 拿不到安装分区, 只能列出全部已安装 bundle,
+    路径为空; 此时无法区分预装/自装, auto 会额外提示需人工核对。
     """
+    if is_hdc(dev):
+        return {pkg: "" for pkg in sorted(hdc_list_bundles(dev))}
     rows = _parse_pm_list_f(dev.shell("pm list packages -s -f"))
     if include_third_party:
         for pkg, path in _parse_pm_list_f(
@@ -1673,6 +2022,113 @@ def load_known_db(path=None) -> tuple:
 def default_action(pkg: str) -> str:
     low = pkg.lower()
     return "disable" if any(h in low for h in SERVICE_HINTS) else "uninstall"
+
+
+# ---------------------------------------------------------------------------
+# 冻结清单(可冻结预装) — rules/freeze-packages.json
+#
+# 冻结语义参考 Hail(aistra0528/Hail) 与 FreezeYou(FreezeYou/FreezeYou):
+#   freeze = 应用不可启动但不删除(数据/APK 保留), pm enable 即解冻
+#   三态: disable(默认) / suspend(禁用被拒时兜底) / hide(需 root, 本工具不用)
+# 生成/维护: python3 tools/build_freeze_db.py
+# ---------------------------------------------------------------------------
+FREEZE_DB_FILE = (Path(__file__).resolve().parent.parent
+                  / "rules" / "freeze-packages.json")
+FREEZE_TIERS = ("safe", "recommended", "caution")
+
+
+def load_freeze_db(path=None) -> tuple:
+    """读取可冻结清单, 返回 (meta, packages, never_freeze_patterns)。"""
+    p = Path(path) if path else FREEZE_DB_FILE
+    if not p.exists():
+        raise FileNotFoundError(
+            f"冻结清单不存在: {p}\n"
+            "请先运行: python3 tools/build_freeze_db.py")
+    data = json.loads(p.read_text(encoding="utf-8"))
+    pkgs = data.get("packages") or {}
+    if not isinstance(pkgs, dict) or not pkgs:
+        raise ValueError(f"冻结清单格式异常或为空: {p}")
+    never = data.get("never_freeze") or {}
+    return data.get("meta") or {}, pkgs, never.get("patterns") or []
+
+
+def freeze_candidates(dev: Adb, db: dict, tier: str = "safe",
+                      brands=None, rom: dict = None, log=print,
+                      never=None) -> dict:
+    """本机预装 ∩ 冻结清单, 按分级过滤。
+
+    tier: safe=只列几乎无感知的 / recommended=safe+推荐 / all=含 caution
+    never: never_freeze 包名/片段列表(默认从 db["never_freeze"] 取)
+    安全护栏(与 apply 一致): DENY 规则/显式核心清单/never_freeze/当前桌面等
+    """
+    if tier not in ("safe", "recommended", "all"):
+        raise ValueError(f"tier 必须是 safe/recommended/all, 收到 {tier!r}")
+    want = FREEZE_TIERS[:FREEZE_TIERS.index(tier) + 1] if tier != "all" \
+        else FREEZE_TIERS
+    if never is None:
+        nf = db.get("never_freeze") or []
+        never = nf.get("patterns") if isinstance(nf, dict) else nf
+    never = [p for p in (never or []) if p]
+    installed = preinstalled_packages(dev)
+    protect = protected_targets(dev)
+    prot = {p for p in protect.values() if p}
+    rom = rom if rom is not None else detect_rom(dev)
+    brands = {b.lower() for b in (brands or [])}
+    rows, skipped = [], []
+    for pkg in sorted(installed):
+        if is_denied(pkg) or pkg in prot:
+            continue
+        if any(p and p in pkg for p in never):
+            skipped.append(pkg)
+            continue
+        rec = db.get(pkg)
+        if not rec or rec.get("t") not in want:
+            continue
+        if brands and not (brands & {b.lower() for b in rec.get("b") or []}):
+            continue
+        rows.append({
+            "pkg": pkg, "tier": rec.get("t"), "action": "freeze",
+            "reason": rec.get("r") or "", "impact": rec.get("i") or "",
+            "brands": rec.get("b") or [], "gates": list(rec.get("v") or []),
+            "path": installed[pkg],
+        })
+    kept, skipped_ver = filter_entries_by_rom(
+        [{"pkg": r["pkg"], "action": "freeze", "gates": r["gates"],
+          "comment": r["impact"]} for r in rows], rom)
+    keep_pkgs = {e["pkg"] for e in kept}
+    rows = [r for r in rows if r["pkg"] in keep_pkgs]
+    order = {"safe": 0, "recommended": 1, "caution": 2}
+    rows.sort(key=lambda r: (order.get(r["tier"], 9), r["pkg"]))
+    return {"rows": rows, "installed": len(installed),
+            "skipped_never": skipped, "skipped_version":
+            [e["pkg"] for e in skipped_ver], "tier": tier, "rom": rom,
+            "protect": protect, "protected_hit": sorted(set(installed) & prot)}
+
+
+def write_freeze_list(rows: list, path, desc: dict) -> Path:
+    rom = desc.get("rom_info") or {}
+    lines = [
+        f"# CleanYourPhone 冻结清单 — {desc.get('brand','')} {desc.get('model','')}",
+        f"# 生成时间: {now_ts()}  Android {desc.get('android','')} "
+        f"{('ROM ' + desc['rom']) if desc.get('rom') else ''}",
+        "# 冻结 = 应用不可启动但不删除, 数据保留; 解冻: python3 tools/phone.py restore --all",
+        "# 语义参考 Hail(aistra0528/Hail) / FreezeYou(FreezeYou/FreezeYou)",
+    ]
+    if rom.get("display"):
+        lines.append(f"# ROM 版本: {rom['display']}"
+                     + (f"({rom.get('source')})" if rom.get("source") else ""))
+    lines.append("")
+    cur = None
+    for r in rows:
+        if r["tier"] != cur:
+            cur = r["tier"]
+            lines.append(f"# ---------- {cur} ----------")
+        note = (r["impact"] or r["reason"]).replace("\n", " ")[:90]
+        lines.append(f"{r['pkg']} freeze  # {note}".rstrip())
+    out = Path(path)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return out
 
 
 def heuristic_hit(pkg: str):
@@ -1889,6 +2345,9 @@ def build_parser() -> argparse.ArgumentParser:
         prog="phone.py",
         description="CleanYourPhone — 国产手机清理工具(无 root/不装软件/可逆)")
     ap.add_argument("--serial", "-s", help="指定设备序列号(多设备时必填)")
+    ap.add_argument("--hdc", metavar="路径",
+                    help="强制走 hdc 通道(HarmonyOS NEXT), 值为 hdc 可执行文件路径; "
+                         "也可用环境变量 HDC=/path/to/hdc")
     ap.add_argument("--version", action="version", version=f"CleanYourPhone {VERSION}")
     sub = ap.add_subparsers(dest="cmd", required=True)
 
@@ -1921,7 +2380,8 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser("backup", help="备份包列表与系统设置")
 
     p = sub.add_parser("apply", help="应用清理列表")
-    p.add_argument("list", help="列表文件, 如 examples/xiaomi-hyperos/debloat.txt")
+    p.add_argument("list", help="列表文件, 如 examples/xiaomi-hyperos/debloat.txt; "
+                                "动作可为 uninstall / disable / freeze")
     p.add_argument("--dry-run", action="store_true", help="只预演不执行")
     p.add_argument("--yes", "-y", action="store_true", help="跳过确认")
     p.add_argument("--no-backup", action="store_true", help="跳过自动备份(不建议)")
@@ -1976,6 +2436,25 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--no-legacy-uninstall", action="store_true",
                    help="低版本 ROM 上也不把内容类预装从「禁用」升级为「卸载」")
 
+    p = sub.add_parser("freeze", help="按冻结清单冻结预装应用(可恢复, 不删除)")
+    p.add_argument("--tier", default="safe",
+                   choices=["safe", "recommended", "all"],
+                   help="safe=几乎无感知(默认) / recommended=含推荐项 / all=含 caution")
+    p.add_argument("--brand", action="append", default=[], metavar="品牌",
+                   help="只处理指定品牌(可多次): xiaomi/oppo/vivo/huawei/honor/"
+                        "samsung/zte/moto/lenovo/transsion")
+    p.add_argument("--db", metavar="文件",
+                   help="指定冻结清单(默认 rules/freeze-packages.json)")
+    p.add_argument("--write", metavar="文件", help="清单保存路径")
+    p.add_argument("--apply", action="store_true",
+                   help="真正执行冻结(默认只列清单, 不动手机)")
+    p.add_argument("--dry-run", action="store_true", help="预演(与 --apply 连用)")
+    p.add_argument("--yes", "-y", action="store_true", help="执行时跳过确认")
+    p.add_argument("--limit", type=int, default=0, metavar="N",
+                   help="最多列出/处理 N 项(0=不限)")
+    p.add_argument("--rom-version", metavar="版本",
+                   help="手动指定 ROM 版本(如 13.1 或 coloros:13.1)")
+
     p = sub.add_parser("rom", help="识别 ROM 家族/版本, 查看该版本的清理策略")
     p.add_argument("--list", metavar="文件",
                    help="检查某个清理列表在本机版本下的适用性")
@@ -2003,32 +2482,38 @@ def build_parser() -> argparse.ArgumentParser:
     return ap
 
 
-def _need_device(args):
-    adb = Adb()
-    serial = pick_device(adb, args.serial)
-    return adb, Adb(adb.adb, serial)
-
-
 def cmd_doctor(args) -> int:
+    dev = None
+    adb_path = None
     try:
-        adb_path = ensure_adb()
-    except AdbError as e:
-        print(f"[失败] {e}")
+        adb_path = ensure_adb(verbose=False)
+    except AdbError:
+        adb_path = None
+    if adb_path:
+        adb = Adb(adb_path)
+        try:
+            serial = pick_device(adb, args.serial)
+            dev = Adb(adb_path, serial)
+            print(f"[OK] adb: {adb_path}")
+            print(f"[OK] 设备已连接: {serial}")
+        except AdbError as e:
+            print(f"[提示] adb: {e}")
+    if dev is None and not getattr(args, "serial", None):
+        # 没有 Android 设备时尝试 hdc(HarmonyOS NEXT)
+        try:
+            _, dev = pick_any_device(None)
+            print(f"[OK] hdc: {dev.adb}")
+            print(f"[OK] HarmonyOS 设备已连接: {dev.serial}")
+        except AdbError as e:
+            print(f"[提示] hdc: {e}")
+    if dev is None:
+        if not adb_path:
+            print("[失败] 没有找到 adb, 也没有找到 hdc。")
+            print("       Android 手机请安装 adb; HarmonyOS NEXT 请安装 hdc(见华为 README)。")
+        else:
+            print("[失败] 没有已连接的设备。Android 打开 USB 调试; "
+                  "HarmonyOS NEXT 安装 hdc 并开启调试模式。")
         return 2
-    print(f"[OK] adb: {adb_path}")
-    adb = Adb(adb_path)
-    try:
-        serial = pick_device(adb, args.serial)
-    except AdbError as e:
-        print(f"[失败] {e}")
-        devs = adb.devices()
-        if devs:
-            print("adb devices -l 输出:")
-            for d in devs:
-                print("   ", d["raw"])
-        return 2
-    print(f"[OK] 设备已连接: {serial}")
-    dev = Adb(adb_path, serial)
     desc = describe_device(dev)
     print(f"[OK] 品牌/型号: {desc['brand']} {desc['model']}")
     print(f"[OK] Android {desc['android']} (SDK {desc['sdk']})"
@@ -2037,7 +2522,8 @@ def cmd_doctor(args) -> int:
     if rom.get("family"):
         print(f"[OK] ROM 版本: {rom['display']}(识别自 {rom.get('source') or '?'}"
               f", 可信度 {rom.get('confidence')})")
-        for line in rom_policy_lines(rom):
+        for line in rom_policy_lines(
+                rom, channel=getattr(dev, "transport", "adb")):
             print(f"[版本] {line}")
     else:
         print("[提示] 未识别 ROM 家族, 只按 Android 版本与包名安全规则处理")
@@ -2045,12 +2531,18 @@ def cmd_doctor(args) -> int:
     for label, key in (("桌面", "home"), ("最近任务", "recents"), ("输入法", "ime")):
         if protect.get(key):
             print(f"[OK] 当前{label}: {protect[key]}(清理时自动保护)")
-    print(f"[建议] 清理列表: {desc['example']}")
-    print("[下一步] 预演: python3 tools/phone.py apply "
-          f"{desc['example']}/debloat.txt --dry-run")
-    print("         设置级去广告: python3 tools/phone.py settings "
-          f"{desc['example']}/settings.conf --dry-run")
-    print("         摇一摇封杀:   python3 tools/phone.py shake status")
+    if is_hdc(dev):
+        print("[提示] HarmonyOS NEXT: 只能卸载(bm uninstall), 不支持禁用/挂起, "
+              "恢复需在应用市场手动重装")
+        print("[下一步] 预演: python3 tools/phone.py apply "
+              f"{desc['example']}/debloat.txt --dry-run --hdc {dev.adb}")
+    else:
+        print(f"[建议] 清理列表: {desc['example']}")
+        print("[下一步] 预演: python3 tools/phone.py apply "
+              f"{desc['example']}/debloat.txt --dry-run")
+        print("         设置级去广告: python3 tools/phone.py settings "
+              f"{desc['example']}/settings.conf --dry-run")
+        print("         摇一摇封杀:   python3 tools/phone.py shake status")
     return 0
 
 
@@ -2060,6 +2552,7 @@ def cmd_info(args) -> int:
     protect = protected_targets(dev)
     rom = desc.get("rom_info") or {}
     print(f"序列号:   {dev.serial}")
+    print(f"通道:     {'hdc(HarmonyOS NEXT)' if is_hdc(dev) else 'adb'}")
     print(f"品牌:     {desc['brand']}")
     print(f"型号:     {desc['model']}"
           + (f"({desc['marketname']})" if desc.get("marketname") else ""))
@@ -2070,7 +2563,8 @@ def cmd_info(args) -> int:
               f"{'.'.join(str(x) for x in rom.get('generation') or ()) or '?'})")
         if rom.get("note"):
             print(f"版本说明: {rom['note']}")
-        for line in rom_policy_lines(rom):
+        for line in rom_policy_lines(
+                rom, channel=getattr(dev, "transport", "adb")):
             print(f"版本策略: {line}")
     print(f"Android:  {desc['android']} (SDK {desc['sdk']})")
     print(f"Build:    {desc['display'] or '未知'}")
@@ -2190,9 +2684,16 @@ def cmd_backup(args) -> int:
     return 0
 
 
-def _unsupported_rom(rom: dict) -> bool:
-    """该 ROM 版本不支持 adb 清理(如 HarmonyOS NEXT)时给出说明并返回 True。"""
+def _unsupported_rom(rom: dict, dev=None) -> bool:
+    """该 ROM 版本不支持清理时给出说明并返回 True。
+
+    HarmonyOS NEXT(5.x)走 hdc 通道时不算"不支持": bm 工具仍可卸载,
+    只是没有禁用/挂起能力, 由 apply 阶段逐条如实报告。
+    """
     if rom and rom.get("unsupported"):
+        if dev is not None and rom.get("hdc_required") and is_hdc(dev):
+            print("[提示] HarmonyOS NEXT: 当前为 hdc 通道, 只能卸载, 不支持禁用/挂起。")
+            return False
         print(f"[不支持] {rom['unsupported']}")
         return True
     return False
@@ -2203,7 +2704,7 @@ def cmd_apply(args) -> int:
     entries = parse_list_file(args.list)
     rom = detect_rom(dev, override=getattr(args, "rom_version", None))
     print(f"ROM: {rom.get('display') or '未识别'}")
-    if _unsupported_rom(rom):
+    if _unsupported_rom(rom, dev):
         return 2
     kept, skipped = filter_entries_by_rom(entries, rom)
     print(f"列表 {args.list} 共 {len(entries)} 个条目"
@@ -2260,7 +2761,7 @@ def cmd_check(args) -> int:
     entries = parse_list_file(args.list)
     rom = detect_rom(dev, override=getattr(args, "rom_version", None))
     print(f"ROM: {rom.get('display') or '未识别'}")
-    if _unsupported_rom(rom):
+    if _unsupported_rom(rom, dev):
         return 2
     if args.fix and not args.yes and not confirm("将对变化项重新执行操作, 继续? [y/N] "):
         print("已取消。")
@@ -2291,9 +2792,9 @@ def cmd_auto(args) -> int:
     rom = detect_rom(dev, override=getattr(args, "rom_version", None))
     print(f"设备: {desc['brand']} {desc['model']} | Android {desc['android']}"
           + (f" | ROM {desc['rom']}" if desc["rom"] else ""))
-    if _unsupported_rom(rom):
+    if _unsupported_rom(rom, dev):
         return 2
-    for line in rom_policy_lines(rom):
+    for line in rom_policy_lines(rom, channel=getattr(dev, "transport", "adb")):
         print(f"[ROM] {line}")
     print(f"知识库: {len(db)} 个包 (生成于 {meta.get('generated_at', '未知')})")
     print(f"力度: {args.tier} | 启发式: {'关' if args.no_heuristic else '开'} | "
@@ -2375,6 +2876,83 @@ def cmd_auto(args) -> int:
                for r in rows]
     apply_list(dev, entries, list_file=str(saved), base=HOME_DIR, rom=rom)
     print("\n恢复: python3 tools/phone.py restore --all")
+    return 0
+
+
+def cmd_freeze(args) -> int:
+    """冻结清单: 本机预装 ∩ rules/freeze-packages.json(可恢复, 不删除)。"""
+    _, dev = _need_device(args)
+    try:
+        meta, db, _never = load_freeze_db(args.db)
+    except (FileNotFoundError, ValueError) as e:
+        print(f"[失败] {e}")
+        return 2
+
+    desc = describe_device(dev)
+    rom = detect_rom(dev, override=getattr(args, "rom_version", None))
+    print(f"设备: {desc['brand']} {desc['model']} | Android {desc['android']}"
+          + (f" | ROM {desc['rom']}" if desc["rom"] else ""))
+    if _unsupported_rom(rom, dev):
+        return 2
+    for line in rom_policy_lines(rom, channel=getattr(dev, "transport", "adb")):
+        print(f"[ROM] {line}")
+    print(f"冻结清单: {len(db)} 个包 (生成于 {meta.get('generated_at', '未知')})")
+    print(f"分级: {args.tier}"
+          + (f" | 品牌过滤: {','.join(args.brand)}" if args.brand else ""))
+    print("冻结 = 应用不可启动但不删除, 数据保留; 解冻: "
+          "python3 tools/phone.py restore --all")
+
+    res = freeze_candidates(dev, db, tier=args.tier,
+                            brands=args.brand, rom=rom, never=_never)
+    rows = res["rows"]
+    if args.limit and args.limit > 0:
+        rows = rows[:args.limit]
+
+    print(f"\n本机预装 {res['installed']} 个, 命中可冻结 {len(rows)} 个")
+    for label, key in (("桌面", "home"), ("最近任务", "recents"), ("输入法", "ime")):
+        if res["protect"].get(key):
+            print(f"[保护] 当前{label}: {res['protect'][key]}")
+    if res["skipped_never"]:
+        print(f"[跳过] {len(res['skipped_never'])} 个命中 never_freeze 黑名单: "
+              f"{', '.join(res['skipped_never'][:5])}"
+              + (" ..." if len(res["skipped_never"]) > 5 else ""))
+    if res["skipped_version"]:
+        print(f"[版本] {len(res['skipped_version'])} 个因 ROM 版本不符跳过: "
+              f"{', '.join(res['skipped_version'][:5])}")
+
+    if not rows:
+        print("\n本机没有可冻结的预装应用(可能已全部处理过, 或不在清单内)。")
+        return 0
+
+    cur = None
+    for r in rows:
+        if r["tier"] != cur:
+            cur = r["tier"]
+            n = sum(1 for x in rows if x["tier"] == cur)
+            print(f"\n== {cur} ({n}) ==")
+        print(f"  freeze    {r['pkg']:44s} {r['impact'][:60]}")
+
+    out = Path(args.write) if args.write else (
+        Path(HOME_DIR) / dev.serial / "freeze-list.txt")
+    saved = write_freeze_list(rows, out, desc)
+    print(f"\n清单已保存: {saved}")
+
+    if not args.apply:
+        print("这是预演(未改动手机)。确认无误后执行:")
+        print(f"  python3 tools/phone.py freeze --tier {args.tier} --apply")
+        return 0
+    if args.dry_run:
+        print("[预演模式] 不会真正冻结。")
+    if not args.yes and not args.dry_run and not confirm(
+            f"将冻结 {len(rows)} 个预装应用(可恢复), 继续? [y/N] "):
+        print("已取消。")
+        return 1
+    entries = [{"pkg": r["pkg"], "action": "freeze", "comment": r["impact"]}
+               for r in rows]
+    apply_list(dev, entries, list_file=str(saved), base=HOME_DIR, rom=rom,
+               dry_run=args.dry_run)
+    if not args.dry_run:
+        print("\n解冻: python3 tools/phone.py restore --all")
     return 0
 
 
@@ -2460,7 +3038,7 @@ def main(argv=None) -> int:
         "tcpip": cmd_tcpip, "shell": cmd_shell, "packages": cmd_packages,
         "screenshot": cmd_screenshot, "backup": cmd_backup, "apply": cmd_apply,
         "restore": cmd_restore, "check": cmd_check, "audit": cmd_audit,
-        "auto": cmd_auto, "rom": cmd_rom,
+        "auto": cmd_auto, "rom": cmd_rom, "freeze": cmd_freeze,
         "settings": cmd_settings, "dns": cmd_dns, "shake": cmd_shake,
         "finish": cmd_finish,
     }

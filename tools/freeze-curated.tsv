@@ -1,0 +1,140 @@
+﻿# CleanYourPhone 冻结清单手工分级表
+# 格式: <包名>\t<分级>\t<冻结后影响>
+# 分级: safe=几乎无感知 / recommended=影响明确可预期 / caution=冻结前先读影响
+# 说明文字来自 examples/*/debloat.txt 的注释; 本表只补"分级+冻结影响"
+com.miui.analytics	safe	无感知; 仅小米侧统计少一份数据
+com.miui.systemAdSolution	safe	系统广告(MSA)停投; 系统应用内推广位变空白
+com.miui.msa.global	safe	系统广告(MSA)停投; 与 systemAdSolution 二选一存在
+com.miui.daemon	safe	无感知(仅数据上报停止)
+com.miui.misightservice	safe	无感知; 反馈 App 日志不再自动上传
+com.miui.spock	safe	无感知
+com.miui.uireporter	safe	无感知
+com.miui.klo.blogreport	safe	无感知
+com.miui.tv.analytics	safe	无感知(手机端本就不存在)
+com.xiaomi.security.onetrack	safe	无感知
+com.xiaomi.aon	recommended	AON 事件追踪停止; 人脸/行为相关新特性可能不生效
+com.xiaomi.ab	recommended	A/B 实验平台停用; 个别灰度新特性不可用
+com.mfashiongallery.emag	safe	锁屏画报(动态广告壁纸)停止
+com.miui.android.fashiongallery	safe	杂志锁屏壁纸轮播停止
+com.mi.globalTrendNews	safe	资讯流停止
+com.miui.thirdappassistant	safe	第三方应用推广位停止
+com.miui.yellowpage	recommended	黄页来电识别/商业推荐停止
+com.miui.greenguard	recommended	扫描推广与弹窗的守护停止(仍可手动清理)
+com.miui.virtualsim	recommended	境外流量购买不可用(不出国无影响)
+com.miui.vsimcore	recommended	境外流量核心服务不可用
+com.miui.contentextension	recommended	传送门(长按识别图文)不可用
+com.miui.phrase	recommended	常用短语不可用
+com.miui.touchassistant	recommended	悬浮球不可用
+com.miui.hybrid	safe	快应用容器停用; 快应用链接会提示无法打开
+com.miui.hybrid.accessory	safe	无感知
+com.miui.antispam	caution	来电拦截云标识更新停止, 拦截准确率下降
+com.mi.globalbrowser	recommended	国际版浏览器不可用; 链接改用其它浏览器打开
+com.mi.android.globalminusscreen	recommended	负一屏(App Vault/资讯)不可用
+com.mi.globalminusscreen	recommended	负一屏(国际版)不可用
+# ---- OPPO / 一加 / realme (ColorOS) ----
+com.heytap.habit.analysis	safe	习惯分析与广告画像停采
+com.oplus.statistics.rom	safe	ROM 统计上报停止
+com.nearme.statistics	safe	欢太数据统计上报停止(旧版包名)
+com.oplus.crashbox	safe	崩溃日志收集停止
+com.oplus.onetrace	safe	追踪日志收集停止
+com.oplus.interconnectcollectkit	safe	互联设备数据收集停止
+com.heytap.pictorial	safe	乐划锁屏(锁屏广告)停用; 锁屏恢复普通样式
+com.coloros.lockscreen.magazine	safe	锁屏杂志停用(12 起并入乐划锁屏)
+com.coloros.video	recommended	视频信息流不可用
+com.heytap.yoli	recommended	短视频信息流不可用
+com.heytap.browser	recommended	浏览器不可用; 链接改用其它应用打开
+com.heytap.quicksearchbox	recommended	全局/桌面搜索不可用(应用内搜索仍可用)
+com.heytap.dictation	recommended	语音听写不可用(键盘语音输入失效)
+com.heytap.mcs	recommended	营销推送停止; 部分第三方推送也收不到
+com.heytap.push	caution	推送通道停用; 较多应用收不到推送
+com.coloros.assistantscreen	recommended	负一屏(智能助手)不可用, 桌面右滑空白
+com.android.adservices	safe	无感知; 仅广告 ID 不再共享
+com.android.adservices.api	recommended	部分 App 取不到广告 ID, 广告相关性下降
+com.mediatek.gnssdebugreport	safe	无感知
+com.google.android.printservice.recommendation	safe	无感知
+com.oplus.customize.coreapp	caution	主题/字体等个性化可能异常
+com.oneplus.appupgrader	recommended	内置应用更新器不可用(可用应用商店更新)
+com.oneplus.bttestmode	safe	无感知
+com.oneplus.commonoverlay.com.oneplus	safe	无感知
+com.oneplus.diagnosemanager	safe	无感知
+com.oneplus.factorymode	safe	无感知
+com.oneplus.factorymode.specialtest	safe	无感知
+com.realme.logtool	safe	无感知
+# ---- vivo ----
+com.vivo.magazine	safe	锁屏画报/杂志壁纸(锁屏广告)停止
+com.vivo.space	recommended	营销中心/生活服务商业推广停用
+com.vivo.hiboard	recommended	负一屏信息流不可用
+com.vivo.pushservice	recommended	营销推送停止; 部分第三方推送受影响
+# ---- 华为 ----
+com.huawei.livecontent	recommended	情景智能(商业信息流)停用
+com.huawei.hms.analytics	safe	仅 HMS 统计少一份数据
+com.huawei.fastapp	recommended	快应用不可用
+com.huawei.android.pushagent	recommended	推送通道停用; 部分应用收不到推送
+# ---- 荣耀 ----
+com.hihonor.magazinelock	safe	杂志锁屏(锁屏画报广告)停用
+com.hihonor.pushagent	recommended	推送通道停用; 部分应用收不到推送
+# ---- 三星 ----
+com.samsung.android.app.spage	recommended	智能助手/Samsung Free 负一屏停用
+com.samsung.android.sm.devicesecurity	caution	病毒扫描与推广弹窗均不可用
+# ---- 中兴 / 努比亚 ----
+cn.nubia.advanced	safe	无感知
+cn.nubia.aftersale	safe	无感知
+cn.nubia.autoagingtest	safe	无感知
+cn.nubia.behaviordetection	safe	无感知
+cn.nubia.contrycode	safe	无感知
+cn.nubia.doubleapp	recommended	应用分身不可用
+cn.nubia.entertainmenttoolbox	recommended	娱乐工具箱不可用
+cn.nubia.error.dialog	safe	无感知
+cn.nubia.factory	safe	无感知
+cn.nubia.hybrid	recommended	快应用容器停用; 快应用链接打不开
+cn.nubia.identity	safe	无感知
+cn.nubia.keymapcenter	recommended	游戏按键映射(肩键)不可用
+cn.nubia.neopush	recommended	推送通道停用; 第三方推送可能受影响
+cn.nubia.owlsystem	safe	无感知
+com.zte.assistant	recommended	语音助手不可用
+com.zte.beautify	recommended	主题商店不可用(已下载主题保留)
+com.zte.burntest.camera	safe	无感知
+com.zte.emode	safe	无感知
+com.zte.emodeservice	safe	无感知
+com.zte.faceverify	caution	人脸解锁可能不可用
+com.zte.heartyservice.strategy	safe	无感知
+# ---- 摩托罗拉 ----
+com.motorola.aiservices	recommended	Moto AI 服务不可用
+com.motorola.android.jvtcmd	safe	无感知
+com.motorola.android.nativedropboxagent	safe	无感知
+com.motorola.android.providers.chromehomepage	safe	无感知
+com.motorola.appforecast	safe	无感知
+com.motorola.bach.modemstats	safe	无感知
+com.motorola.bug2go	safe	无感知
+com.motorola.camera3.consent.ai	recommended	相机 AI 授权流程不可用
+com.motorola.camera3.content.ai	recommended	相机 AI 内容识别不可用
+com.motorola.ccc.devicemanagement	safe	无感知
+com.motorola.ccc.mainplm	safe	无感知
+com.motorola.ccc.notification	safe	无感知
+com.motorola.dciservice	safe	无感知
+com.motorola.demo.env	safe	无感知
+# ---- 联想 ZUI ----
+com.zui.bugtogo	safe	无感知
+com.zui.camera.assistant	recommended	相机助手不可用
+com.zui.camera.avatar	recommended	相机虚拟形象不可用
+com.zui.continuity	recommended	手机-电脑互联不可用
+com.zui.davdroid	caution	iCloud 联系人/日历同步不可用
+com.zui.deviceidservice	safe	无感知
+com.zui.freeform.sidebar	recommended	自由窗口侧边栏不可用
+com.zui.game.service	recommended	游戏服务(登录/统计)不可用
+com.zui.homesettings	caution	桌面角标设置不可用
+com.zui.legalinfo	safe	无感知
+com.zui.radioinfo	safe	无感知
+# ---- 传音 ----
+com.transsion.aftersalecalibrationtool	safe	无感知
+com.transsion.agingfunction	safe	无感知
+com.transsion.aisettings	safe	无感知
+com.transsion.audioshare	recommended	蓝牙音频共享不可用
+com.transsion.auto	recommended	驾驶模式不可用
+com.transsion.autotest.factory	safe	无感知
+com.transsion.chromecustomization	safe	无感知
+com.transsion.deadcycletest	safe	无感知
+com.transsion.dtsaudio	recommended	DTS 音效不可用
+com.transsion.dualapp	recommended	应用分身不可用
+com.transsion.dynamicbar	recommended	灵动岛不可用
+com.transsion.hamal	safe	无感知

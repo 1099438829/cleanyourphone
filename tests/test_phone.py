@@ -4,6 +4,7 @@
 
 运行: python3 -I tests/test_phone.py
 """
+import json
 import subprocess
 import sys
 import tempfile
@@ -946,6 +947,355 @@ class RomVersionTest(unittest.TestCase):
             self.assertTrue(cfg.get("brands"), name)
         for pkg, ov in profiles["packages"].items():
             self.assertIn(ov["family"], profiles["families"], pkg)
+
+
+class FreezeListParseTest(unittest.TestCase):
+    def test_parse_freeze_action(self):
+        entries = phone.parse_list(
+            "# 冻结清单\ncom.miui.analytics freeze  # 统计\n"
+            "com.heytap.pictorial freeze [v>=12]  # 乐划锁屏\n")
+        self.assertEqual(entries[0]["action"], "freeze")
+        self.assertEqual(entries[0]["pkg"], "com.miui.analytics")
+        self.assertEqual(entries[1]["action"], "freeze")
+        self.assertEqual(entries[1]["gates"], [(">=", (12,))])
+
+    def test_parse_bad_action_rejected(self):
+        with self.assertRaises(ValueError):
+            phone.parse_list("com.miui.analytics nuke")
+
+
+class FreezeApplyTest(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.base = Path(self.tmp.name)
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def test_freeze_disables_and_force_stops(self):
+        """冻结 = disable + force-stop, 记录 action=freeze。"""
+        dev = FakeAdb(packages={"com.miui.analytics", "com.vivo.magazine"})
+        entries = phone.parse_list(
+            "com.miui.analytics freeze\ncom.vivo.magazine freeze")
+        logs = []
+        res = phone.apply_list(dev, entries, do_backup=False,
+                               base=self.base, log=logs.append)
+        self.assertEqual(sorted(res["ok"]),
+                         ["com.miui.analytics", "com.vivo.magazine"])
+        self.assertEqual(res["fail"], [])
+        self.assertEqual(dev._disabled,
+                         {"com.miui.analytics", "com.vivo.magazine"})
+        self.assertEqual(dev._suspended, set())
+        calls = [" ".join(c[1:]) for c in dev.calls]
+        self.assertIn("am force-stop com.miui.analytics", calls)
+        self.assertIn("am force-stop com.vivo.magazine", calls)
+        self.assertTrue(any("已冻结" in l for l in logs))
+        state = phone.load_state("FAKE123", self.base)
+        self.assertEqual(state["packages"]["com.miui.analytics"]["action"],
+                         "freeze")
+
+    def test_freeze_refused_falls_back_to_suspend(self):
+        """真机案例: ColorOS 乐划锁屏禁止禁用 -> 冻结自动降级为挂起。"""
+        dev = FakeAdb(packages={"com.heytap.pictorial"},
+                      refuse_disable={"com.heytap.pictorial"})
+        entries = phone.parse_list("com.heytap.pictorial freeze")
+        logs = []
+        res = phone.apply_list(dev, entries, do_backup=False,
+                               base=self.base, log=logs.append)
+        self.assertEqual(res["ok"], ["com.heytap.pictorial"])
+        self.assertIn("com.heytap.pictorial", dev._suspended)
+        self.assertNotIn("com.heytap.pictorial", dev._disabled)
+        state = phone.load_state("FAKE123", self.base)
+        self.assertEqual(state["packages"]["com.heytap.pictorial"]["action"],
+                         "suspend")
+
+    def test_freeze_already_disabled_skipped(self):
+        dev = FakeAdb(packages={"com.miui.analytics"},
+                      disabled={"com.miui.analytics"})
+        entries = phone.parse_list("com.miui.analytics freeze")
+        res = phone.apply_list(dev, entries, do_backup=False,
+                               base=self.base, log=lambda *a: None)
+        self.assertEqual(res["already"], ["com.miui.analytics"])
+
+    def test_freeze_then_restore(self):
+        dev = FakeAdb(packages={"com.miui.analytics"})
+        entries = phone.parse_list("com.miui.analytics freeze")
+        phone.apply_list(dev, entries, do_backup=False, base=self.base,
+                         log=lambda *a: None)
+        state = phone.load_state("FAKE123", self.base)
+        r = phone.restore_pkgs(dev, ["com.miui.analytics"], state,
+                               base=self.base, log=lambda *a: None)
+        self.assertEqual(r["ok"], ["com.miui.analytics"])
+        self.assertNotIn("com.miui.analytics", dev._disabled)
+        calls = [" ".join(c[1:]) for c in dev.calls]
+        self.assertIn("pm enable --user 0 com.miui.analytics", calls)
+        self.assertIn("pm unsuspend --user 0 com.miui.analytics", calls)
+        self.assertEqual(state["packages"], {})
+
+    def test_check_reports_frozen(self):
+        dev = FakeAdb(packages={"com.miui.analytics"},
+                      disabled={"com.miui.analytics"})
+        entries = phone.parse_list("com.miui.analytics freeze")
+        rows = phone.check_list(dev, entries, base=self.base,
+                                log=lambda *a: None)
+        self.assertTrue(rows[0]["ok"])
+        self.assertEqual(rows[0]["current"], "已冻结")
+
+
+class FreezeDbTest(unittest.TestCase):
+    """rules/freeze-packages.json 与 tools/freeze-curated.tsv 的约束。"""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.meta, cls.db, cls.never = phone.load_freeze_db()
+
+    def test_db_shape(self):
+        self.assertGreaterEqual(len(self.db), 100)
+        self.assertTrue(self.never)
+        for pkg, rec in self.db.items():
+            self.assertIn(rec["t"], phone.FREEZE_TIERS, pkg)
+            self.assertTrue(rec.get("i"), pkg)
+            self.assertTrue(rec.get("b"), pkg)
+            self.assertIn("hail", rec.get("s") or [], pkg)
+
+    def test_db_covers_brand_disable_entries(self):
+        """品牌清单里每条 disable 都必须在冻结清单中(冻结是其可逆替代)。"""
+        import re
+        re_line = re.compile(
+            r"^([A-Za-z][\w.]*)\s+disable\b")
+        missing = []
+        for path in sorted(Path(__file__).resolve().parent.parent.glob(
+                "examples/*/debloat.txt")):
+            for raw in path.read_text(encoding="utf-8").splitlines():
+                s = raw.strip()
+                if not s or s.startswith("#"):
+                    continue
+                m = re_line.match(s)
+                if m and m.group(1) not in self.db:
+                    missing.append(f"{path.parent.name}:{m.group(1)}")
+        self.assertEqual(missing, [])
+
+    def test_never_freeze_covers_core(self):
+        for pkg in ("com.miui.home", "com.android.systemui", "com.android.phone",
+                    "com.xiaomi.account", "com.google.android.gms"):
+            self.assertTrue(any(p in pkg for p in self.never), pkg)
+
+    def test_generated_list_is_applicable(self):
+        path = (Path(__file__).resolve().parent.parent
+                / "examples" / "freeze-recommended.txt")
+        self.assertTrue(path.exists())
+        entries = phone.parse_list(path.read_text(encoding="utf-8"), str(path))
+        self.assertGreaterEqual(len(entries), 100)
+        self.assertTrue(all(e["action"] == "freeze" for e in entries))
+
+
+class FreezeCandidatesTest(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.base = Path(self.tmp.name)
+        self.db = {
+            "com.miui.analytics": {"t": "safe", "r": "统计", "i": "无感知",
+                                   "b": ["xiaomi"]},
+            "com.miui.player": {"t": "recommended", "r": "音乐", "i": "音乐不可用",
+                                "b": ["xiaomi"]},
+            "com.heytap.push": {"t": "caution", "r": "推送", "i": "收不到推送",
+                                "b": ["oppo"]},
+            "com.miui.home": {"t": "safe", "r": "桌面", "i": "不可用",
+                              "b": ["xiaomi"]},
+        }
+        self.never = ["com.miui.home", "com.xiaomi.account"]
+        self.dev = FakeAdb(
+            packages={"com.miui.analytics", "com.miui.player", "com.heytap.push",
+                      "com.miui.home", "com.android.settings", "com.tencent.mm",
+                      "com.xiaomi.account"},
+            home="com.miui.home/.Launcher")
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def _run(self, **kw):
+        db = dict(self.db)
+        db["never_freeze"] = {"patterns": self.never}
+        with mock.patch.object(phone, "load_freeze_db",
+                               return_value=({"total": 4}, db, self.never)):
+            return phone.freeze_candidates(self.dev, db, **kw)
+
+    def test_tier_safe_only(self):
+        res = self._run(tier="safe")
+        pkgs = {r["pkg"] for r in res["rows"]}
+        self.assertEqual(pkgs, {"com.miui.analytics"})
+
+    def test_tier_recommended(self):
+        res = self._run(tier="recommended")
+        pkgs = {r["pkg"] for r in res["rows"]}
+        self.assertEqual(pkgs, {"com.miui.analytics", "com.miui.player"})
+
+    def test_tier_all_includes_caution(self):
+        res = self._run(tier="all")
+        pkgs = {r["pkg"] for r in res["rows"]}
+        self.assertEqual(pkgs, {"com.miui.analytics", "com.miui.player",
+                                "com.heytap.push"})
+
+    def test_brand_filter(self):
+        res = self._run(tier="all", brands=["oppo"])
+        self.assertEqual({r["pkg"] for r in res["rows"]}, {"com.heytap.push"})
+
+    def test_core_and_never_freeze_skipped(self):
+        res = self._run(tier="all")
+        rows = {r["pkg"] for r in res["rows"]}
+        self.assertNotIn("com.miui.home", rows)       # 当前桌面(动态保护)
+        self.assertNotIn("com.xiaomi.account", rows)  # never_freeze 黑名单
+        self.assertIn("com.xiaomi.account", res["skipped_never"])
+        self.assertNotIn("com.android.settings", rows)  # DENY 规则
+
+    def test_third_party_not_listed(self):
+        res = self._run(tier="all")
+        self.assertNotIn("com.tencent.mm", {r["pkg"] for r in res["rows"]})
+
+
+class FakeHdc(phone.Hdc):
+    """模拟 hdc 设备(HarmonyOS NEXT): bm 工具只能卸载, 没有 disable/suspend。"""
+
+    def __init__(self, bundles=(), props=None):
+        self._bundles = set(bundles)
+        self._props = dict(props or {})
+        self.calls = []
+        self.serial = "HDC456"
+        self.adb = "/fake/hdc"
+
+    def run(self, *args, timeout=120):
+        self.calls.append(args)
+        cmd = " ".join(str(a) for a in args)
+        out = ""
+        if "bm dump -a" in cmd:
+            out = "\n".join(sorted(self._bundles))
+        elif "bm uninstall" in cmd:
+            parts = cmd.split()
+            pkg = parts[parts.index("-n") + 1]
+            if pkg in self._bundles:
+                self._bundles.discard(pkg)
+                out = "uninstall bundle successfully."
+            else:
+                out = "error: bundle not found."
+        elif "param get" in cmd:
+            out = self._props.get(cmd.split()[-1], "")
+        return subprocess.CompletedProcess(
+            args=["hdc", *args], returncode=0, stdout=out, stderr="")
+
+
+class HdcChannelTest(unittest.TestCase):
+    """HarmonyOS NEXT 5.x: 无 adb, 走 hdc; bm 只能卸载。"""
+
+    def setUp(self):
+        self.dev = FakeHdc(bundles={
+            "com.huawei.video", "com.huawei.music", "com.huawei.search",
+            "com.huawei.hwid", "ohos.example.hello"})
+
+    def test_is_hdc(self):
+        self.assertTrue(phone.is_hdc(self.dev))
+        self.assertFalse(phone.is_hdc(FakeAdb(packages={"com.a.b"})))
+
+    def test_hdc_list_bundles(self):
+        pkgs = phone.hdc_list_bundles(self.dev)
+        self.assertEqual(pkgs, {"com.huawei.video", "com.huawei.music",
+                                "com.huawei.search", "com.huawei.hwid",
+                                "ohos.example.hello"})
+
+    def test_hdc_uninstall_ok_and_missing(self):
+        ok, out = phone.hdc_uninstall(self.dev, "com.huawei.video")
+        self.assertTrue(ok, out)
+        self.assertNotIn("com.huawei.video", self.dev._bundles)
+        ok, out = phone.hdc_uninstall(self.dev, "com.huawei.absent")
+        self.assertFalse(ok)
+
+    def test_apply_hdc_uninstall_only(self):
+        entries = phone.parse_list(
+            "com.huawei.video uninstall # 华为视频\n"
+            "com.huawei.search disable # 搜索\n"
+            "com.huawei.music freeze # 音乐\n")
+        logs = []
+        with tempfile.TemporaryDirectory() as tmp:
+            res = phone.apply_list(self.dev, entries, base=tmp, log=logs.append,
+                                   do_backup=False)
+        self.assertEqual(res["ok"], ["com.huawei.video"])
+        self.assertEqual(sorted(res["skipped_unsupported"]),
+                         ["com.huawei.music", "com.huawei.search"])
+        joined = "\n".join(logs)
+        self.assertIn("bm 工具没有禁用/冻结/挂起能力", joined)
+        self.assertIn("[已卸载] com.huawei.video", joined)
+
+    def test_apply_hdc_never_fails_pm(self):
+        entries = phone.parse_list("com.huawei.video uninstall")
+        with tempfile.TemporaryDirectory() as tmp:
+            phone.apply_list(self.dev, entries, base=tmp, log=lambda *a: None,
+                             do_backup=False)
+        # hdc 通道绝不能出现 pm uninstall(那是 adb 的命令)
+        self.assertFalse(any("pm uninstall" in " ".join(str(a) for a in c)
+                             for c in self.dev.calls))
+        self.assertTrue(any("bm uninstall" in " ".join(str(a) for a in c)
+                            for c in self.dev.calls))
+
+    def test_check_hdc_reports_unsupported(self):
+        self.dev._bundles.discard("com.huawei.video")   # 先卸载掉
+        entries = phone.parse_list(
+            "com.huawei.video uninstall\ncom.huawei.search disable\n")
+        with tempfile.TemporaryDirectory() as tmp:
+            rows = phone.check_list(self.dev, entries, base=tmp,
+                                    log=lambda *a: None)
+        by_pkg = {r["pkg"]: r for r in rows}
+        self.assertTrue(by_pkg["com.huawei.video"]["ok"])   # 已卸载
+        self.assertFalse(by_pkg["com.huawei.search"]["ok"])
+        self.assertIn("通道不支持", by_pkg["com.huawei.search"]["current"])
+
+    def test_detect_harmonyos_next_hdc_required(self):
+        props = {"const.product.brand": "HUAWEI",
+                 "const.harmony.version": "5.0.0",
+                 "const.ohos.apiversion": "12"}
+        rom = phone.detect_rom(props=props)
+        self.assertTrue(rom.get("hdc_required"))
+        self.assertEqual(rom.get("family"), "harmonyos")
+        self.assertIsNotNone(rom.get("unsupported"))  # 说明文字仍在(供 adb 通道拒绝)
+
+    def test_unsupported_rom_hdc_channel_not_refused(self):
+        rom = {"family": "harmonyos", "hdc_required": True,
+               "unsupported": "HarmonyOS NEXT 只提供 hdc 调试"}
+        out = []
+        with mock.patch("builtins.print", out.append):
+            refused = phone._unsupported_rom(rom, self.dev)   # hdc 设备
+        self.assertFalse(refused)
+        self.assertTrue(any("hdc 通道" in line for line in out))
+
+    def test_unsupported_rom_adb_channel_refused(self):
+        rom = {"family": "harmonyos", "hdc_required": True,
+               "unsupported": "HarmonyOS NEXT 只提供 hdc 调试, 没有 adb"}
+        out = []
+        with mock.patch("builtins.print", out.append):
+            refused = phone._unsupported_rom(rom, FakeAdb(packages={"com.a.b"}))
+        self.assertTrue(refused)
+        self.assertTrue(any("[不支持]" in line for line in out))
+
+    def test_restore_hdc_reports_manual(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            # 造一个含"已卸载"记录的状态文件
+            state = {"serial": self.dev.serial,
+                     "packages": {"com.huawei.video": {"action": "uninstall",
+                                                       "list": "t.txt"}}}
+            d = phone.Path(tmp) / self.dev.serial
+            d.mkdir(parents=True)
+            (d / "state.json").write_text(json.dumps(state), encoding="utf-8")
+            logs = []
+            phone.restore_pkgs(self.dev, ["com.huawei.video"], state,
+                               base=tmp, log=logs.append)
+        joined = "\n".join(logs)
+        self.assertIn("install-existing", joined)
+        self.assertIn("手动重装", joined)
+
+    def test_rom_policy_lines_hdc_channel(self):
+        rom = {"family": "harmonyos", "display": "HarmonyOS NEXT 5.0",
+               "hdc_required": True}
+        lines = phone.rom_policy_lines(rom, channel="hdc")
+        self.assertTrue(any("已切换到 hdc 通道" in l for l in lines))
+        self.assertTrue(any("bm dump -a" in l for l in lines))
 
 
 if __name__ == "__main__":

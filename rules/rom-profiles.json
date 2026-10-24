@@ -158,6 +158,10 @@
       ],
       "props": [
         "hw_sc.build.platform.version",
+        "const.ohos.version",
+        "const.harmony.version",
+        "const.product.software.model",
+        "const.ohos.apiversion",
         "ro.build.version.harmony",
         "ro.build.version.harmonyos",
         "ro.build.version.emui",
@@ -166,7 +170,8 @@
       ],
       "name_patterns": [
         "harmonyos",
-        "emui"
+        "emui",
+        "ohos"
       ],
       "scale": "major",
       "legacy_uninstall_below": null,
@@ -175,14 +180,12 @@
         "com.huawei.",
         "com.hihonor."
       ],
-      "unsupported_from": "5.0",
-      "unsupported_reason": "HarmonyOS NEXT (5.x) 已移除 adb, 改用 hdc + HAP 包格式, 本工具(基于 adb/pm)无法连接; 请在 HarmonyOS 4.x 及以下使用, 或改用「设置 → 应用管理」手动卸载可卸载的预装。",
       "versions": {
         "10": "EMUI 10/11 (Android 10): adb 可用, 卸载基本可用",
         "12": "EMUI 12 / HarmonyOS 2 (Android 10-11): adb 可用; 需在开发者选项打开「仅充电时允许 ADB 调试」",
         "3": "HarmonyOS 3 (Android 12): adb 可用, 部分预装卸载后会自动恢复",
         "4": "HarmonyOS 4/4.2 (Android 12): adb 可用; 华为账号/云空间/钱包删了会丢数据, 已列入谨慎名单",
-        "5": "HarmonyOS NEXT 5.x: 无 adb(用 hdc), 本工具不支持"
+        "5": "HarmonyOS NEXT 5.x: 无 adb, 用 hdc; 系统 bundle 一般卸不掉, 只能卸第三方预装; bm 无 disable 能力"
       },
       "priority": 2,
       "edition_props": {
@@ -191,9 +194,18 @@
         "ro.build.version.harmonyos": "HarmonyOS",
         "ro.build.version.emui": "EMUI"
       },
-      "unsupported_editions": [
-        "HarmonyOS"
-      ]
+      "hdc_from": "5.0",
+      "hdc_props": [
+        "hw_sc.build.platform.version",
+        "const.harmony.version",
+        "const.ohos.version",
+        "const.harmony.apiversion",
+        "const.ohos.apiversion",
+        "ro.build.version.harmony",
+        "ro.build.version.harmonyos",
+        "const.product.software.model"
+      ],
+      "hdc_note": "HarmonyOS NEXT 5.x 起只提供 hdc(HarmonyOS Debug Bridge), 没有 adb; 包管理改用 bm 工具(bm dump -a / bm uninstall -n), 没有 disable/suspend, 也无法区分预装分区"
     },
     "magicos": {
       "label": "MagicOS",
