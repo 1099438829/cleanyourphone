@@ -2,6 +2,13 @@
 # 用法: tools/disable.sh examples/xiaomi-hyperos/debloat.txt
 # 规则: 行首 # 为注释; uninstall=对当前用户卸载(可恢复); disable=禁用(可恢复)
 #       本机不存在的包会自动跳过; 命中安全规则的包会被拒绝并提示
+# 版本(重要, 小米两套编号):
+#   MIUI 12/12.5/13/14  → pm uninstall --user 0 基本可用, 可直接卸载
+#   HyperOS 1(≈15) / 2(≈16) → 卸载限制增多, 部分包只能禁用; 本列表的 uninstall
+#     条目执行失败会自动降级禁用, 不必手改
+#   无论哪个版本, 小米/红米都必须在 开发者选项 打开「USB 调试(安全设置)」,
+#   否则卸载会报 DELETE_FAILED_INTERNAL_ERROR / INSTALL_FAILED_USER_RESTRICTED
+#   查看本机版本: python3 tools/phone.py rom
 # 更多候选(自动生成): examples/xiaomi-hyperos/uad-recommended.txt (tools/sync_uad.py 生成)
 
 # ---------- 推荐: 广告与统计服务(禁用, 强烈建议) ----------

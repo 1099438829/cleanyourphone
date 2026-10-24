@@ -1,0 +1,33 @@
+# CleanYourPhone 清理列表 — realme 国行 (realme UI 2-6, 基于 ColorOS)
+# 用法: python3 tools/phone.py apply examples/realme-ui/debloat.txt --dry-run
+# 说明:
+#   - realme UI 是 ColorOS 分支, 大量包名与 OPPO 共用 com.heytap.* / com.oplus.*
+#     完整列表见 examples/oppo-coloros/debloat.txt, 本文件只列 realme 专属部分
+#   - 版本标注 [v>=12] 用的是"ColorOS 等效版本":
+#       realme UI 2.0=11 / 3.0=12 / 4.0=13 / 5.0=14 / 6.0=15
+#     (tools/phone.py rom 会自动换算, 无需手算)
+#   - realme UI 4.0(≈ColorOS 13)起系统应用卸载普遍被拒, 工具会自动降级禁用/挂起
+
+# ---------- realme 专属(卸载) ----------
+com.realme.as.music            uninstall # realme 音乐
+com.realme.link                uninstall # realme Link(耳机/手表配套, 有设备则保留)
+com.realme.movieshot           uninstall # 局部截屏/长截屏
+com.realme.securitycheck       uninstall # 安全检测(含广告)
+com.realme.wellbeing           uninstall # 睡眠胶囊/数字健康
+com.realme.logtool             disable   # 隐藏日志工具
+
+# ---------- 与 OPPO 共用的重点项(按版本) ----------
+com.heytap.pictorial           disable   [v>=12]  # 乐划锁屏(锁屏广告; 高版本只能挂起)
+com.heytap.browser             uninstall [v<12]   # 浏览器(低版本可直卸)
+com.heytap.browser             disable   [v>=12]  # 浏览器(高版本被 ROM 拦截, 直接禁用)
+com.heytap.quicksearchbox      disable   [v>=12]  # 全局搜索(含资讯)
+com.heytap.yoli                uninstall [v<12]   # 短视频(低版本直卸)
+com.heytap.yoli                disable   [v>=12]  # 短视频(高版本禁用)
+com.oplus.statistics.rom       disable   [v>=12]  # ROM 统计(realme UI 3.0+)
+com.nearme.statistics          disable   [v<12]   # 旧版欢太统计(realme UI 2.0 及以下)
+
+# ---------- 保留说明 ----------
+# com.realme.findphone.client2  保留: 查找手机(谨慎名单)
+# com.heytap.cloud              保留: 云服务
+# com.heytap.usercenter         保留: 账号中心
+# com.coloros.oshare            保留: 互传(换机迁移依赖)

@@ -3,12 +3,16 @@
 参考 [CleanYourTV](https://github.com/Gathin23/cleanyourtv)、
 [CleanYourAndroid](https://github.com/Bhargi777/cleanyourandroid)、
 [cleanyourphone](https://github.com/upfind/cleanyourphone) 三家思路, 为**国产手机**
-(小米/红米/POCO、华为、荣耀、OPPO/一加/realme、vivo/iQOO、三星国行、魅族)打造的清理项目。
+(小米/红米/POCO、华为、荣耀、OPPO/一加/realme、vivo/iQOO、三星国行、魅族、
+中兴/努比亚/红魔、摩托罗拉、联想、传音)打造的清理项目。
 
 **无需 root、无需解锁、不在手机上安装任何软件、不替换桌面启动器, 全部操作可一键恢复。**
 
 三层清理策略: **卸载预装应用** · **关闭广告与统计服务** · **设置级去广告 + 摇一摇封杀**。
 外加**自动清单**: 抓取互联网 debloat 知识库, 与本机预装求交集后一键清理(见"自动清单")。
+**版本感知**: 同一品牌不同 ROM 版本, 包名和能否卸载都不一样 —— 工具会先识别
+ColorOS 13.1 / HyperOS 2 / MagicOS 8 这类版本号, 再决定"直接卸载"还是"禁用/挂起"
+(见"版本感知")。
 (卸载/禁用被 ROM 拒绝时自动降级, 禁用被拒时自动挂起, 见下方"真机实测")
 
 ## 仓库地址
@@ -62,8 +66,12 @@ bash tools/install-adb.sh        # 或 brew install android-platform-tools
 ## 快速开始
 
 ```bash
-# 0. 自检(自动准备 adb、识别品牌、显示当前桌面/输入法/最近任务保护对象)
+# 0. 自检(自动准备 adb、识别品牌与 ROM 版本、显示当前桌面/输入法/最近任务保护对象)
 python3 tools/phone.py doctor
+
+# 0.5 看 ROM 版本与该版本的清理策略(哪些能直卸、哪些只能禁用)
+python3 tools/phone.py rom
+python3 tools/phone.py rom --list examples/oppo-coloros/debloat.txt
 
 # 1. 预演: 只打印计划, 不动手机
 python3 tools/phone.py apply examples/xiaomi-hyperos/debloat.txt --dry-run
@@ -135,17 +143,92 @@ python3 tools/phone.py auto --apply      # 3. 执行(自动备份 + 确认)
 > 真机实测(OPPO ColorOS 13, 310 个系统应用, 5021 条知识库): `safe` 命中 84、
 > `standard` 138、`aggressive` 182; 另有 27 个被标 Unsafe、15 个被谨慎名单拦下。
 
+## 版本感知: 同一个品牌, 不同版本不一样
+
+国产 ROM 的"能不能卸"高度依赖版本:
+
+- **ColorOS 11 及以下**: `pm uninstall --user 0` 基本可用 → 清单里的 `uninstall` 直接执行
+- **ColorOS 12 起**: 大量 `com.heytap.*` 返回 `DELETE_FAILED_INTERNAL_ERROR` → 只能禁用,
+  禁用还被拒的(乐划锁屏)再挂起; 13 起连 `settings put` 都被禁(无 `WRITE_SETTINGS`)
+- **MIUI 12-14 → HyperOS 1/2**: 前者多数可卸, 后者限制明显变多; 而且小米必须先开
+  「USB 调试(安全设置)」, 否则卸载一律失败
+- **HarmonyOS NEXT 5.x**: 已经**没有 adb** 了(改用 hdc + HAP), 本工具直接提示不支持
+
+所以工具在动手前先识别版本:
+
+```bash
+$ python3 tools/phone.py rom
+家族:   ColorOS(coloros)
+版本:   ColorOS 13.1  原始值: ColorOS 13.1  来源: ro.build.version.oplusrom.display
+可比序: 13.1  (列表里的 [v>=13] 就是和它比)
+依据:   真机验证: OPPO PEQM00 / Android 13 / ColorOS 13.1
+版本说明: ColorOS 13: 大量 com.heytap.* 返回 DELETE_FAILED_INTERNAL_ERROR, 自动降级禁用; ...
+版本策略: ColorOS 13.1 起 ROM 会拦截大量系统应用卸载(...) → 卸载失败自动降级禁用,
+          禁用被拒再挂起; 想少刷失败日志可加 --prefer-disable
+```
+
+### 能识别的 ROM 家族
+
+| 家族 | 主要品牌 | 版本属性(按优先级) | 卸载被拦截的起始版本 |
+| --- | --- | --- | --- |
+| ColorOS / realme UI / OxygenOS | OPPO、一加、realme | `ro.build.version.oplusrom[.display]`、`ro.build.version.opporom`、`ro.build.version.realmeui` | 12.0(真机验证 13.1) |
+| MIUI / HyperOS | 小米、红米、POCO、黑鲨 | `ro.mi.os.version.name`(HyperOS)、`ro.miui.ui.version.name`(MIUI) | HyperOS 1(可比序 15) |
+| HarmonyOS / EMUI | 华为、老荣耀 | `hw_sc.build.platform.version`、`ro.build.version.emui` | 无(NEXT 5.x 不支持 adb) |
+| MagicOS | 荣耀 | `ro.build.version.magic` | 8.0 |
+| OriginOS / Funtouch | vivo、iQOO | `ro.vivo.os.version`、`ro.build.version.funtouch` | 4.0 |
+| One UI | 三星国行 | `ro.build.version.oneui`(60100 → 6.1) | 无 |
+| Flyme | 魅族 | `ro.flyme.version` | 无 |
+| MyOS | 中兴、努比亚、红魔 | `ro.build.display.id` 中的 `MyOS` 字样 | 无 |
+| myui | 摩托罗拉 | `ro.build.display.id` 中的 `myui` 字样 | 无 |
+| HiOS / XOS | 传音 Tecno/Infinix/itel | `ro.build.display.id` 中的 `HiOS`/`XOS` | 无 |
+| ZUI | 联想、拯救者 | `ro.build.display.id` 中的 `ZUI` | 无 |
+
+- 识别不出来的(或想模拟别的版本)可手动指定: `--rom-version coloros:13.1` / `rom --version hios:13`
+- 规则表: [`rules/rom-profiles.json`](rules/rom-profiles.json)(家族属性、各版本说明、分版本动作覆盖)
+
+### 低版本直接卸载, 高版本禁用优先
+
+- **低版本**(低于该家族的卸载拦截门槛, 如 ColorOS 11、MIUI 12.5):
+  `auto` 会把"内容/广告类且分级 Recommended"的条目从 `disable` **升级为 `uninstall`**,
+  清单里标注为 `[低版本直卸]`。这类包不涉及系统服务, 卸载后 `install-existing` 可恢复。
+- **高版本**(ColorOS 12+ / HyperOS 1+): 卸载失败自动降级禁用, 禁用被拒自动挂起。
+  想跳过失败尝试、直接走禁用: `--prefer-disable`。
+- 觉得升级太激进: `--no-legacy-uninstall` 关掉。
+
+### 列表版本标注
+
+一份清单可以同时写不同版本的规则, 版本不符的条目自动跳过:
+
+```
+com.heytap.pictorial            disable    [v>=12]  # ColorOS 12+ 是乐划锁屏
+com.coloros.lockscreen.magazine disable    [v<12]   # ColorOS 11 及以下是锁屏杂志
+com.heytap.browser              uninstall  [v<12]   # 低版本直接卸载
+com.heytap.browser              disable    [v>=12]  # 高版本只能禁用
+```
+
+- 支持 `[v>=13]` `[v<12]` `[v=13.1]` `[v12-13]`, 写在行尾或注释里都行
+- 小米把两套编号拉平: MIUI 14 = 14, HyperOS 1 = 15, HyperOS 2 = 16(所以 `[v>=15]` 就是 HyperOS 起)
+- realme UI 自动换算: realme UI 2.0 = 11 / 3.0 = 12 / 4.0 = 13 / 5.0 = 14 / 6.0 = 15
+- 查看某份清单在本机的适用性: `python3 tools/phone.py rom --list <清单>`
+
+
 ## 支持品牌与列表
 
 | 品牌/ROM | 列表目录 | 清理重点 |
 | --- | --- | --- |
 | 小米/红米/POCO MIUI、HyperOS | `examples/xiaomi-hyperos/` | MSA/遥测/锁屏画报、负一屏、视频/音乐/浏览器 |
-| 华为 EMUI、HarmonyOS | `examples/huawei-harmonyos/` | 华为视频/音乐/搜索、玩机技巧、HMS 遥测 |
-| 荣耀 MagicOS | `examples/honor-magicos/` | 杂志锁屏、浏览器/视频/音乐、推送通道 |
-| OPPO/一加/realme ColorOS | `examples/oppo-coloros/` | 乐划锁屏、锁屏杂志、欢太统计、浏览器 |
-| vivo/iQOO OriginOS | `examples/vivo-originos/` | 锁屏画报、营销中心、负一屏、浏览器 |
-| 三星国行 One UI | `examples/samsung-oneui-cn/` | Samsung Free 负一屏资讯、McAfee 弹窗 |
-| 魅族 Flyme | `examples/meizu-flyme/` | 魅族浏览器、视频 |
+| 华为 EMUI、HarmonyOS 2-4 | `examples/huawei-harmonyos/` | 华为视频/音乐/搜索、玩机技巧、HMS 遥测 |
+| 荣耀 MagicOS 6-9 | `examples/honor-magicos/` | 杂志锁屏、浏览器/视频/音乐、推送通道 |
+| OPPO ColorOS 7-15 | `examples/oppo-coloros/` | 乐划锁屏、锁屏杂志、欢太统计、浏览器 |
+| 一加国行 ColorOS/OxygenOS | `examples/oneplus-coloros/` | 禅定模式、游戏空间、图标包、乐划锁屏 |
+| realme 国行 realme UI 2-6 | `examples/realme-ui/` | realme 音乐/安全检测/睡眠胶囊 + ColorOS 共用项 |
+| vivo/iQOO OriginOS、Funtouch | `examples/vivo-originos/` | 锁屏画报、营销中心、负一屏、浏览器 |
+| 三星国行 One UI 5-8 | `examples/samsung-oneui-cn/` | Samsung Free 负一屏资讯、McAfee 弹窗 |
+| 魅族 Flyme 8-11 | `examples/meizu-flyme/` | 魅族浏览器、视频 |
+| 中兴/努比亚/红魔 MyOS | `examples/zte-nubia/` | 数据采集、快应用容器、努比亚浏览器/商店 |
+| 摩托罗拉 myui | `examples/moto-myiui/` | Moto App Box、发现气泡、演示模式、诊断上报 |
+| 联想 ZUI / 拯救者 | `examples/lenovo-zui/` | 联想应用中心、浏览器、语音全家桶、主题覆盖层 |
+| 传音 Tecno/Infinix/itel HiOS·XOS | `examples/transsion-hios/` | Folax 语音、AI 壁纸、健康、售后 App、工程模式 |
 | 全品牌通用 | `examples/universal/` | Android 广告服务、Google 组件、AOSP 彩蛋 |
 
 每个品牌目录含: `debloat.txt`(清理列表)、`settings.conf`(设置项)、
@@ -170,18 +253,21 @@ python3 tools/phone.py auto --apply      # 3. 执行(自动备份 + 确认)
 8. **确认与预演**: 非 `--dry-run` 执行前必须输入 y 确认; 管道/非交互环境默认拒绝
 9. **谨慎名单**(自动清单): 查找手机/支付/密码本/云服务/账号/系统更新/备份/语音识别/
    无障碍/设备认证/默认浏览器, 默认只提示不处理 —— UAD 常把这些标成"推荐", 删了会丢功能
+10. **版本门槛**(v2.2): 清单条目可带 `[v>=13]` 版本标注, 与当前 ROM 版本不符的直接跳过;
+    识别到不支持的版本(HarmonyOS NEXT)会拒绝执行而不是瞎试
 
 ## 工具一览(tools/)
 
 | 工具 | 作用 |
 | --- | --- |
-| `phone.py` | 核心工具(Python 标准库, 跨平台, 19 个子命令) |
+| `phone.py` | 核心工具(Python 标准库, 跨平台, 20 个子命令) |
 | `harvest.py` | 抓取聚合互联网 debloat 知识 -> `rules/known-packages.json` |
 | `clean.sh` | 全流程编排(备份→debloat→settings→shake, 可分阶段) |
 | `disable.sh` / `restore.sh` / `check.sh` | 应用/恢复/检查列表 |
 | `install-adb.sh` | 安装官方 Android 平台工具 |
 | `sync_uad.py` | 从 UAD-NG 社区数据库同步品牌候选列表(轻量版, 只要品牌候选时用它) |
-| `../tests/test_phone.py` | 单元测试(模拟设备, 47 个用例): `python3 -I tests/test_phone.py` |
+| `../rules/rom-profiles.json` | 版本规则库: 家族属性/版本说明/分版本动作覆盖 |
+| `../tests/test_phone.py` | 单元测试(模拟设备, 61 个用例): `python3 -I tests/test_phone.py` |
 
 ## 真机实测(2026-10-23, OPPO PEQM00 / Android 13 / ColorOS 13)
 
@@ -229,6 +315,20 @@ python3 tools/phone.py auto --apply      # 3. 执行(自动备份 + 确认)
 **Q: 为什么有的包卸不掉?**
 各 ROM 保护策略不同(华为/HarmonyOS、ColorOS 较严)。脚本会自动降级为禁用;
 禁用也被拒时(如 OPPO 乐划锁屏)自动挂起, 效果相同。
+
+**Q: 我的手机是 ColorOS 11 / MIUI 12.5, 能用同一份列表吗?**
+能。列表条目带 `[v<12]` / `[v>=12]` 标注, 工具识别到低版本会自动走"直接卸载"那一行,
+高版本走"禁用"那一行; 版本不符的条目直接跳过。先跑 `python3 tools/phone.py rom --list <列表>`
+看适用性。
+
+**Q: 识别出的版本不对 / 识别不出来怎么办?**
+可手动指定: `--rom-version coloros:13.1`(apply/auto/check 都支持)或
+`python3 tools/phone.py rom --version hios:13`。中兴/摩托罗拉/传音/联想的版本号常只写在
+`ro.build.display.id` 里, 识别不出时会提示"未识别 ROM", 此时按 Android 版本保守处理。
+
+**Q: HarmonyOS NEXT 能用吗?**
+不能。HarmonyOS NEXT(5.x)移除了 adb, 改用 hdc + HAP 包格式, 本工具会直接提示不支持。
+HarmonyOS 4.x 及以下正常使用。
 
 **Q: `settings` 提示"该 ROM 禁止 adb 写入系统设置"?**
 实测 ColorOS 13 等 ROM 禁止 adb shell 写入 settings(SecurityException),
@@ -287,15 +387,18 @@ cleanyourphone/
 │   ├── check.sh         OTA 后检查
 │   ├── install-adb.sh   安装 adb
 │   └── sync_uad.py      同步 UAD-NG 候选列表
-├── rules/               自动清单知识库(harvest.py 生成)
-│   ├── known-packages.json   5021 个包的分级/描述/依赖/来源
+├── rules/               规则库
+│   ├── known-packages.json   5009 个包的分级/描述/依赖/来源(harvest.py 生成)
+│   ├── rom-profiles.json     版本规则: 11 个 ROM 家族 + 分版本动作覆盖
 │   ├── ALL-BLOAT.txt         人类可读全量清单(按厂商分组)
 │   └── harvest-report.md     抓取报告(来源与失败原因)
-├── tests/test_phone.py  单元测试(模拟设备, 47 个用例)
+├── tests/test_phone.py  单元测试(模拟设备, 61 个用例)
 └── examples/            各品牌列表 + settings.conf + 手动关广告/优化设置说明
-    └── shake_apps.txt   全品牌摇一摇封杀清单(22 款 App)
+    ├── xiaomi-hyperos/ huawei-harmonyos/ honor-magicos/ oppo-coloros/
+    ├── oneplus-coloros/ realme-ui/ vivo-originos/ samsung-oneui-cn/ meizu-flyme/
+    ├── zte-nubia/ moto-myiui/ lenovo-zui/ transsion-hios/ universal/
+    ├── shake_apps.txt   全品牌摇一摇封杀清单(22 款 App)
     └── oppo-coloros/device-inventory.md  真机实测记录(OPPO PEQM00)
-    └── oppo-coloros/device-system-packages.txt  真机系统应用清单(310 个)
 ```
 
 ## 致谢与许可

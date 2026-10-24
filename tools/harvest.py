@@ -85,6 +85,11 @@ SEARCH_QUERIES = (
     '"adb shell pm uninstall" extension:md',
     '"pm uninstall --user 0" extension:sh',
     "debloat in:path extension:md",
+    # 品牌定向(国产 ROM 的包名与版本差异大, 定向抓更准)
+    '"pm uninstall --user 0" coloros',
+    '"pm uninstall --user 0" nubia',
+    '"pm uninstall --user 0" motorola',
+    '"pm disable-user" miui',
 )
 
 # Gitee 中文社区关键词(API 搜索; 该接口近年常返回空, 失败时如实写进报告)

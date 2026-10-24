@@ -1,20 +1,26 @@
 # CleanYourPhone 清理列表 — OPPO / 一加 / realme 国行 (ColorOS 11-15 / realme UI)
 # 用法: tools/disable.sh examples/oppo-coloros/debloat.txt
 # 说明: 部分老机型使用 com.nearme.* 旧包名, 本机不存在的包会自动跳过
+# 版本: 行尾 [v<12] / [v>=12] 是版本标注, 单位是"ColorOS 等效版本"
+#       (realme UI 2.0=11 / 3.0=12 / 4.0=13 / 5.0=14 / 6.0=15, 工具自动换算)
+#       不符的条目会跳过; 先跑 python3 tools/phone.py rom 看本机版本
 # 更多候选(自动生成): examples/oppo-coloros/uad-recommended.txt
 
 # ---------- 推荐: 广告与统计服务(禁用) ----------
-com.heytap.pictorial       disable   # 乐划锁屏(锁屏广告/杂志, 重点清理项; 部分机型禁止禁用会自动挂起)
-com.coloros.lockscreen.magazine disable # ColorOS 锁屏杂志/画报(锁屏商业推广)
-com.nearme.statistics      disable   # 欢太数据统计与遥测上报
+com.heytap.pictorial       disable   [v>=12] # 乐划锁屏(锁屏广告/杂志; 该版本禁用常被拒, 自动挂起)
+com.coloros.lockscreen.magazine disable [v<12] # ColorOS 11 及以下的锁屏杂志(12 起并入乐划锁屏)
+com.nearme.statistics      disable   [v<12] # 欢太数据统计与遥测上报(旧版包名)
+com.oplus.statistics.rom   disable   [v>=12] # 系统数据统计与遥测(ColorOS 12+ 新包名)
 com.heytap.habit.analysis  disable   # 用户习惯分析与个性化广告画像
 com.heytap.mcs             disable   # 欢太移动云推送(营销广告推送; 禁用后部分第三方推送也收不到, 按需)
-com.oplus.statistics.rom   disable   # 系统数据统计与遥测(真机审计发现, ColorOS 13+)
 
 # ---------- 推荐: 内容推广(禁用/卸载) ----------
-com.heytap.yoli            disable   # 视频/短视频信息流推广
-com.heytap.browser         uninstall # OPPO 浏览器(含广告与资讯)
-com.heytap.quicksearchbox  uninstall # 全局搜索(含资讯与广告, 可选)
+com.heytap.yoli            uninstall [v<12] # 视频/短视频信息流(低版本可直接卸载)
+com.heytap.yoli            disable   [v>=12] # 视频/短视频信息流(高版本卸载被拒, 直接禁用)
+com.heytap.browser         uninstall [v<12] # OPPO 浏览器(含广告与资讯)
+com.heytap.browser         disable   [v>=12] # OPPO 浏览器(高版本只能禁用)
+com.heytap.quicksearchbox  uninstall [v<12] # 全局搜索(含资讯与广告)
+com.heytap.quicksearchbox  disable   [v>=12] # 全局搜索(高版本只能禁用)
 com.coloros.video          disable   # 视频(内容推荐/信息流, 真机审计发现)
 
 # ---------- 推荐: 预装应用(卸载, 可恢复) ----------

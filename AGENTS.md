@@ -7,26 +7,31 @@
 
 | 路径 | 内容 | 修改规则 |
 | --- | --- | --- |
-| `tools/phone.py` | 核心工具: adb 自动准备、列表/设置解析、安全规则、apply/restore/check/audit/settings/dns/shake/screenshot | 只允许标准库; 新增子命令需同步更新 `build_parser`/`main`/测试 |
+| `tools/phone.py` | 核心工具: adb 自动准备、列表/设置解析、ROM 版本识别、安全规则、apply/restore/check/audit/settings/dns/shake/rom/screenshot | 只允许标准库; 新增子命令需同步更新 `build_parser`/`main`/测试 |
 | `tools/clean.sh` | 全流程编排(backup→debloat→settings→shake, 可分阶段) | 保持编排式实现, 逻辑一律放 phone.py |
 | `tools/disable.sh` `restore.sh` `check.sh` | `phone.py` 的 bash 封装 | 保持转发式实现 |
 | `tools/install-adb.sh` | 安装官方 Android 平台工具 | 覆盖 macOS/Linux/Windows |
 | `tools/sync_uad.py` | 从 UAD-NG 同步品牌候选列表到 `examples/<品牌>/uad-recommended.txt` | 只生成候选文件, 禁止覆盖手工 `debloat.txt`; 必须过安全规则过滤 |
+| `rules/known-packages.json` | 自动清单知识库(harvest.py 生成) | 由脚本生成, 不手改 |
+| `rules/rom-profiles.json` | 版本规则库: 家族属性/版本说明/分版本动作覆盖 | 手改; 新增家族需带 `label/brands/props/priority`, 并在测试里覆盖识别 |
 | `tests/test_phone.py` | 单元测试(FakeAdb 模拟设备) | 改 `phone.py` 行为必须同步测试 |
-| `examples/<品牌>/debloat.txt` | 手工维护的清理列表 | 格式见下; 分 推荐/可选/谨慎(谨慎默认注释) |
+| `examples/<品牌>/debloat.txt` | 手工维护的清理列表 | 格式见下; 分 推荐/可选/谨慎(谨慎默认注释); 版本相关条目加 `[v>=13]` 标注 |
 | `examples/<品牌>/settings.conf` | 设置项(settings put) | 格式: `ns key value # 注释`; DNS 项默认注释 |
-| `examples/<品牌>/README.md` | 手动关广告 + 优化设置 | 路径注明"设置顶部可搜索直达", 随版本可能变化 |
+| `examples/<品牌>/README.md` | 手动关广告 + 优化设置 | 路径注明"设置顶部可搜索直达", 随版本可能变化; 需含"版本差异"小节 |
 | `examples/shake_apps.txt` | 全品牌摇一摇封杀清单 | 只收常见第三方 App, 不收系统包 |
 | `PROMPT.md` | 给 AI 助手的执行提示词 | 与 README 的工具用法保持一致 |
 
 ## 列表格式(debloat.txt)
 
 ```
-包名  [uninstall|disable]  # 注释
+包名  [uninstall|disable]  [[v>=13]]  # 注释
 ```
 
 - `uninstall`(默认): `pm uninstall --user 0`
 - `disable`: `pm disable-user`
+- 版本标注(可选): `[v>=13]` `[v<12]` `[v=13.1]` `[v12-13]`; 版本不符的条目由 `apply`/`check` 自动跳过。
+  版本单位是该 ROM 家族自己的版本; 小米把 MIUI/HyperOS 拉平(MIUI 14=14, HyperOS 1=15),
+  realme UI 换算成 ColorOS 等效版本(realme UI 4.0=13)
 - `#` 开头为注释; 兼容 CRLF/UTF-8 BOM; 不存在的包由 `apply` 自动跳过, 不要为兼容删历史包名
 - 分三区书写: 推荐 / 可选 / 谨慎(谨慎区默认整行注释, 用户自行取消注释)
 

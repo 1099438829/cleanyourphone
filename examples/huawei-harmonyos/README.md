@@ -33,3 +33,17 @@
 - **保留** `com.huawei.hicloud`(云服务)与查找设备, 手机丢失时靠它们定位
 - **保留** `com.huawei.hwid`(华为账号): HMS 服务、应用市场都依赖它, 默认不卸
 - `com.huawei.systemmanager`(手机管家)含广告但管权限, 默认不动; 想卸请自行权衡
+
+## 四、版本差异(重要)
+
+| 版本 | adb 支持 | 说明 |
+| --- | --- | --- |
+| EMUI 10/11 (Android 10) | 可用 | 卸载基本可用 |
+| HarmonyOS 2 (Android 10-11) | 可用 | 开发者选项需打开「仅充电时允许 ADB 调试」 |
+| HarmonyOS 3 (Android 12) | 可用 | 部分预装卸载后会自动恢复, 用 `check --fix` |
+| HarmonyOS 4/4.2 (Android 12) | 可用 | 华为账号/云空间/钱包已列入谨慎名单 |
+| **HarmonyOS NEXT 5.x** | **不可用** | 已移除 adb, 改用 hdc + HAP 包格式, 本工具无法连接 |
+
+- 版本识别: `python3 tools/phone.py rom`(HarmonyOS NEXT 会直接提示不支持)
+- 想确认版本: 设置 → 关于手机 → 版本号; 或 `adb shell getprop hw_sc.build.platform.version`
+

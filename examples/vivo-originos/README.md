@@ -27,3 +27,17 @@
 - **保留** `com.bbk.account`(vivo 账号)与 `com.vivo.wallet`(钱包): 云服务、查找手机、支付都依赖它们
 - **保留** `com.vivo.easyshare`(互传): 换机传输依赖它
 - 卸载 `com.vivo.browser` 后, 微信内打开网页等场景不受影响(系统 WebView 保留)
+
+## 四、版本差异(重要)
+
+| 版本 | 卸载行为 | 建议 |
+| --- | --- | --- |
+| OriginOS 1.0 / Funtouch 11 (Android 11) | 基本可用 | 直接卸载 |
+| OriginOS 2.0 / Funtouch 12 (Android 12) | 基本可用 | 直接卸载 |
+| OriginOS 3 (Android 13) | 基本可用 | 直接卸载 |
+| OriginOS 4 (Android 14) | 部分应用卸载后会自动恢复 | `check --fix` 定期复查 |
+| OriginOS 5 (Android 15) | 拦截增多 | `--prefer-disable` + 分批 |
+
+- 版本识别: `python3 tools/phone.py rom`(OriginOS 看 `ro.vivo.os.version`,
+  老机型 Funtouch 看 `ro.build.version.funtouch`)
+

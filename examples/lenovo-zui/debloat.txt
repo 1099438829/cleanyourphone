@@ -1,0 +1,46 @@
+# CleanYourPhone 清理列表 — 联想 ZUI / 拯救者 Legion (ZUI 14-16)
+# 用法: python3 tools/phone.py apply examples/lenovo-zui/debloat.txt --dry-run
+# 说明:
+#   - 包名来自 UAD-NG 社区库(com.lenovo.* / com.zui.*)
+#   - ZUI 的版本号常在 ro.build.display.id, 识别不到时用
+#     python3 tools/phone.py rom --version zui:15 手动指定
+#   - 联想账号(com.lenovo.lsf.user)/云同步属于谨慎项, 本列表不含
+
+# ---------- 商店 / 内容(卸载) ----------
+com.lenovo.leos.appstore       uninstall # 联想应用中心
+com.zui.browser                uninstall # 联想浏览器(中文统计组件)
+com.lenovo.weathercenter       uninstall # 联想天气小部件
+com.lenovo.levoice.caption     uninstall # AI 实时字幕
+com.lenovo.levoice.trigger     uninstall # 语音唤醒
+com.lenovo.levoice_agent       uninstall # 语音解锁
+com.lenovo.levoice_notes       uninstall # AI 笔记
+
+# ---------- 统计 / 测试(禁用) ----------
+com.zui.bugtogo                disable   # 隐藏的数据采集
+com.zui.deviceidservice        disable   # 设备 ID 与日志
+com.zui.radioinfo              disable   # 隐藏硬件测试
+com.zui.legalinfo              disable   # 隐私政策页(隐藏 Activity)
+com.zui.homesettings           disable   # 桌面角标设置(中文组件)
+
+# ---------- 可选功能(按需) ----------
+com.zui.game.service           disable   # 游戏服务(登录/统计)
+com.zui.continuity             disable   # 联想 One 手机-电脑互联
+com.zui.davdroid               disable   # iCloud 联系人/日历同步
+com.zui.freeform.sidebar       disable   # 自由窗口侧边栏
+com.zui.oneime                 uninstall # 联想输入法(已装其他输入法再卸)
+com.zui.camera.avatar          disable   # 相机虚拟形象
+com.zui.camera.assistant       disable   # 相机助手
+
+# ---------- 主题覆盖层(卸载, 仅换图标/皮肤) ----------
+com.zui.deskclock.overlay.lime uninstall
+com.zui.deskclock.overlay.phantom uninstall
+com.zui.deskclock.overlay.redstorm uninstall
+com.zui.deskclock.overlay.steellegion uninstall
+com.zui.deskclock.overlay.thinarmor uninstall
+com.zui.deskclock.overlay.mostbeautiful uninstall
+
+# ---------- 保留说明 ----------
+# com.zui.camera                保留: 相机
+# com.zui.filemanager           保留: 文件管理
+# com.zui.safecenter            保留: 安全中心(权限/病毒扫描)
+# com.lenovo.lsf.user           保留: 联想账号

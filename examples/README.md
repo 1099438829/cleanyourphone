@@ -14,12 +14,18 @@
 | 目录 | 适用品牌/ROM | 清理重点 |
 | --- | --- | --- |
 | [xiaomi-hyperos](xiaomi-hyperos/) | 小米/红米/POCO MIUI 12-14、HyperOS 1-2 | MSA、遥测、锁屏画报、负一屏、视频/音乐/浏览器 |
-| [huawei-harmonyos](huawei-harmonyos/) | 华为 EMUI 10/11、HarmonyOS 2-5 | 华为视频/音乐/搜索、玩机技巧、HMS 遥测 |
-| [honor-magicos](honor-magicos/) | 荣耀 MagicOS 7/8/9 | 杂志锁屏、浏览器/视频/音乐、推送通道 |
-| [oppo-coloros](oppo-coloros/) | OPPO/一加/realme ColorOS 11-15、realme UI | 乐划锁屏、锁屏杂志、欢太统计、浏览器 |
-| [vivo-originos](vivo-originos/) | vivo/iQOO OriginOS 1-4、Funtouch OS 10-13 | 锁屏画报、营销中心、负一屏、浏览器 |
+| [huawei-harmonyos](huawei-harmonyos/) | 华为 EMUI 10/11、HarmonyOS 2-4(NEXT 5.x 不支持 adb) | 华为视频/音乐/搜索、玩机技巧、HMS 遥测 |
+| [honor-magicos](honor-magicos/) | 荣耀 MagicOS 6/7/8/9 | 杂志锁屏、浏览器/视频/音乐、推送通道 |
+| [oppo-coloros](oppo-coloros/) | OPPO ColorOS 7-15 | 乐划锁屏、锁屏杂志、欢太统计、浏览器 |
+| [oneplus-coloros](oneplus-coloros/) | 一加国行 ColorOS/OxygenOS 11-15 | 禅定模式、游戏空间、图标包、乐划锁屏 |
+| [realme-ui](realme-ui/) | realme 国行 realme UI 2-6 | realme 音乐/安全检测/睡眠胶囊 + ColorOS 共用项 |
+| [vivo-originos](vivo-originos/) | vivo/iQOO OriginOS 1-5、Funtouch OS 10-14 | 锁屏画报、营销中心、负一屏、浏览器 |
 | [samsung-oneui-cn](samsung-oneui-cn/) | 三星国行 One UI 5-8 | Samsung Free 负一屏资讯、McAfee 弹窗 |
-| [meizu-flyme](meizu-flyme/) | 魅族 Flyme 9/10/AI | 魅族浏览器、视频 |
+| [meizu-flyme](meizu-flyme/) | 魅族 Flyme 8/9/10/11 | 魅族浏览器、视频 |
+| [zte-nubia](zte-nubia/) | 中兴 Axon / 努比亚 Z / 红魔 MyOS 11-14 | 数据采集、快应用容器、努比亚浏览器/商店 |
+| [moto-myiui](moto-myiui/) | 摩托罗拉 myui 4-6(联想旗下) | Moto App Box、发现气泡、演示模式、诊断上报 |
+| [lenovo-zui](lenovo-zui/) | 联想 ZUI 14-16 / 拯救者 | 联想应用中心、浏览器、语音全家桶、主题覆盖层 |
+| [transsion-hios](transsion-hios/) | 传音 Tecno/Infinix/itel HiOS·XOS 12-14 | Folax 语音、AI 壁纸、健康、售后 App、工程模式 |
 | [universal](universal/) | 全品牌通用 | Android 广告服务、Google 组件、AOSP 彩蛋 |
 | [shake_apps.txt](shake_apps.txt) | 全品牌摇一摇封杀清单 | 微信/淘宝/抖音等 22 款第三方 App |
 
@@ -58,10 +64,34 @@ python3 tools/phone.py auto --apply # 执行
 ## 列表格式
 
 ```
-包名  [uninstall|disable]  # 注释
+包名  [uninstall|disable]  [[v>=13]]  # 注释
 ```
 
 - `uninstall`(默认): `pm uninstall --user 0`, 对当前用户卸载系统应用, 可用 `install-existing` 恢复
 - `disable`: `pm disable-user`, 禁用组件, 可用 `pm enable` 恢复
+- **版本标注**(可选): `[v>=13]` `[v<12]` `[v=13.1]` `[v12-13]`, 写在行尾或注释里都行;
+  与当前 ROM 版本不符的条目会被自动跳过
 - 行首 `#` 为注释; 不同 ROM 包名有差异, 不存在的包会自动跳过
 - 命中安全规则(桌面/电话/短信/系统 UI 等)或当前桌面/输入法/最近任务的包会被拒绝并提示
+
+## 版本标注怎么用
+
+同一个品牌的不同 ROM 版本, 包名和可卸载程度都不一样, 所以列表支持按版本分区:
+
+```
+com.heytap.pictorial   disable    [v>=12]  # ColorOS 12+ 是乐划锁屏
+com.coloros.lockscreen.magazine disable [v<12]  # ColorOS 11 及以下是锁屏杂志
+com.heytap.browser     uninstall  [v<12]   # 低版本可直接卸载
+com.heytap.browser     disable    [v>=12]  # 高版本 ROM 拦截卸载, 直接禁用
+```
+
+- 版本号单位是**该 ROM 家族的版本**(ColorOS 13.1 / MagicOS 8.0 / OriginOS 4.0),
+  小米会把 MIUI 与 HyperOS 两套编号拉平(MIUI 14=14, HyperOS 1=15, HyperOS 2=16)
+- realme UI 会自动换算成 ColorOS 等效版本(realme UI 4.0 = ColorOS 13)
+- 查看本机版本 + 某份清单的适用性:
+
+```bash
+python3 tools/phone.py rom
+python3 tools/phone.py rom --list examples/oppo-coloros/debloat.txt
+```
+

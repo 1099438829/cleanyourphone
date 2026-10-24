@@ -1,0 +1,553 @@
+{
+  "meta": {
+    "tool": "CleanYourPhone",
+    "file": "rules/rom-profiles.json",
+    "updated": "2026-10-24",
+    "version": 1,
+    "note": "版本感知规则库。families 描述如何从 getprop 识别 ROM 家族与版本、以及该版本下卸载是否被 ROM 拦截; packages 描述随版本变化的动作覆盖。列表文件里可用 [v>=13] / [v<12] / [v12-13] 标注适用版本。",
+    "generation_note": "generation 是跨版本可比的「代号序」: 大多数 ROM 直接等于版本号; 小米把 MIUI/HyperOS 两套编号拉平(MIUI 14=14, HyperOS 1=15, HyperOS 2=16), 这样 [v>=12] 这类写法在 MIUI 与澎湃上含义一致。"
+  },
+  "families": {
+    "coloros": {
+      "label": "ColorOS",
+      "aliases": [
+        "ColorOS",
+        "realme UI",
+        "OxygenOS",
+        "ColorOS for OnePlus"
+      ],
+      "brands": [
+        "oppo",
+        "oneplus",
+        "realme",
+        "oplus",
+        "heytap"
+      ],
+      "props": [
+        "ro.build.version.oplusrom.display",
+        "ro.build.version.oplusrom",
+        "ro.build.version.opporom.display",
+        "ro.build.version.opporom",
+        "ro.build.version.realmeui",
+        "ro.build.version.oxygenos"
+      ],
+      "name_patterns": [
+        "coloros",
+        "realme\\s*ui",
+        "oxygenos"
+      ],
+      "scale": "major",
+      "legacy_uninstall_below": "12.0",
+      "uninstall_blocked_from": "12.0",
+      "protected_namespaces": [
+        "com.heytap.",
+        "com.oplus.",
+        "com.coloros.",
+        "com.nearme.",
+        "com.oppo."
+      ],
+      "verified": "真机验证: OPPO PEQM00 / Android 13 / ColorOS 13.1",
+      "versions": {
+        "7": "ColorOS 7 (Android 10): 预装较少, pm uninstall --user 0 基本可用",
+        "11": "ColorOS 11 (Android 11): 卸载基本可用; 老机型多为 com.nearme.* 旧包名",
+        "12": "ColorOS 12 (Android 12): 引入 com.oplus.* 新命名空间; 系统应用卸载被拒开始增多",
+        "13": "ColorOS 13 (Android 13): 大量 com.heytap.* 返回 DELETE_FAILED_INTERNAL_ERROR, 自动降级禁用; 乐划锁屏禁用也被静默拒绝(new state: default), 需 suspend; 该版本起 adb shell 无 WRITE_SETTINGS, settings put 失败",
+        "14": "ColorOS 14 (Android 14): 卸载拦截延续; 部分机型 suspend 也会被系统恢复, OTA 后用 check --fix 重新挂起",
+        "15": "ColorOS 15 (Android 15): 同上; 建议先 --dry-run, 再用 --batch 20 --screenshot 分批执行",
+        "10": "realme UI 1.0 / ColorOS 7 (Android 10): 卸载基本可用"
+      },
+      "priority": 5,
+      "edition_props": {
+        "ro.build.version.realmeui": "realme UI",
+        "ro.build.version.oxygenos": "OxygenOS"
+      },
+      "generation_map": {
+        "realme UI": {
+          "1": 10,
+          "2": 11,
+          "3": 12,
+          "4": 13,
+          "5": 14,
+          "6": 15
+        },
+        "OxygenOS": {
+          "12": 12,
+          "13": 13,
+          "14": 14,
+          "15": 15
+        }
+      }
+    },
+    "xiaomi": {
+      "label": "MIUI / HyperOS",
+      "aliases": [
+        "MIUI",
+        "HyperOS",
+        "澎湃OS",
+        "JOYUI"
+      ],
+      "brands": [
+        "xiaomi",
+        "redmi",
+        "poco",
+        "blackshark",
+        "joyui"
+      ],
+      "props": [
+        "ro.mi.os.version.name",
+        "ro.miui.ui.version.name",
+        "ro.mi.os.version.code",
+        "ro.miui.ui.version.code"
+      ],
+      "name_patterns": [
+        "hyperos",
+        "miui",
+        "joyui"
+      ],
+      "scale": "major",
+      "edition_prop": "ro.mi.os.version.name",
+      "edition_map": {
+        "MIUI": "MIUI",
+        "HyperOS": "HyperOS"
+      },
+      "generation_map": {
+        "MIUI": {
+          "10": 10,
+          "11": 11,
+          "12": 12,
+          "13": 13,
+          "14": 14
+        },
+        "HyperOS": {
+          "1": 15,
+          "2": 16,
+          "3": 17
+        }
+      },
+      "legacy_uninstall_below": "15.0",
+      "uninstall_blocked_from": "15.0",
+      "protected_namespaces": [
+        "com.miui.",
+        "com.xiaomi.",
+        "com.mi.",
+        "com.blackshark."
+      ],
+      "verified": "社区共识(未在真机验证); 小米/红米卸载前必须在开发者选项开启「USB 调试(安全设置)」",
+      "versions": {
+        "11": "MIUI 11 (Android 9-11): 卸载基本可用",
+        "12": "MIUI 12/12.5 (Android 10-12): 卸载基本可用; 广告服务 com.miui.systemAdSolution / com.miui.msa 只能禁用",
+        "13": "MIUI 13 (Android 12-13): 多数可卸载, 需先开「USB 调试(安全设置)」, 否则报 DELETE_FAILED_INTERNAL_ERROR",
+        "14": "MIUI 14 (Android 13): 同上; 部分机型 OTA 后已卸载应用会回潮, 用 check --fix",
+        "15": "HyperOS 1 (Android 14): 系统应用卸载限制增多, 大量包只能禁用; 桌面/服务框架类不要动",
+        "16": "HyperOS 2 (Android 15): 同上, 且部分禁用会被系统恢复, 建议配合 suspend",
+        "17": "HyperOS 3 (Android 16): 保守处理, 先 --dry-run 观察"
+      },
+      "priority": 5,
+      "edition_label": "HyperOS"
+    },
+    "harmonyos": {
+      "label": "HarmonyOS / EMUI",
+      "aliases": [
+        "HarmonyOS",
+        "EMUI",
+        "鸿蒙"
+      ],
+      "brands": [
+        "huawei",
+        "honor"
+      ],
+      "props": [
+        "hw_sc.build.platform.version",
+        "ro.build.version.harmony",
+        "ro.build.version.harmonyos",
+        "ro.build.version.emui",
+        "ro.build.version.magic",
+        "ro.build.version.hihonor"
+      ],
+      "name_patterns": [
+        "harmonyos",
+        "emui"
+      ],
+      "scale": "major",
+      "legacy_uninstall_below": null,
+      "uninstall_blocked_from": null,
+      "protected_namespaces": [
+        "com.huawei.",
+        "com.hihonor."
+      ],
+      "unsupported_from": "5.0",
+      "unsupported_reason": "HarmonyOS NEXT (5.x) 已移除 adb, 改用 hdc + HAP 包格式, 本工具(基于 adb/pm)无法连接; 请在 HarmonyOS 4.x 及以下使用, 或改用「设置 → 应用管理」手动卸载可卸载的预装。",
+      "versions": {
+        "10": "EMUI 10/11 (Android 10): adb 可用, 卸载基本可用",
+        "12": "EMUI 12 / HarmonyOS 2 (Android 10-11): adb 可用; 需在开发者选项打开「仅充电时允许 ADB 调试」",
+        "3": "HarmonyOS 3 (Android 12): adb 可用, 部分预装卸载后会自动恢复",
+        "4": "HarmonyOS 4/4.2 (Android 12): adb 可用; 华为账号/云空间/钱包删了会丢数据, 已列入谨慎名单",
+        "5": "HarmonyOS NEXT 5.x: 无 adb(用 hdc), 本工具不支持"
+      },
+      "priority": 2,
+      "edition_props": {
+        "hw_sc.build.platform.version": "HarmonyOS",
+        "ro.build.version.harmony": "HarmonyOS",
+        "ro.build.version.harmonyos": "HarmonyOS",
+        "ro.build.version.emui": "EMUI"
+      },
+      "unsupported_editions": [
+        "HarmonyOS"
+      ]
+    },
+    "magicos": {
+      "label": "MagicOS",
+      "aliases": [
+        "MagicOS",
+        "Magic UI"
+      ],
+      "brands": [
+        "honor",
+        "hihonor"
+      ],
+      "props": [
+        "ro.build.version.magic",
+        "ro.build.version.hihonor"
+      ],
+      "name_patterns": [
+        "magicos",
+        "magic\\s*ui"
+      ],
+      "scale": "major",
+      "legacy_uninstall_below": "8.0",
+      "uninstall_blocked_from": "8.0",
+      "protected_namespaces": [
+        "com.hihonor.",
+        "com.honor."
+      ],
+      "verified": "社区共识(未在真机验证)",
+      "versions": {
+        "6": "MagicOS 6 (Android 12): 卸载基本可用",
+        "7": "MagicOS 7 (Android 13): 卸载基本可用; 荣耀账号/云服务保留",
+        "8": "MagicOS 8 (Android 14): 部分预装只能禁用; 建议标准档 + 分批",
+        "9": "MagicOS 9 (Android 15): 同上, 保守处理"
+      },
+      "priority": 1
+    },
+    "originos": {
+      "label": "OriginOS / Funtouch OS",
+      "aliases": [
+        "OriginOS",
+        "Funtouch",
+        "Funtouch OS"
+      ],
+      "brands": [
+        "vivo",
+        "iqoo",
+        "bbk"
+      ],
+      "props": [
+        "ro.vivo.os.version",
+        "ro.vivo.os.name",
+        "ro.vivo.rom.version",
+        "ro.build.version.funtouch"
+      ],
+      "name_patterns": [
+        "originos",
+        "funtouch"
+      ],
+      "scale": "major",
+      "legacy_uninstall_below": "4.0",
+      "uninstall_blocked_from": "4.0",
+      "protected_namespaces": [
+        "com.vivo.",
+        "com.bbk.",
+        "com.iqoo."
+      ],
+      "verified": "社区共识(未在真机验证)",
+      "versions": {
+        "1": "OriginOS 1.0 / Funtouch 11 (Android 11): 卸载基本可用",
+        "2": "OriginOS 2.0 / Funtouch 12 (Android 12): 卸载基本可用",
+        "3": "OriginOS 3 (Android 13): 卸载基本可用; 互传/账号保留",
+        "4": "OriginOS 4 (Android 14): 部分系统应用卸载后自动恢复, OTA 后用 check --fix",
+        "5": "OriginOS 5 (Android 15): 同上, 保守处理"
+      },
+      "priority": 5,
+      "edition_props": {
+        "ro.vivo.os.version": "OriginOS",
+        "ro.vivo.os.name": "OriginOS",
+        "ro.vivo.rom.version": "OriginOS",
+        "ro.build.version.funtouch": "Funtouch OS"
+      }
+    },
+    "oneui": {
+      "label": "One UI",
+      "aliases": [
+        "One UI",
+        "OneUI",
+        "Samsung One UI"
+      ],
+      "brands": [
+        "samsung"
+      ],
+      "props": [
+        "ro.build.version.oneui",
+        "ro.build.version.sem"
+      ],
+      "name_patterns": [
+        "one\\s*ui"
+      ],
+      "scale": "oneui",
+      "legacy_uninstall_below": null,
+      "uninstall_blocked_from": null,
+      "protected_namespaces": [
+        "com.samsung.",
+        "com.sec."
+      ],
+      "verified": "社区共识(未在真机验证); 国行预装以三星自家与本地合作 App 为主",
+      "versions": {
+        "5": "One UI 5 (Android 13): 卸载可用性较好",
+        "6": "One UI 6 (Android 14): 同上; Bixby/三星账号保留",
+        "7": "One UI 7 (Android 15): 同上"
+      },
+      "priority": 5
+    },
+    "flyme": {
+      "label": "Flyme",
+      "aliases": [
+        "Flyme",
+        "Flyme OS"
+      ],
+      "brands": [
+        "meizu"
+      ],
+      "props": [
+        "ro.flyme.version",
+        "ro.flyme.os.version"
+      ],
+      "name_patterns": [
+        "flyme"
+      ],
+      "scale": "major",
+      "legacy_uninstall_below": null,
+      "uninstall_blocked_from": null,
+      "protected_namespaces": [
+        "com.meizu.",
+        "cn.meizu."
+      ],
+      "verified": "社区共识(未在真机验证); Flyme 广告与预装本身较少",
+      "versions": {
+        "8": "Flyme 8 (Android 9-10): 卸载可用",
+        "9": "Flyme 9 (Android 11): 卸载可用",
+        "10": "Flyme 10 (Android 13): 卸载可用; 魅族账号/云服务保留",
+        "11": "Flyme 11 / AI 终端 (Android 14): 保守处理"
+      },
+      "priority": 5
+    },
+    "myos": {
+      "label": "MyOS (中兴/努比亚/红魔)",
+      "aliases": [
+        "MyOS",
+        "nubia MyOS",
+        "RedMagic OS"
+      ],
+      "brands": [
+        "zte",
+        "nubia",
+        "redmagic",
+        "zte_nubia"
+      ],
+      "props": [
+        "ro.build.version.myos",
+        "ro.zte.os.version"
+      ],
+      "name_patterns": [
+        "myos",
+        "redmagic\\s*os"
+      ],
+      "scale": "major",
+      "legacy_uninstall_below": null,
+      "uninstall_blocked_from": null,
+      "protected_namespaces": [
+        "cn.nubia.",
+        "com.zte.",
+        "com.redmagic."
+      ],
+      "confidence": "display-id",
+      "verified": "包名来自 UAD-NG 社区库; 版本号优先取 ro.build.display.id 里的 MyOS 字样",
+      "versions": {
+        "11": "MyOS 11 (Android 11): 卸载可用",
+        "12": "MyOS 12 (Android 12): 卸载可用",
+        "13": "MyOS 13 (Android 13): 卸载可用; 红魔游戏空间类可留",
+        "14": "MyOS 14 (Android 14): 保守处理"
+      },
+      "priority": 5
+    },
+    "myui": {
+      "label": "myui (摩托罗拉)",
+      "aliases": [
+        "myui",
+        "moto myui"
+      ],
+      "brands": [
+        "motorola",
+        "moto",
+        "lenovo"
+      ],
+      "props": [
+        "ro.moto.build.version",
+        "ro.build.version.moto"
+      ],
+      "name_patterns": [
+        "myui"
+      ],
+      "scale": "major",
+      "legacy_uninstall_below": null,
+      "uninstall_blocked_from": null,
+      "protected_namespaces": [
+        "com.motorola.",
+        "com.moto."
+      ],
+      "confidence": "display-id",
+      "verified": "包名来自 UAD-NG 社区库; myui 接近原生 Android, 广告极少",
+      "versions": {
+        "4": "myui 4 (Android 13): 卸载可用",
+        "5": "myui 5 (Android 14): 卸载可用",
+        "6": "myui 6 (Android 15): 卸载可用"
+      },
+      "priority": 2
+    },
+    "hios": {
+      "label": "HiOS / XOS (传音)",
+      "aliases": [
+        "HiOS",
+        "XOS",
+        "Tecno HiOS",
+        "Infinix XOS"
+      ],
+      "brands": [
+        "tecno",
+        "infinix",
+        "itel",
+        "transsion"
+      ],
+      "props": [
+        "ro.build.hios.version",
+        "ro.build.xos.version"
+      ],
+      "name_patterns": [
+        "hios",
+        "xos"
+      ],
+      "scale": "major",
+      "legacy_uninstall_below": null,
+      "uninstall_blocked_from": null,
+      "protected_namespaces": [
+        "com.transsion.",
+        "com.tecno.",
+        "com.infinix.",
+        "com.itel."
+      ],
+      "confidence": "display-id",
+      "verified": "包名来自 UAD-NG 社区库; 传音机型广告推送较多, 建议 standard 档",
+      "versions": {
+        "12": "HiOS 12 (Android 12): 卸载可用",
+        "13": "HiOS 13 (Android 13): 卸载可用",
+        "14": "HiOS 14 (Android 14): 保守处理"
+      },
+      "priority": 5
+    },
+    "zui": {
+      "label": "ZUI (联想/拯救者)",
+      "aliases": [
+        "ZUI",
+        "Legion OS"
+      ],
+      "brands": [
+        "lenovo",
+        "zuk",
+        "legion"
+      ],
+      "props": [
+        "ro.zui.version",
+        "ro.build.zui.version"
+      ],
+      "name_patterns": [
+        "zui",
+        "legion\\s*os"
+      ],
+      "scale": "major",
+      "legacy_uninstall_below": null,
+      "uninstall_blocked_from": null,
+      "protected_namespaces": [
+        "com.lenovo.",
+        "com.zui.",
+        "com.legion."
+      ],
+      "confidence": "display-id",
+      "verified": "包名来自 UAD-NG 社区库",
+      "versions": {
+        "14": "ZUI 14 (Android 12): 卸载可用",
+        "15": "ZUI 15 (Android 13): 卸载可用",
+        "16": "ZUI 16 (Android 14): 保守处理"
+      },
+      "priority": 1
+    }
+  },
+  "packages": {
+    "com.heytap.pictorial": {
+      "family": "coloros",
+      "vmin": "12.0",
+      "action": "disable",
+      "note": "ColorOS 12 起为「乐划锁屏」, 卸载被 ROM 拒绝, 禁用也常返回 new state: default, 工具会自动挂起"
+    },
+    "com.coloros.lockscreen.magazine": {
+      "family": "coloros",
+      "vmax": "11.99",
+      "action": "uninstall",
+      "note": "ColorOS 11 及以下的锁屏杂志, 12 起并入乐划锁屏(com.heytap.pictorial)"
+    },
+    "com.oplus.statistics.rom": {
+      "family": "coloros",
+      "vmin": "12.0",
+      "action": "disable",
+      "note": "ColorOS 12+ 的 ROM 统计/遥测服务"
+    },
+    "com.nearme.statistics": {
+      "family": "coloros",
+      "vmax": "11.99",
+      "action": "disable",
+      "note": "ColorOS 11 及以下的欢太统计; 新版本已换成 com.oplus.statistics.rom"
+    },
+    "com.miui.systemAdSolution": {
+      "family": "xiaomi",
+      "action": "disable",
+      "note": "小米系统广告 SDK, 被系统组件引用, 只禁用不卸载"
+    },
+    "com.miui.msa": {
+      "family": "xiaomi",
+      "action": "disable",
+      "note": "MSA 广告标识服务, 卸载会导致部分系统应用异常"
+    },
+    "com.miui.analytics": {
+      "family": "xiaomi",
+      "action": "disable",
+      "note": "MIUI/HyperOS 数据统计, 禁用即可, 卸载可能影响系统更新"
+    },
+    "com.miui.daemon": {
+      "family": "xiaomi",
+      "action": "disable",
+      "note": "小米统计守护进程, 只禁用"
+    },
+    "com.huawei.hwid": {
+      "family": "harmonyos",
+      "action": "disable",
+      "note": "华为账号, 禁用会退出登录并影响云空间/应用市场, 默认只提示"
+    },
+    "com.hihonor.id": {
+      "family": "magicos",
+      "action": "disable",
+      "note": "荣耀账号, 禁用会退出登录"
+    },
+    "com.vivo.vivo.account": {
+      "family": "originos",
+      "action": "disable",
+      "note": "vivo 账号, 禁用会退出登录"
+    }
+  }
+}

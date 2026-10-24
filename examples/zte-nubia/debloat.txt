@@ -1,0 +1,47 @@
+# CleanYourPhone 清理列表 — 中兴 / 努比亚 / 红魔 (MyOS 11-14)
+# 用法: tools/disable.sh examples/zte-nubia/debloat.txt
+#       python3 tools/phone.py apply examples/zte-nubia/debloat.txt --dry-run
+# 说明:
+#   - 包名来自 UAD-NG 社区库(努比亚/中兴命名空间 cn.nubia.* / com.zte.*)
+#   - MyOS 对卸载限制较少, 本列表默认 uninstall; 若某条被 ROM 拒绝会自动降级禁用
+#   - 版本标注 [v>=13] 表示仅 MyOS 13 及以上执行; 版本识别见 tools/phone.py rom
+#   - 不存在于本机的包会自动跳过(不同机型/版本预装不同)
+
+# ---------- 广告 / 推荐 / 数据采集(禁用) ----------
+cn.nubia.owlsystem            disable   # 努比亚数据采集(权限极多)
+cn.nubia.behaviordetection    disable   # 应用行为采集(广告画像)
+cn.nubia.identity             disable   # 个性化推荐
+cn.nubia.hybrid               disable   # 快应用/广告容器(中文组件多)
+cn.nubia.entertainmenttoolbox disable   # 娱乐工具箱(含统计)
+cn.nubia.contrycode           disable   # 国家码统计上报
+cn.nubia.neopush              disable   # 努比亚推送(营销推送; 禁用后第三方推送可能受影响)
+cn.nubia.garbagecleanwidget   uninstall # 一键清理小部件
+cn.nubia.clock.widget.preset  uninstall # 时钟小部件(权限偏多, 可选)
+
+# ---------- 内容 / 商店(卸载) ----------
+cn.nubia.browser              uninstall # 努比亚浏览器(资讯与广告)
+cn.nubia.neostore             uninstall # 努比亚应用商店
+cn.nubia.video                uninstall # 努比亚视频播放器(可选)
+
+# ---------- 可选功能(按需卸载) ----------
+cn.nubia.edge                 uninstall # 智慧服务卡片 / 智能侧边栏
+cn.nubia.gamenotes            uninstall # 游戏笔记
+cn.nubia.apptimelock          uninstall # 应用限时(健康使用)
+cn.nubia.doubleapp            disable   # 应用分身(需要分身功能则保留)
+cn.nubia.keymapcenter         disable   # 游戏按键映射(红魔游戏肩键相关)
+
+# ---------- 工程/测试模式(禁用, 无功能损失) ----------
+cn.nubia.advanced             disable   # 隐藏的高级测试(蓝牙/WiFi)
+cn.nubia.factory              disable   # 工厂硬件测试
+cn.nubia.autoagingtest        disable   # 老化测试
+cn.nubia.aftersale            disable   # 售后调试(带定位权限)
+cn.nubia.error.dialog         disable   # 系统错误弹窗(不影响日志)
+
+# ---------- 中兴命名空间 ----------
+com.zte.assistant             disable   # 中兴语音助手(不用可禁)
+com.zte.beautify              disable   # 中兴主题(需要主题功能则保留)
+com.zte.burntest.camera       disable   # 相机烧机测试
+com.zte.emode                 disable   # 工程模式
+com.zte.emodeservice          disable   # 工程模式服务
+com.zte.heartyservice.strategy disable  # 健康服务策略(统计)
+com.zte.faceverify            disable   # 人脸校验(用人脸解锁则保留)

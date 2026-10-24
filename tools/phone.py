@@ -30,6 +30,7 @@
   audit [--write 文件]            扫描设备上的广告/遥测候选包
   auto [--tier safe|standard|aggressive] [--apply]
                                   自动识别本机预装, 匹配互联网聚合知识库后清理
+  rom [--list 文件]               识别 ROM 家族/版本, 说明该版本的卸载策略与清单适用性
   settings <settings.conf> [--dry-run]   写入系统设置(关闭广告/限制追踪)
   dns on [主机名] | off | status   Private DNS 去广告(带自愈: 解析失败自动关闭)
   shake on|off|status [清单]       封杀第三方 App "摇一摇"开屏广告(appops)
@@ -52,7 +53,7 @@ import urllib.request
 import zipfile
 from pathlib import Path
 
-VERSION = "2.1.0"
+VERSION = "2.2.0"
 HOME_DIR = Path.home() / ".cleanyourphone"
 DEFAULT_WIRELESS_PORT = 5555
 
@@ -155,13 +156,16 @@ def is_denied(pkg: str) -> bool:
 
 # ---------------------------------------------------------------------------
 # 清理列表解析
-# 行格式: <包名> [uninstall|disable] [# 注释]
+# 行格式: <包名> [uninstall|disable] [[v>=13]] [# 注释]
 #   - 行首 # 为注释, 空行忽略; 兼容 CRLF 与 UTF-8 BOM
 #   - 动作缺省为 uninstall
+#   - 版本标注可写在行尾或注释里: [v>=13] [v<12] [v=13.1] [v12-13]
+#     版本不符的条目在 apply/check 时自动跳过(见 rom-profiles.json)
 # ---------------------------------------------------------------------------
 LIST_LINE_RE = re.compile(
     r"^(?P<pkg>[A-Za-z][A-Za-z0-9_]*(?:\.[A-Za-z0-9_]+)+)"   # 包名
     r"(?:\s+(?P<action>uninstall|disable))?"                  # 可选动作
+    r"(?:\s+(?P<gate>(?:\[[^\]]*\]\s*)+))?"                   # 可选版本标注
     r"(?:\s+#\s?(?P<comment>.*))?$"                           # 可选注释
 )
 
@@ -176,10 +180,13 @@ def parse_list(text: str, source: str = "<list>"):
         m = LIST_LINE_RE.match(line)
         if not m:
             raise ValueError(f"{source}:{lineno}: 无法解析的行: {raw!r}")
+        comment = (m.group("comment") or "").strip()
+        gates = parse_gates(m.group("gate") or "") + parse_gates(comment)
         entries.append({
             "pkg": m.group("pkg"),
             "action": m.group("action") or "uninstall",
-            "comment": (m.group("comment") or "").strip(),
+            "comment": strip_gates(comment),
+            "gates": gates,
         })
     return entries
 
@@ -405,13 +412,18 @@ def pick_device(adb: Adb, serial=None) -> str:
 # ---------------------------------------------------------------------------
 INFO_PROPS = [
     "ro.product.brand", "ro.product.model", "ro.product.name", "ro.product.device",
-    "ro.product.marketname",
+    "ro.product.marketname", "ro.product.manufacturer",
     "ro.build.version.release", "ro.build.version.sdk", "ro.build.display.id",
-    "ro.miui.ui.version.name",        # 小米 MIUI/HyperOS
-    "ro.build.version.emui",          # 华为 EMUI/HarmonyOS
-    "ro.build.version.opporom",       # OPPO ColorOS
-    "ro.vivo.os.version", "ro.vivo.rom.version",   # vivo OriginOS
+    "ro.miui.ui.version.name", "ro.miui.ui.version.code",   # 小米 MIUI
+    "ro.mi.os.version.name", "ro.mi.os.version.code",       # 小米 HyperOS(澎湃)
+    "ro.build.version.emui",          # 华为 EMUI
+    "hw_sc.build.platform.version",   # 华为 HarmonyOS
+    "ro.build.version.opporom", "ro.build.version.oplusrom",  # OPPO ColorOS
+    "ro.build.version.oplusrom.display",
+    "ro.vivo.os.version", "ro.vivo.os.name", "ro.vivo.rom.version",  # vivo
     "ro.build.version.magic", "ro.build.version.hihonor",  # 荣耀 MagicOS
+    "ro.build.version.oneui",         # 三星 One UI
+    "ro.flyme.version",               # 魅族 Flyme
 ]
 
 BRAND_TO_EXAMPLE = {
@@ -421,17 +433,408 @@ BRAND_TO_EXAMPLE = {
     "blackshark": "examples/xiaomi-hyperos",
     "huawei": "examples/huawei-harmonyos",
     "honor": "examples/honor-magicos",
+    "hihonor": "examples/honor-magicos",
     "oppo": "examples/oppo-coloros",
-    "oneplus": "examples/oppo-coloros",
-    "realme": "examples/oppo-coloros",
+    "oneplus": "examples/oneplus-coloros",
+    "realme": "examples/realme-ui",
     "vivo": "examples/vivo-originos",
     "iqoo": "examples/vivo-originos",
     "samsung": "examples/samsung-oneui-cn",
     "meizu": "examples/meizu-flyme",
+    "zte": "examples/zte-nubia",
+    "nubia": "examples/zte-nubia",
+    "redmagic": "examples/zte-nubia",
+    "motorola": "examples/moto-myiui",
+    "moto": "examples/moto-myiui",
+    "lenovo": "examples/lenovo-zui",
+    "tecno": "examples/transsion-hios",
+    "infinix": "examples/transsion-hios",
+    "itel": "examples/transsion-hios",
+    "transsion": "examples/transsion-hios",
 }
 
 
-def get_props(dev: Adb) -> dict:
+# ---------------------------------------------------------------------------
+# ROM 家族与版本识别(版本感知)
+#
+#   同一品牌不同 ROM 版本, 可卸载范围与「卸载是否被 ROM 拦截」完全不同:
+#     ColorOS 11 及以下 → pm uninstall --user 0 基本可用, 直接卸载
+#     ColorOS 12 起     → 大量 com.heytap.* 返回 DELETE_FAILED_INTERNAL_ERROR,
+#                         只能降级禁用/挂起(真机 ColorOS 13.1 已验证)
+#   规则表: rules/rom-profiles.json(家族属性/版本说明/分版本动作覆盖)
+# ---------------------------------------------------------------------------
+ROM_PROFILE_FILE = (Path(__file__).resolve().parent.parent
+                    / "rules" / "rom-profiles.json")
+_ROM_PROFILES_CACHE: dict = {}
+
+
+def load_rom_profiles(path=None) -> dict:
+    """读取版本规则库; 文件缺失时返回空表(工具仍可用, 只是不做版本判断)。"""
+    p = Path(path) if path else ROM_PROFILE_FILE
+    key = str(p)
+    if key in _ROM_PROFILES_CACHE:
+        return _ROM_PROFILES_CACHE[key]
+    data = {"families": {}, "packages": {}}
+    try:
+        if p.exists():
+            loaded = json.loads(p.read_text(encoding="utf-8"))
+            if isinstance(loaded, dict):
+                data["families"] = loaded.get("families") or {}
+                data["packages"] = loaded.get("packages") or {}
+                data["meta"] = loaded.get("meta") or {}
+    except (ValueError, OSError):
+        pass
+    _ROM_PROFILES_CACHE[key] = data
+    return data
+
+
+_VERSION_NUM_RE = re.compile(r"(\d+(?:\.\d+)*)")
+
+
+def parse_version(text) -> tuple:
+    """把 "V13.1.0" / "OS2.0.1.0.VNBCNXM" / "13.1" 解析成 (13,1,0)。"""
+    if not text:
+        return ()
+    m = _VERSION_NUM_RE.search(str(text))
+    if not m:
+        return ()
+    try:
+        return tuple(int(x) for x in m.group(1).split(".") if x != "")
+    except ValueError:
+        return ()
+
+
+def fmt_version(vt: tuple) -> str:
+    """(13,1,0) -> "13.1"(去掉尾部 0, 至少保留两位)。"""
+    parts = list(vt or ())
+    while len(parts) > 2 and parts[-1] == 0:
+        parts.pop()
+    return ".".join(str(x) for x in parts)
+
+
+def _ver_lt(a: tuple, b: tuple) -> bool:
+    n = max(len(a), len(b))
+    return (tuple(a) + (0,) * (n - len(a))) < (tuple(b) + (0,) * (n - len(b)))
+
+
+def _ver_eq(a: tuple, b: tuple) -> bool:
+    n = max(len(a), len(b))
+    return (tuple(a) + (0,) * (n - len(a))) == (tuple(b) + (0,) * (n - len(b)))
+
+
+def read_all_props(dev: Adb) -> dict:
+    """一次 `getprop` 取全量属性 -> {键: 值}。失败返回 {}。"""
+    try:
+        out = dev.shell("getprop")
+    except Exception:
+        return {}
+    props = {}
+    for line in out.splitlines():
+        m = re.match(r"^\[([^\]]+)\]:\s*\[(.*)\]\s*$", line.strip())
+        if m:
+            props[m.group(1)] = m.group(2).strip()
+    return props
+
+
+def _norm_brand(props: dict) -> str:
+    for key in ("ro.product.brand", "ro.product.manufacturer", "ro.product.name"):
+        v = (props.get(key) or "").strip().lower()
+        if v:
+            return v.split()[0]
+    return ""
+
+
+def _family_candidates(brand: str, families: dict) -> list:
+    """按品牌命中优先、priority 次之排序; 未命中的家族排在最后做兜底识别。"""
+    hit = [k for k, c in families.items()
+           if brand and brand in [b.lower() for b in c.get("brands") or []]]
+    rest = [k for k in families if k not in hit]
+    key = lambda k: families[k].get("priority", 5)  # noqa: E731
+    return sorted(hit, key=key) + sorted(rest, key=key)
+
+
+def _family_version(cfg: dict, props: dict):
+    """从属性里取该家族的版本 -> (原始值, 版本元组, 属性名, edition) 或 None。"""
+    for key in cfg.get("props") or []:
+        if key == "ro.build.display.id":
+            # 构建号(TP1A.220905.001 / U1TQS34.36-33-3)里的数字不是 ROM 版本,
+            # 这类信息只走下面的"家族名 + 版本号"扫描
+            continue
+        raw = (props.get(key) or "").strip()
+        if not raw or raw.lower() in ("unknown", "null", "0"):
+            continue
+        vt = parse_version(raw)
+        if not vt:
+            continue
+        edition = None
+        ep = cfg.get("edition_props") or {}
+        if key in ep:
+            edition = ep[key]
+        elif key == cfg.get("edition_prop"):
+            edition = cfg.get("edition_label") or "HyperOS"
+        elif key == "ro.miui.ui.version.name":
+            edition = "MIUI"
+        return raw, vt, key, edition
+    # 兜底: 扫描全部属性值里的家族名(MyOS / myui / HiOS / ZUI 等无稳定专有属性)
+    pats = [re.compile(p, re.I) for p in cfg.get("name_patterns") or []]
+    for key, raw in props.items():
+        if not raw:
+            continue
+        for pat in pats:
+            m = pat.search(raw)
+            if not m:
+                continue
+            vt = parse_version(raw[m.end():m.end() + 24])
+            if vt:
+                return raw, vt, key, None
+    return None
+
+
+def _generation(cfg: dict, vt: tuple, edition) -> tuple:
+    """把各家族自己的版本号换算成可跨版本比较的 generation。"""
+    if not vt:
+        return ()
+    if cfg.get("scale") == "oneui":
+        code = vt[0]
+        return (code // 10000, (code // 100) % 100, code % 100)
+    gmap = (cfg.get("generation_map") or {}).get(edition or "") or {}
+    major = str(vt[0])
+    if major in gmap:
+        base = int(gmap[major])
+        return (base,) + tuple(vt[1:])
+    return vt
+
+
+def _build_rom(family, cfg, raw, vt, edition, source, brand, android,
+               confidence="prop") -> dict:
+    gen = _generation(cfg, vt, edition)
+    blocked = cfg.get("uninstall_blocked_from")
+    legacy_below = cfg.get("legacy_uninstall_below")
+    uninstall_ok, legacy = True, False
+    if blocked and gen:
+        uninstall_ok = _ver_lt(gen, parse_version(blocked))
+        if legacy_below:
+            legacy = _ver_lt(gen, parse_version(legacy_below))
+    unsupported = None
+    if cfg.get("unsupported_from") and gen and not _ver_lt(
+            gen, parse_version(cfg["unsupported_from"])):
+        eds = cfg.get("unsupported_editions")
+        if not eds or edition in eds:
+            unsupported = cfg.get("unsupported_reason") or "该版本不再支持 adb 调试"
+    label = cfg.get("label") or family
+    shown = edition or label
+    if cfg.get("scale") == "oneui":
+        # One UI 的属性是版本代码(60100), 展示用换算后的 6.1
+        shown, vt_show = label, gen
+    else:
+        vt_show = vt
+    versions = cfg.get("versions") or {}
+    major = str((vt or (0,))[0])
+    note = versions.get(major) or ""
+    if not note:
+        # 取不高于当前版本的最大一条说明
+        best = None
+        for k, v in versions.items():
+            try:
+                kn = int(k)
+            except ValueError:
+                continue
+            if kn <= int(major) and (best is None or kn > best[0]):
+                best = (kn, v)
+        note = best[1] if best else ""
+    return {
+        "family": family,
+        "label": label,
+        "edition": edition,
+        "display": f"{shown} {fmt_version(vt_show)}".strip(),
+        "version": fmt_version(vt_show),
+        "generation": gen,
+        "raw": raw,
+        "source": source,
+        "brand": brand,
+        "android": android,
+        "note": note,
+        "notes": cfg.get("notes") or [],
+        "legacy": legacy,
+        "uninstall_ok": uninstall_ok,
+        "uninstall_blocked_from": blocked,
+        "protected_namespaces": cfg.get("protected_namespaces") or [],
+        "unsupported": unsupported,
+        "confidence": confidence,
+        "verified": cfg.get("verified") or "",
+    }
+
+
+def detect_rom(dev: Adb = None, props: dict = None, override: str = None,
+               profiles: dict = None) -> dict:
+    """识别 ROM 家族与版本。override 形如 "13.1" 或 "coloros:13.1"(手动指定)。"""
+    profiles = profiles or load_rom_profiles()
+    families = profiles.get("families") or {}
+    if props is None:
+        props = read_all_props(dev) if dev is not None else {}
+    brand = _norm_brand(props)
+    android = (props.get("ro.build.version.release") or "").strip()
+
+    rom = None
+    if override:
+        fam, sep, ver = str(override).partition(":")
+        if not sep:
+            ver, fam = fam, ""
+        fam = fam.strip().lower()
+        if fam and fam in families:
+            vt = parse_version(ver)
+            rom = _build_rom(fam, families[fam], ver, vt, None, "手动指定",
+                             brand, android, confidence="override")
+        elif ver:
+            # 只给了版本号: 沿用品牌识别出的家族
+            for cand in _family_candidates(brand, families):
+                if _family_version(families[cand], props):
+                    vt = parse_version(ver)
+                    rom = _build_rom(cand, families[cand], ver, vt, None,
+                                     "手动指定", brand, android,
+                                     confidence="override")
+                    break
+
+    if rom is None:
+        for fam in _family_candidates(brand, families):
+            got = _family_version(families[fam], props)
+            if not got:
+                continue
+            raw, vt, source, edition = got
+            conf = "display-id" if families[fam].get("confidence") == "display-id" else "prop"
+            rom = _build_rom(fam, families[fam], raw, vt, edition, source,
+                             brand, android, confidence=conf)
+            break
+
+    if rom is None:
+        rom = {
+            "family": None, "label": "未识别 ROM", "edition": None,
+            "display": "", "version": "", "generation": (),
+            "raw": (props.get("ro.build.display.id") or "").strip(),
+            "source": "", "brand": brand, "android": android,
+            "note": "", "notes": [], "legacy": False, "uninstall_ok": True,
+            "uninstall_blocked_from": None, "protected_namespaces": [],
+            "unsupported": None, "confidence": "unknown", "verified": "",
+        }
+    return rom
+
+
+def rom_policy_lines(rom: dict) -> list:
+    """该 ROM 版本下的清理策略说明(给 CLI 打印)。"""
+    if not rom or not rom.get("family"):
+        return ["版本策略: 未识别 ROM 家族, 只按 Android 版本与包名安全规则处理"
+                "(可加 --rom-version coloros:13.1 手动指定)"]
+    out = []
+    if rom.get("legacy"):
+        out.append(f"版本策略: {rom['display']} 低于卸载拦截门槛"
+                   f"(>= {rom.get('uninstall_blocked_from')}), "
+                   "pm uninstall --user 0 通常可用 → 清单里的 uninstall 条目直接卸载")
+    elif rom.get("uninstall_ok") is False:
+        out.append(f"版本策略: {rom['display']} 起 ROM 会拦截大量系统应用卸载"
+                   "(DELETE_FAILED_INTERNAL_ERROR) → 卸载失败自动降级禁用, "
+                   "禁用被拒再挂起; 想少刷失败日志可加 --prefer-disable")
+    else:
+        out.append(f"版本策略: {rom['display']} 未记录卸载拦截, 按普通流程执行")
+    if rom.get("unsupported"):
+        out.append(f"[不支持] {rom['unsupported']}")
+    return out
+
+
+# ---------------------------------------------------------------------------
+# 列表里的版本标注: [v>=13] [v<12] [v=13.1] [v12-13]
+#   - 写在行尾或注释里都行: com.x.y uninstall [v>=13] # 说明
+#   - 版本比较用 ROM 的 generation(见 rom-profiles.json 的 generation_note)
+# ---------------------------------------------------------------------------
+GATE_RE = re.compile(
+    r"\[\s*v\s*(?:(>=|<=|!=|>|<|=)\s*)?(\d+(?:\.\d+)*)"
+    r"(?:\s*-\s*(\d+(?:\.\d+)*))?\s*\]", re.I)
+
+
+def parse_gates(text: str) -> list:
+    gates = []
+    for m in GATE_RE.finditer(text or ""):
+        op, lo, hi = m.group(1), parse_version(m.group(2)), m.group(3)
+        if hi:
+            gates.append(("range", lo, parse_version(hi)))
+        elif op:
+            gates.append((op, lo))
+        else:
+            gates.append((">=", lo))
+    return gates
+
+
+def strip_gates(text: str) -> str:
+    return re.sub(r"\s+", " ", GATE_RE.sub(" ", text or "")).strip()
+
+
+def fmt_gates(gates: list) -> str:
+    """[(">=", (13,))] -> "[v>=13]"。"""
+    out = []
+    for g in gates or []:
+        if g[0] == "range":
+            out.append(f"[v{fmt_version(g[1])}-{fmt_version(g[2])}]")
+        else:
+            out.append(f"[v{g[0]}{fmt_version(g[1])}]")
+    return " ".join(out)
+
+
+def gate_pass(gates: list, gen: tuple) -> bool:
+    for g in gates:
+        if g[0] == "range":
+            if _ver_lt(gen, g[1]) or _ver_lt(g[2], gen):
+                return False
+            continue
+        op, v = g[0], g[1]
+        if op == ">=" and _ver_lt(gen, v):
+            return False
+        if op == ">" and (not _ver_lt(v, gen) or _ver_eq(gen, v)):
+            return False
+        if op == "<=" and _ver_lt(v, gen):
+            return False
+        if op == "<" and not _ver_lt(gen, v):
+            return False
+        if op == "=" and not _ver_eq(gen, v):
+            return False
+        if op == "!=" and _ver_eq(gen, v):
+            return False
+    return True
+
+
+def filter_entries_by_rom(entries: list, rom: dict) -> tuple:
+    """按 ROM 版本过滤条目 -> (适用, 因版本不符跳过)。版本未知时不拦截。"""
+    gen = (rom or {}).get("generation") or ()
+    if not gen:
+        return list(entries), []
+    kept, skipped = [], []
+    for e in entries:
+        gates = e.get("gates") or []
+        (kept if not gates or gate_pass(gates, gen) else skipped).append(e)
+    return kept, skipped
+
+
+def rom_pkg_override(pkg: str, rom: dict, profiles: dict = None):
+    """版本专属动作覆盖 -> {"action":..., "note":...} 或 {"skip": True, "note":...} 或 None。"""
+    profiles = profiles or load_rom_profiles()
+    ov = (profiles.get("packages") or {}).get(pkg)
+    if not ov:
+        return None
+    fam = ov.get("family")
+    if fam and rom and rom.get("family") and fam != rom["family"]:
+        return None
+    gen = (rom or {}).get("generation") or ()
+    if gen:
+        if ov.get("vmin") and _ver_lt(gen, parse_version(ov["vmin"])):
+            return {"skip": True, "note": ov.get("note") or ""}
+        if ov.get("vmax") and _ver_lt(parse_version(ov["vmax"]), gen):
+            return {"skip": True, "note": ov.get("note") or ""}
+    return ov
+
+
+def get_props(dev: Adb, all_props: dict = None) -> dict:
+    """取 INFO_PROPS 里的属性。优先用一次 `getprop` 全量输出(快), 失败再逐个取。"""
+    all_props = read_all_props(dev) if all_props is None else all_props
+    if all_props:
+        return {k: all_props.get(k, "") for k in INFO_PROPS}
     props = {}
     for key in INFO_PROPS:
         try:
@@ -442,19 +845,15 @@ def get_props(dev: Adb) -> dict:
 
 
 def describe_device(dev: Adb) -> dict:
-    props = get_props(dev)
+    all_props = read_all_props(dev)
+    props = get_props(dev, all_props)
     brand = (props.get("ro.product.brand") or "").strip()
     model = (props.get("ro.product.model") or "").strip()
-    rom = ""
-    for key in ("ro.miui.ui.version.name", "ro.build.version.emui",
-                "ro.build.version.opporom", "ro.vivo.os.version",
-                "ro.build.version.magic", "ro.build.version.hihonor"):
-        if props.get(key):
-            rom = props[key]
-            break
+    rom_info = detect_rom(dev, props=all_props or props)
     example = BRAND_TO_EXAMPLE.get(brand.lower(), "examples/universal")
     return {
-        "brand": brand, "model": model, "rom": rom,
+        "brand": brand, "model": model, "rom": rom_info.get("display") or "",
+        "rom_info": rom_info,
         "marketname": props.get("ro.product.marketname", ""),
         "android": props.get("ro.build.version.release", ""),
         "sdk": props.get("ro.build.version.sdk", ""),
@@ -640,14 +1039,17 @@ def backup_device(dev: Adb, label=None, base=HOME_DIR) -> Path:
 # ---------------------------------------------------------------------------
 def apply_list(dev: Adb, entries: list, list_file: str = "", dry_run: bool = False,
                do_backup: bool = True, batch: int = 0, screenshot: bool = False,
-               base=HOME_DIR, log=print) -> dict:
+               base=HOME_DIR, log=print, rom: dict = None,
+               prefer_disable: bool = False) -> dict:
     """应用清理列表。返回分类结果字典。
 
     规则:
       * 命中 DENY 规则/显式核心包清单 -> 拒绝
       * 当前默认桌面 / Recents 提供者 / 当前输入法 -> 拒绝(动态保护)
       * 设备上不存在的包 -> 跳过(不同 ROM 包名有差异, 属正常)
+      * 条目带 [v>=13] 之类版本标注且与当前 ROM 版本不符 -> 跳过
       * uninstall 失败(ROM 限制) -> 自动降级为 disable
+      * prefer_disable=True 且该版本 ROM 会拦截卸载 -> 直接禁用, 不试卸载
       * batch>0 时按批次处理, 每批之后截图(需 --screenshot), 方便逐段验证
     """
     installed = list_packages(dev)
@@ -655,6 +1057,16 @@ def apply_list(dev: Adb, entries: list, list_file: str = "", dry_run: bool = Fal
     suspended = list_suspended(dev)
     protect = protected_targets(dev)
     protected = {p for p in protect.values() if p}
+    if rom is None:
+        rom = detect_rom(dev)
+    entries, skipped_version = filter_entries_by_rom(entries, rom)
+    if skipped_version:
+        log(f"[版本] {rom.get('display') or '未知 ROM'}: 跳过 {len(skipped_version)} 条"
+            "标注了其他 ROM 版本的条目"
+            f"({', '.join(e['pkg'] for e in skipped_version[:3])}"
+            + (" ..." if len(skipped_version) > 3 else "") + ")")
+    for line in rom_policy_lines(rom):
+        log(f"[ROM] {line}")
     if protect.get("ime"):
         log(f"[保护] 当前输入法: {protect['ime']}(禁用后重启将无法解锁, 已加入保护)")
     if protect.get("recents") and protect["recents"] != protect.get("home"):
@@ -664,7 +1076,8 @@ def apply_list(dev: Adb, entries: list, list_file: str = "", dry_run: bool = Fal
 
     state = load_state(dev.serial, base)
     result = {"ok": [], "skipped_deny": [], "skipped_missing": [],
-              "skipped_protected": [], "already": [], "fail": []}
+              "skipped_protected": [], "skipped_version": skipped_version,
+              "already": [], "fail": []}
 
     if do_backup and not dry_run:
         bdir = backup_device(dev, label=f"before-apply:{list_file}", base=base)
@@ -695,14 +1108,21 @@ def apply_list(dev: Adb, entries: list, list_file: str = "", dry_run: bool = Fal
             log(f"[预演] {action:9s} {pkg}  # {e['comment']}")
             return
         if action == "uninstall":
-            out = dev.shell(f"pm uninstall --user 0 {pkg}")
-            if "Success" in out:
-                record_pkg(state, pkg, "uninstall", list_file, base)
-                result["ok"].append(pkg)
-                log(f"[已卸载] {pkg}  # {e['comment']}")
-                return
-            log(f"[降级] {pkg} 卸载失败({out.strip() or '无输出'}), 尝试改为禁用")
-            action = "disable"
+            if (prefer_disable and rom.get("uninstall_ok") is False
+                    and any(pkg.startswith(ns) for ns in
+                            rom.get("protected_namespaces") or [])):
+                log(f"[版本] {pkg} 在 {rom['display']} 上会被 ROM 拦截卸载, "
+                    "直接改为禁用")
+                action = "disable"
+            else:
+                out = dev.shell(f"pm uninstall --user 0 {pkg}")
+                if "Success" in out:
+                    record_pkg(state, pkg, "uninstall", list_file, base)
+                    result["ok"].append(pkg)
+                    log(f"[已卸载] {pkg}  # {e['comment']}")
+                    return
+                log(f"[降级] {pkg} 卸载失败({out.strip() or '无输出'}), 尝试改为禁用")
+                action = "disable"
         out = dev.shell_all(f"pm disable-user {pkg}")
         low = out.lower()
         # 成功输出为 "new state: disabled-user"; 部分 ROM(如 ColorOS 的
@@ -743,6 +1163,7 @@ def apply_list(dev: Adb, entries: list, list_file: str = "", dry_run: bool = Fal
 
     log("")
     log(f"完成: 成功 {len(result['ok'])} | 不存在跳过 {len(result['skipped_missing'])} | "
+        f"版本不符跳过 {len(result['skipped_version'])} | "
         f"已处于目标状态 {len(result['already'])} | 安全拒绝 "
         f"{len(result['skipped_deny']) + len(result['skipped_protected'])} | "
         f"失败 {len(result['fail'])}")
@@ -810,8 +1231,14 @@ def restore_pkgs(dev: Adb, pkgs: list, state: dict, base=HOME_DIR, log=print,
 
 
 def check_list(dev: Adb, entries: list, fix: bool = False,
-               base=HOME_DIR, log=print) -> list:
+               base=HOME_DIR, log=print, rom: dict = None) -> list:
     """对比列表与设备实际状态; fix=True 时把"回潮"项重新应用。"""
+    if rom is None:
+        rom = detect_rom(dev)
+    entries, skipped_version = filter_entries_by_rom(entries, rom)
+    if skipped_version:
+        log(f"[版本] {rom.get('display') or '未知 ROM'}: 跳过 {len(skipped_version)} 条"
+            "标注了其他 ROM 版本的条目")
     if fix:
         bdir = backup_device(dev, label="before-check-fix", base=base)
         log(f"[备份] 已保存到 {bdir}")
@@ -846,7 +1273,7 @@ def check_list(dev: Adb, entries: list, fix: bool = False,
         if not ok and fix:
             log(f"        -> 重新应用 {action}")
             apply_list(dev, [e], list_file="check-fix", dry_run=False,
-                       do_backup=False, base=base, log=log)
+                       do_backup=False, base=base, log=log, rom=rom)
     changed = [r for r in rows if not r["ok"]]
     log("")
     log(f"共检查 {len(rows)} 项, 状态变化 {len(changed)} 项"
@@ -1128,7 +1555,8 @@ HEURISTIC_RULES = (
                        "advert", "promotion", "splash", "dsp")),
     ("统计/遥测上报", ("analytics", "statistics", "statistic", "mab", "imonitor",
                        "logkit", "bugreport", "telemetry", "onetrack", "onetrace",
-                       "crashbox", "diagnos", "experience")),
+                       "crashbox", "diagnos", "experience", "collect", "tracker",
+                       "tracking", "reporter")),
     ("内容推荐/信息流", ("personalassistant", "quicksearchbox", "searchbox",
                          "reader", "news", "feed", "hiboard", "video", "music",
                          "browser", "game", "mall", "shop", "store")),
@@ -1259,11 +1687,48 @@ def heuristic_hit(pkg: str):
     return None
 
 
+# 内容/广告类预装(不含系统服务): 低版本 ROM 上卸载不被拦截时可直接卸载
+CONTENT_HINTS = (
+    "browser", "video", "music", "reader", "news", "feed", "store", "shop",
+    "mall", "gamecenter", "gamespace", "gamemanager", "theme", "searchbox",
+    "pictorial", "magazine", "novel", "podcast", "shortvideo",
+)
+
+# 低版本"直接卸载"时仍然只禁用的基础设施类(卸了会影响别的功能)
+LEGACY_KEEP_DISABLE = (
+    "provider", "framework", "core", "overlay", "rro", "webview", "inputmethod",
+    "keyguard", "launcher", "settings", "push", "mcs", "notification", "account",
+    "cloud", "backup", "sync", "telecom", "telephony", "bluetooth", "nfc",
+    "permission", "installer", "media", "audio", "camera",
+)
+
+
+def content_hit(pkg: str) -> bool:
+    low = pkg.lower()
+    return any(h in low for h in CONTENT_HINTS)
+
+
+def legacy_upgradable(pkg: str) -> bool:
+    """低版本 ROM 上把"禁用"升级为"卸载"是否合适。
+
+    只针对"广告/统计/内容"这一类(命中启发式或内容关键词), 且不碰基础设施
+    (provider/framework/ocr/scene/health 这类服务继续只禁用)。
+    """
+    if not pkg.startswith(VENDOR_NS):
+        return False
+    low = pkg.lower()
+    if any(k in low for k in LEGACY_KEEP_DISABLE):
+        return False
+    return content_hit(pkg) or heuristic_hit(pkg) is not None
+
+
 def auto_candidates(dev: Adb, db: dict, tier: str = "standard",
                     include_third_party: bool = False,
                     include_heuristic: bool = True,
                     min_sources: int = 1, allow_caution: bool = False,
-                    exclude_re: str = "", log=print) -> dict:
+                    exclude_re: str = "", log=print, rom: dict = None,
+                    legacy_uninstall: bool = True,
+                    profiles: dict = None) -> dict:
     """生成自动候选: 本机预装 ∩ 知识库(按分级) + 启发式补充。
 
     安全护栏(与 apply 一致, 但更严):
@@ -1272,15 +1737,21 @@ def auto_candidates(dev: Adb, db: dict, tier: str = "standard",
       * 知识库标 Unsafe -> 剔除
       * 依赖核心组件、或被核心组件依赖 -> 剔除
       * 命中谨慎名单(查找手机/支付/账号/云服务/系统更新等) -> 默认只提示
+    版本感知:
+      * rom-profiles.json 的 packages 覆盖: 版本不符 -> 跳过, 指定动作 -> 覆盖
+      * 低版本 ROM(卸载未被拦截)时, 内容/广告类 Recommended 条目直接改为卸载
     """
     levels = TIER_LEVELS.get(tier, TIER_LEVELS["standard"])
     installed = preinstalled_packages(dev, include_third_party)
     protect = protected_targets(dev)
     prot = {p for p in protect.values() if p}
     browser = resolve_default_browser(dev)
+    if rom is None:
+        rom = detect_rom(dev)
+    profiles = profiles or load_rom_profiles()
 
     ex = re.compile(exclude_re) if exclude_re else None
-    rows, blocked, skipped_dep, caution = [], [], [], []
+    rows, blocked, skipped_dep, caution, skipped_version = [], [], [], [], []
     for pkg, path in sorted(installed.items()):
         if is_denied(pkg) or pkg in prot:
             continue
@@ -1331,6 +1802,22 @@ def auto_candidates(dev: Adb, db: dict, tier: str = "standard",
         if why and not allow_caution:
             caution.append((pkg, why))
             continue
+        # 版本专属规则: 动作覆盖 / 版本不符跳过
+        ov = rom_pkg_override(pkg, rom, profiles)
+        if ov and ov.get("skip"):
+            skipped_version.append((pkg, ov.get("note") or "该 ROM 版本不适用"))
+            continue
+        if ov:
+            if ov.get("action"):
+                cand["action"] = ov["action"]
+            if ov.get("note"):
+                cand["desc"] = f"{cand['desc']} | [版本] {ov['note']}"
+        # 低版本 ROM: 卸载不被拦截, 厂商广告/统计类直接卸载(不再只禁用)
+        if (legacy_uninstall and rom.get("legacy")
+                and cand["action"] == "disable" and cand["level"] == "Recommended"
+                and not why and legacy_upgradable(pkg)):
+            cand["action"] = "uninstall"
+            cand["desc"] = f"{cand['desc']} | [低版本直卸]".strip()
         if why:
             cand["desc"] = f"[谨慎:{why}] {cand['desc']}"
         rows.append(cand)
@@ -1349,20 +1836,29 @@ def auto_candidates(dev: Adb, db: dict, tier: str = "standard",
     return {
         "rows": rows, "installed": len(installed), "blocked": blocked,
         "skipped_dep": skipped_dep, "caution": caution, "tier": tier,
-        "protect": protect, "browser": browser,
+        "protect": protect, "browser": browser, "rom": rom,
+        "skipped_version": skipped_version,
         "protected_hit": sorted(set(installed) & prot),
     }
 
 
 def write_auto_list(rows: list, path, desc: dict) -> Path:
+    rom = desc.get("rom_info") or {}
     lines = [
         f"# CleanYourPhone 自动生成清单 — {desc.get('brand','')} {desc.get('model','')}",
         f"# 生成时间: {now_ts()}  Android {desc.get('android','')} "
         f"{('ROM ' + desc['rom']) if desc.get('rom') else ''}",
-        "# 来源: rules/known-packages.json (UAD-NG + GitHub/Gitee 社区共识)",
+        "# 来源: rules/known-packages.json (UAD-NG + GitHub/Gitee 社区共识)"
+        " + rules/rom-profiles.json (版本规则)",
         "# 恢复: python3 tools/phone.py restore --all",
-        "",
     ]
+    if rom.get("display"):
+        lines.append(f"# ROM 版本: {rom['display']}"
+                     + (f"({rom.get('source')})" if rom.get("source") else "")
+                     + f" | 卸载拦截: {'是' if rom.get('uninstall_ok') is False else '否'}")
+    if rom.get("note"):
+        lines.append(f"# 版本说明: {rom['note']}")
+    lines.append("")
     cur = None
     for r in rows:
         if r["level"] != cur:
@@ -1433,6 +1929,10 @@ def build_parser() -> argparse.ArgumentParser:
                    help="每批处理 N 个(0=一次性全部), 配合 --screenshot 逐批验证")
     p.add_argument("--screenshot", action="store_true",
                    help="每批处理后自动截图到 ~/.cleanyourphone/<序列号>/shots/")
+    p.add_argument("--rom-version", metavar="版本",
+                   help="手动指定 ROM 版本(如 13.1 或 coloros:13.1), 用于版本标注过滤")
+    p.add_argument("--prefer-disable", action="store_true",
+                   help="该版本 ROM 会拦截卸载时直接禁用, 不再尝试卸载(少刷失败日志)")
 
     p = sub.add_parser("restore", help="恢复(包/设置/传感器限制)")
     p.add_argument("list", nargs="?", help="列表文件; 与 --all 二选一")
@@ -1443,6 +1943,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("list", help="列表文件")
     p.add_argument("--fix", action="store_true", help="把状态变化的项重新应用")
     p.add_argument("--yes", "-y", action="store_true", help="修复时跳过确认")
+    p.add_argument("--rom-version", metavar="版本",
+                   help="手动指定 ROM 版本(如 13.1 或 coloros:13.1)")
 
     p = sub.add_parser("audit", help="扫描广告/遥测候选包")
     p.add_argument("--write", metavar="文件", help="把候选写入列表文件")
@@ -1469,6 +1971,18 @@ def build_parser() -> argparse.ArgumentParser:
                    help="排除匹配该正则的包名, 如 --exclude 'browser|music'")
     p.add_argument("--limit", type=int, default=0, metavar="N",
                    help="最多列出/处理 N 项(0=不限)")
+    p.add_argument("--rom-version", metavar="版本",
+                   help="手动指定 ROM 版本(如 13.1 或 coloros:13.1)")
+    p.add_argument("--no-legacy-uninstall", action="store_true",
+                   help="低版本 ROM 上也不把内容类预装从「禁用」升级为「卸载」")
+
+    p = sub.add_parser("rom", help="识别 ROM 家族/版本, 查看该版本的清理策略")
+    p.add_argument("--list", metavar="文件",
+                   help="检查某个清理列表在本机版本下的适用性")
+    p.add_argument("--version", "--rom-version", dest="version", metavar="版本",
+                   help="手动指定版本(如 13.1 或 coloros:13.1), 可离线使用")
+    p.add_argument("--profiles", metavar="文件",
+                   help="指定版本规则库(默认 rules/rom-profiles.json)")
 
     p = sub.add_parser("settings", help="写入系统设置(settings.conf)")
     p.add_argument("file", help="如 examples/xiaomi-hyperos/settings.conf")
@@ -1519,6 +2033,14 @@ def cmd_doctor(args) -> int:
     print(f"[OK] 品牌/型号: {desc['brand']} {desc['model']}")
     print(f"[OK] Android {desc['android']} (SDK {desc['sdk']})"
           + (f" | ROM: {desc['rom']}" if desc["rom"] else ""))
+    rom = desc.get("rom_info") or {}
+    if rom.get("family"):
+        print(f"[OK] ROM 版本: {rom['display']}(识别自 {rom.get('source') or '?'}"
+              f", 可信度 {rom.get('confidence')})")
+        for line in rom_policy_lines(rom):
+            print(f"[版本] {line}")
+    else:
+        print("[提示] 未识别 ROM 家族, 只按 Android 版本与包名安全规则处理")
     protect = protected_targets(dev)
     for label, key in (("桌面", "home"), ("最近任务", "recents"), ("输入法", "ime")):
         if protect.get(key):
@@ -1536,17 +2058,73 @@ def cmd_info(args) -> int:
     _, dev = _need_device(args)
     desc = describe_device(dev)
     protect = protected_targets(dev)
+    rom = desc.get("rom_info") or {}
     print(f"序列号:   {dev.serial}")
     print(f"品牌:     {desc['brand']}")
     print(f"型号:     {desc['model']}"
           + (f"({desc['marketname']})" if desc.get("marketname") else ""))
     print(f"ROM:      {desc['rom'] or '未知'}")
+    if rom.get("family"):
+        print(f"版本识别: {rom.get('raw')} -> {rom['display']}"
+              f"({rom.get('source') or '?'}, generation "
+              f"{'.'.join(str(x) for x in rom.get('generation') or ()) or '?'})")
+        if rom.get("note"):
+            print(f"版本说明: {rom['note']}")
+        for line in rom_policy_lines(rom):
+            print(f"版本策略: {line}")
     print(f"Android:  {desc['android']} (SDK {desc['sdk']})")
     print(f"Build:    {desc['display'] or '未知'}")
     print(f"桌面:     {protect.get('home') or '解析失败'}")
     print(f"最近任务: {protect.get('recents') or '解析失败'}")
     print(f"输入法:   {protect.get('ime') or '解析失败'}")
     print(f"推荐列表: {desc['example']}")
+    return 0
+
+
+def cmd_rom(args) -> int:
+    """识别 ROM 家族/版本, 说明该版本的清理策略与清单适用性。"""
+    profiles = load_rom_profiles(args.profiles)
+    if args.version and not args.serial:
+        # 允许纯离线: 只给版本号, 不连设备
+        rom = detect_rom(props={}, override=args.version, profiles=profiles)
+        print(f"手动指定: {rom.get('display') or args.version}")
+    else:
+        _, dev = _need_device(args)
+        desc = describe_device(dev)
+        rom = detect_rom(dev, override=args.version, profiles=profiles)
+        print(f"设备:   {desc['brand']} {desc['model']} | Android {desc['android']}")
+        print(f"Build:  {desc['display'] or '未知'}")
+        if rom.get("family"):
+            print(f"家族:   {rom['label']}({rom['family']})")
+            print(f"版本:   {rom['display']}"
+                  f"  原始值: {rom.get('raw') or '?'}"
+                  f"  来源: {rom.get('source') or '?'}")
+            print(f"可比序: {'.'.join(str(x) for x in rom.get('generation') or ()) or '?'}"
+                  "  (列表里的 [v>=13] 就是和它比)")
+            if rom.get("verified"):
+                print(f"依据:   {rom['verified']}")
+        else:
+            print("家族:   未识别(可加 --version coloros:13.1 手动指定)")
+    if rom.get("note"):
+        print(f"版本说明: {rom['note']}")
+    for line in rom_policy_lines(rom):
+        print(line)
+
+    # 清单适用性检查
+    if args.list:
+        entries = parse_list_file(args.list)
+        kept, skipped = filter_entries_by_rom(entries, rom)
+        gated = [e for e in entries if e.get("gates")]
+        print("")
+        print(f"清单 {args.list}: 共 {len(entries)} 条, "
+              f"其中带版本标注 {len(gated)} 条")
+        print(f"  适用 {len(kept)} 条 | 版本不符 {len(skipped)} 条")
+        for e in skipped:
+            note = f"  # {e['comment']}" if e.get("comment") else ""
+            print(f"    [跳过] {e['pkg']}  {fmt_gates(e['gates'])}{note}")
+        if not gated:
+            print("  提示: 该清单没有版本标注, 在任何版本上都会全部执行; "
+                  "跨版本使用时建议给条目加 [v>=13] / [v<12]")
     return 0
 
 
@@ -1612,17 +2190,36 @@ def cmd_backup(args) -> int:
     return 0
 
 
+def _unsupported_rom(rom: dict) -> bool:
+    """该 ROM 版本不支持 adb 清理(如 HarmonyOS NEXT)时给出说明并返回 True。"""
+    if rom and rom.get("unsupported"):
+        print(f"[不支持] {rom['unsupported']}")
+        return True
+    return False
+
+
 def cmd_apply(args) -> int:
     _, dev = _need_device(args)
     entries = parse_list_file(args.list)
-    print(f"列表 {args.list} 共 {len(entries)} 个条目")
+    rom = detect_rom(dev, override=getattr(args, "rom_version", None))
+    print(f"ROM: {rom.get('display') or '未识别'}")
+    if _unsupported_rom(rom):
+        return 2
+    kept, skipped = filter_entries_by_rom(entries, rom)
+    print(f"列表 {args.list} 共 {len(entries)} 个条目"
+          + (f", 其中 {len(skipped)} 条标注的 ROM 版本与本机不符, 将跳过"
+             if skipped else ""))
+    if not kept:
+        print("没有适用于当前 ROM 版本的条目。")
+        return 0
     if not args.dry_run and not args.yes and not confirm(
-            f"将对设备 {dev.serial} 执行 {len(entries)} 项操作, 继续? [y/N] "):
+            f"将对设备 {dev.serial} 执行 {len(kept)} 项操作, 继续? [y/N] "):
         print("已取消。可先加 --dry-run 预演。")
         return 1
-    apply_list(dev, entries, list_file=args.list, dry_run=args.dry_run,
+    apply_list(dev, kept, list_file=args.list, dry_run=args.dry_run,
                do_backup=not args.no_backup, batch=args.batch,
-               screenshot=args.screenshot)
+               screenshot=args.screenshot, rom=rom,
+               prefer_disable=args.prefer_disable)
     if not args.dry_run:
         print("")
         print("恢复命令: python3 tools/phone.py restore "
@@ -1661,10 +2258,14 @@ def cmd_restore(args) -> int:
 def cmd_check(args) -> int:
     _, dev = _need_device(args)
     entries = parse_list_file(args.list)
+    rom = detect_rom(dev, override=getattr(args, "rom_version", None))
+    print(f"ROM: {rom.get('display') or '未识别'}")
+    if _unsupported_rom(rom):
+        return 2
     if args.fix and not args.yes and not confirm("将对变化项重新执行操作, 继续? [y/N] "):
         print("已取消。")
         return 1
-    check_list(dev, entries, fix=args.fix)
+    check_list(dev, entries, fix=args.fix, rom=rom)
     return 0
 
 
@@ -1687,8 +2288,13 @@ def cmd_auto(args) -> int:
         return 2
 
     desc = describe_device(dev)
+    rom = detect_rom(dev, override=getattr(args, "rom_version", None))
     print(f"设备: {desc['brand']} {desc['model']} | Android {desc['android']}"
           + (f" | ROM {desc['rom']}" if desc["rom"] else ""))
+    if _unsupported_rom(rom):
+        return 2
+    for line in rom_policy_lines(rom):
+        print(f"[ROM] {line}")
     print(f"知识库: {len(db)} 个包 (生成于 {meta.get('generated_at', '未知')})")
     print(f"力度: {args.tier} | 启发式: {'关' if args.no_heuristic else '开'} | "
           f"最少来源数: {args.min_sources}")
@@ -1698,7 +2304,8 @@ def cmd_auto(args) -> int:
         include_third_party=args.include_third_party,
         include_heuristic=not args.no_heuristic,
         min_sources=args.min_sources, allow_caution=args.allow_caution,
-        exclude_re=args.exclude)
+        exclude_re=args.exclude, rom=rom,
+        legacy_uninstall=not args.no_legacy_uninstall)
 
     rows = res["rows"]
     if args.limit and args.limit > 0:
@@ -1716,6 +2323,16 @@ def cmd_auto(args) -> int:
         print(f"[跳过] {len(res['skipped_dep'])} 个被其他组件依赖: "
               f"{', '.join(res['skipped_dep'][:5])}"
               + (" ..." if len(res["skipped_dep"]) > 5 else ""))
+    if res.get("skipped_version"):
+        print(f"[版本] {len(res['skipped_version'])} 个因 ROM 版本不符跳过:")
+        for pkg, note in res["skipped_version"][:6]:
+            print(f"        {pkg}  — {note}")
+        if len(res["skipped_version"]) > 6:
+            print(f"        ... 其余 {len(res['skipped_version']) - 6} 个")
+    legacy_up = sum(1 for r in rows if "[低版本直卸]" in (r.get("desc") or ""))
+    if legacy_up:
+        print(f"[低版本] {legacy_up} 个内容/广告类预装已按「直接卸载」处理"
+              f"({rom.get('display')} 未拦截卸载)")
     if res["caution"]:
         print(f"[谨慎] {len(res['caution'])} 个涉及查找手机/支付/账号/云服务等, "
               "默认不动(确认不需要可加 --allow-caution):")
@@ -1756,7 +2373,7 @@ def cmd_auto(args) -> int:
         return 1
     entries = [{"pkg": r["pkg"], "action": r["action"], "comment": r["desc"]}
                for r in rows]
-    apply_list(dev, entries, list_file=str(saved), base=HOME_DIR)
+    apply_list(dev, entries, list_file=str(saved), base=HOME_DIR, rom=rom)
     print("\n恢复: python3 tools/phone.py restore --all")
     return 0
 
@@ -1843,7 +2460,7 @@ def main(argv=None) -> int:
         "tcpip": cmd_tcpip, "shell": cmd_shell, "packages": cmd_packages,
         "screenshot": cmd_screenshot, "backup": cmd_backup, "apply": cmd_apply,
         "restore": cmd_restore, "check": cmd_check, "audit": cmd_audit,
-        "auto": cmd_auto,
+        "auto": cmd_auto, "rom": cmd_rom,
         "settings": cmd_settings, "dns": cmd_dns, "shake": cmd_shake,
         "finish": cmd_finish,
     }

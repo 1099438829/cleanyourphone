@@ -1,0 +1,38 @@
+# CleanYourPhone 清理列表 — 一加 国行 (ColorOS / OxygenOS 12-15)
+# 用法: python3 tools/phone.py apply examples/oneplus-coloros/debloat.txt --dry-run
+# 说明:
+#   - 一加国行 9RT 及之后改用 ColorOS, 包名与 OPPO 大量重合(com.oplus.* / com.heytap.*)
+#     完整列表见 examples/oppo-coloros/debloat.txt, 本文件只列一加专属部分
+#   - ColorOS 12 起系统应用卸载普遍被拒(DELETE_FAILED_INTERNAL_ERROR), 工具自动降级禁用,
+#     禁用被拒再自动挂起; 想直接走禁用可加 --prefer-disable
+#   - 版本标注 [v>=13] 等由 tools/phone.py rom 自动比对, 不符的条目会跳过
+
+# ---------- 一加专属(卸载) ----------
+com.oneplus.brickmode          uninstall # 禅定模式(Zen Mode)
+com.oneplus.card               uninstall # 卡包小部件
+com.oneplus.chargingpilar      uninstall # 一加充电站定位
+com.oneplus.gamespace          uninstall # 游戏空间(含推荐)
+com.oneplus.iconpack.circle    uninstall # 圆形图标包
+com.oneplus.iconpack.oneplush2 uninstall # Hydrogen 图标包
+com.oneplus.appupgrader        disable   # 内置应用更新器
+com.oneplus.bttestmode         disable   # 蓝牙测试模式
+com.oneplus.factorymode        disable   # 工厂模式
+com.oneplus.factorymode.specialtest disable # 工程模式专项测试
+com.oneplus.diagnosemanager    disable   # 诊断日志
+com.oneplus.commonoverlay.com.oneplus disable # 调试用覆盖层
+
+# ---------- 与 OPPO 共用的重点项(按版本) ----------
+com.heytap.pictorial           disable   [v>=12] # 乐划锁屏(锁屏广告)
+com.heytap.browser             uninstall [v<12]  # 浏览器(低版本直卸)
+com.heytap.browser             disable   [v>=12] # 浏览器(高版本只能禁用)
+com.heytap.quicksearchbox      disable   [v>=12] # 全局搜索
+com.oplus.statistics.rom       disable   [v>=12] # ROM 统计
+com.heytap.yoli                uninstall [v<12]  # 短视频
+com.heytap.yoli                disable   [v>=12]
+
+# ---------- 保留说明 ----------
+# com.oneplus.camera            保留: 相机
+# com.oneplus.gallery           保留: 相册
+# com.oneplus.aod               保留: 息屏显示(关闭会丢 AOD)
+# com.oneplus.account           保留: 一加账号(谨慎名单)
+# com.coloros.oshare            保留: 互传

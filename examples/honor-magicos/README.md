@@ -26,3 +26,17 @@
 - MagicOS 与华为 EMUI/HarmonyOS 包名高度相似(`com.hihonor.*` 与 `com.huawei.*` 并存), 两个列表可互相参考
 - **保留** `com.hihonor.cloud`(云服务)与查找设备
 - 锁屏杂志关闭后若仍出现广告, 检查是否装过第三方锁屏/主题, 或重装官方主题
+
+## 四、版本差异(重要)
+
+| MagicOS 版本 | 卸载行为 | 建议 |
+| --- | --- | --- |
+| MagicOS 6 (Android 12) | `pm uninstall --user 0` 基本可用 | 直接卸载 |
+| MagicOS 7 (Android 13) | 基本可用 | 直接卸载 |
+| MagicOS 8 (Android 14) | 部分预装只能禁用 | 加 `--prefer-disable` 少刷失败 |
+| MagicOS 9 (Android 15) | 拦截更多, 保守处理 | `--dry-run` → `--batch 20` |
+
+- 版本识别: `python3 tools/phone.py rom`(`ro.build.version.magic`)
+- 老荣耀机型(Honor 30 及以前)跑的是 EMUI/HarmonyOS, 会被识别为 harmonyos 家族,
+  请改用 [`../huawei-harmonyos/`](../huawei-harmonyos/)
+

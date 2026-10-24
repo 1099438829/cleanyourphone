@@ -1,0 +1,44 @@
+# CleanYourPhone 清理列表 — 传音 Tecno / Infinix / itel (HiOS / XOS 12-14)
+# 用法: python3 tools/phone.py apply examples/transsion-hios/debloat.txt --dry-run
+# 说明:
+#   - 传音机型广告与推送较多, 建议 --tier standard, 先预演再执行
+#   - 包名来自 UAD-NG 社区库(com.transsion.* / com.tecno.* / com.infinix.* / com.itel.*)
+#   - 版本识别优先看 ro.build.display.id 里的 HiOS/XOS 字样, 识别不到时用
+#     python3 tools/phone.py rom --version hios:13 手动指定
+#   - 儿童模式/账号/云服务属于谨慎项, 本列表不含
+
+# ---------- 语音/AI 助手(卸载) ----------
+com.transsion.aivoiceassistant uninstall # Folax 语音助手(社区反馈权限可疑)
+com.transsion.aiwallpaper      uninstall # AI 壁纸生成
+com.transsion.avatar           uninstall # 虚拟形象(T-moji)
+com.transsion.aisettings       disable   # AI 设置入口
+
+# ---------- 内容/社交(卸载) ----------
+com.transsion.hiparty          uninstall # Hi Party 多机同步放歌
+com.transsion.health           uninstall # 健康(数据上传 Firebase)
+com.transsion.healthlife       uninstall # My Health
+com.transsion.carlcare         uninstall # 售后 App
+com.transsion.beezedit         uninstall # 铃声制作
+com.transsion.infinix.xclub    uninstall # Infinix 社区
+com.infinix.xshare             uninstall # XShare 互传(含广告)
+com.transsion.chromecustomization disable # Chrome 主页定制(用广告 ID)
+
+# ---------- 统计/工程模式(禁用) ----------
+com.transsion.aftersalecalibrationtool disable # 售后校准
+com.transsion.agingfunction    disable   # 老化测试
+com.transsion.autotest.factory disable   # 工厂硬件测试
+com.transsion.deadcycletest    disable   # 死循环测试
+com.transsion.hamal            disable   # 售后体验日志
+com.transsion.dtsaudio         disable   # DTS 音效(不用可禁)
+
+# ---------- 界面增强(可选) ----------
+com.transsion.dynamicbar       disable   # 灵动岛
+com.transsion.auto             disable   # 驾驶模式
+com.transsion.dualapp          disable   # 应用分身(需要则保留)
+com.transsion.audioshare       disable   # 蓝牙音频共享
+
+# ---------- 保留说明 ----------
+# com.transsion.datatransfer   保留: 换机迁移
+# com.transsion.filemanagerx   保留: 文件管理
+# com.transsion.camera         保留: 相机
+# com.transsion.childmode      保留: 儿童模式(谨慎名单)

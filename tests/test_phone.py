@@ -778,5 +778,176 @@ class HarvestParseTest(unittest.TestCase):
         self.assertEqual(db["com.example.bloat"]["r"], "Community")
 
 
+class RomVersionTest(unittest.TestCase):
+    """版本感知: ROM 家族/版本识别、列表版本标注、分版本动作策略。"""
+
+    def _props(self, brand, **kv):
+        lines = [f"[ro.product.brand]: [{brand}]"]
+        lines += [f"[{k}]: [{v}]" for k, v in kv.items()]
+        return {"shell getprop": "\n".join(lines)}
+
+    def _dev(self, brand, pkgs=(), **kv):
+        return FakeAdb(packages=pkgs, extra=self._props(brand, **kv))
+
+    def test_parse_and_fmt_version(self):
+        self.assertEqual(phone.parse_version("V13.1.0"), (13, 1, 0))
+        self.assertEqual(phone.parse_version("OS2.0.1.0.VNBCNXM"), (2, 0, 1, 0))
+        self.assertEqual(phone.parse_version("ColorOS 13.1"), (13, 1))
+        self.assertEqual(phone.parse_version(""), ())
+        self.assertEqual(phone.fmt_version((13, 1, 0)), "13.1")
+        self.assertEqual(phone.fmt_version((14,)), "14")
+
+    def test_detect_coloros_new_and_old(self):
+        new = phone.detect_rom(self._dev(
+            "OPPO", **{"ro.build.version.oplusrom": "V13.1.0",
+                       "ro.build.version.oplusrom.display": "ColorOS 13.1"}))
+        self.assertEqual(new["family"], "coloros")
+        self.assertEqual(new["generation"], (13, 1))
+        self.assertFalse(new["uninstall_ok"])
+        self.assertFalse(new["legacy"])
+
+        old = phone.detect_rom(self._dev(
+            "OPPO", **{"ro.build.version.oplusrom": "V11.2"}))
+        self.assertEqual(old["family"], "coloros")
+        self.assertTrue(old["uninstall_ok"])
+        self.assertTrue(old["legacy"])       # 低版本: 卸载不被拦截
+
+    def test_detect_hyperos_and_miui_generation(self):
+        hyper = phone.detect_rom(self._dev(
+            "Xiaomi", **{"ro.mi.os.version.name": "OS2.0.1.0.VNBCNXM"}))
+        self.assertEqual(hyper["family"], "xiaomi")
+        self.assertEqual(hyper["edition"], "HyperOS")
+        self.assertEqual(hyper["generation"][0], 16)   # HyperOS 2 -> 16
+        miui = phone.detect_rom(self._dev(
+            "Redmi", **{"ro.miui.ui.version.name": "V12.5.3.0.RKBCNXM"}))
+        self.assertEqual(miui["edition"], "MIUI")
+        self.assertEqual(miui["generation"][:2], (12, 5))
+        self.assertTrue(miui["legacy"])
+
+    def test_detect_harmonyos_next_unsupported(self):
+        rom = phone.detect_rom(self._dev(
+            "HUAWEI", **{"hw_sc.build.platform.version": "5.0.0"}))
+        self.assertEqual(rom["family"], "harmonyos")
+        self.assertIn("hdc", rom["unsupported"])
+        emui = phone.detect_rom(self._dev(
+            "HUAWEI", **{"ro.build.version.emui": "EmotionUI_12.0.0"}))
+        self.assertIsNone(emui["unsupported"])     # EMUI 12 不该被当成 NEXT
+
+    def test_detect_unknown_rom(self):
+        rom = phone.detect_rom(self._dev("acme", **{"ro.build.version.release": "12"}))
+        self.assertIsNone(rom["family"])
+        self.assertEqual(rom["generation"], ())
+
+    def test_rom_override(self):
+        rom = phone.detect_rom(props={}, override="coloros:11.2")
+        self.assertEqual(rom["family"], "coloros")
+        self.assertEqual(rom["generation"], (11, 2))
+        self.assertTrue(rom["legacy"])
+
+    def test_parse_gates_and_filter(self):
+        entries = phone.parse_list(
+            "com.a uninstall [v>=13] # 新版本\n"
+            "com.b uninstall [v<12] # 老版本\n"
+            "com.c disable # 无标注\n"
+            "com.d uninstall # 注释里 [v12-13]\n")
+        self.assertEqual(entries[0]["gates"], [(">=", (13,))])
+        self.assertEqual(entries[3]["gates"], [("range", (12,), (13,))])
+        self.assertEqual(entries[2]["gates"], [])
+
+        old = phone.detect_rom(props={"ro.product.brand": "OPPO",
+                                      "ro.build.version.oplusrom": "V11.2"})
+        kept, skipped = phone.filter_entries_by_rom(entries, old)
+        self.assertEqual({e["pkg"] for e in kept}, {"com.b", "com.c"})
+        self.assertEqual({e["pkg"] for e in skipped}, {"com.a", "com.d"})
+
+    def test_filter_keeps_all_when_version_unknown(self):
+        entries = phone.parse_list("com.a uninstall [v>=13]")
+        kept, skipped = phone.filter_entries_by_rom(entries, {"generation": ()})
+        self.assertEqual(len(kept), 1)
+        self.assertEqual(skipped, [])
+
+    def test_apply_skips_version_mismatch(self):
+        dev = self._dev("OPPO", {"com.heytap.browser", "com.heytap.pictorial"},
+                        **{"ro.build.version.oplusrom": "V13.1.0"})
+        dev.serial = "FAKE-V"
+        entries = phone.parse_list(
+            "com.heytap.browser uninstall [v<12]\n"
+            "com.heytap.pictorial disable [v>=12]")
+        rom = phone.detect_rom(dev)
+        res = phone.apply_list(dev, entries, rom=rom, do_backup=False,
+                               log=lambda *a: None)
+        self.assertEqual(res["ok"], ["com.heytap.pictorial"])
+        self.assertEqual([e["pkg"] for e in res["skipped_version"]],
+                         ["com.heytap.browser"])
+        self.assertFalse(any("uninstall com.heytap.browser" in c[1]
+                             for c in dev.calls if c[0] == "shell"))
+
+    def test_prefer_disable_skips_uninstall_attempt(self):
+        dev = self._dev("OPPO", {"com.heytap.browser"},
+                        **{"ro.build.version.oplusrom": "V13.1.0"})
+        dev.serial = "FAKE-P"
+        rom = phone.detect_rom(dev)
+        entries = phone.parse_list("com.heytap.browser uninstall")
+        res = phone.apply_list(dev, entries, rom=rom, do_backup=False,
+                               prefer_disable=True, log=lambda *a: None)
+        self.assertEqual(res["ok"], ["com.heytap.browser"])
+        self.assertFalse(any("pm uninstall" in c[1]
+                             for c in dev.calls if c[0] == "shell"))
+
+    def test_auto_legacy_uninstall_upgrades_content(self):
+        db = {"com.coloros.video": {"r": "Recommended", "d": "视频",
+                                    "s": ["uad-ng"], "a": "disable"}}
+        old = self._dev("OPPO", {"com.coloros.video"},
+                        **{"ro.build.version.oplusrom": "V11.2"})
+        res = phone.auto_candidates(old, db, log=lambda *a: None)
+        self.assertEqual(res["rows"][0]["action"], "uninstall")
+        self.assertIn("[低版本直卸]", res["rows"][0]["desc"])
+
+        new = self._dev("OPPO", {"com.coloros.video"},
+                        **{"ro.build.version.oplusrom": "V13.1.0"})
+        res2 = phone.auto_candidates(new, db, log=lambda *a: None)
+        self.assertEqual(res2["rows"][0]["action"], "disable")
+
+    def test_auto_version_override_skips_package(self):
+        db = {"com.heytap.pictorial": {"r": "Recommended", "d": "乐划锁屏",
+                                       "s": ["uad-ng"]}}
+        old = self._dev("OPPO", {"com.heytap.pictorial"},
+                        **{"ro.build.version.oplusrom": "V11.2"})
+        res = phone.auto_candidates(old, db, log=lambda *a: None)
+        self.assertEqual(res["rows"], [])
+        self.assertEqual(res["skipped_version"][0][0], "com.heytap.pictorial")
+
+    def test_rom_pkg_override_window(self):
+        profiles = phone.load_rom_profiles()
+        old = phone.detect_rom(props={"ro.product.brand": "OPPO",
+                                      "ro.build.version.oplusrom": "V11.2"})
+        new = phone.detect_rom(props={"ro.product.brand": "OPPO",
+                                      "ro.build.version.oplusrom": "V13.1.0"})
+        self.assertTrue(phone.rom_pkg_override(
+            "com.coloros.lockscreen.magazine", old, profiles).get("action"))
+        self.assertTrue(phone.rom_pkg_override(
+            "com.coloros.lockscreen.magazine", new, profiles).get("skip"))
+        self.assertEqual(phone.rom_pkg_override(
+            "com.heytap.pictorial", new, profiles)["action"], "disable")
+
+    def test_legacy_upgradable_scope(self):
+        # 广告/遥测类可以升级为卸载; 基础设施服务仍然只禁用
+        self.assertTrue(phone.legacy_upgradable("com.oplus.interconnectcollectkit"))
+        self.assertTrue(phone.legacy_upgradable("com.coloros.video"))
+        self.assertFalse(phone.legacy_upgradable("com.coloros.ocrservice"))
+        self.assertFalse(phone.legacy_upgradable("com.heytap.mcs"))
+        self.assertFalse(phone.legacy_upgradable("com.android.bookmarkprovider"))
+
+    def test_rom_profiles_file_is_valid_json(self):
+        profiles = phone.load_rom_profiles()
+        self.assertIn("coloros", profiles["families"])
+        for name, cfg in profiles["families"].items():
+            self.assertTrue(cfg.get("label"), name)
+            self.assertTrue(cfg.get("brands"), name)
+        for pkg, ov in profiles["packages"].items():
+            self.assertIn(ov["family"], profiles["families"], pkg)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
+

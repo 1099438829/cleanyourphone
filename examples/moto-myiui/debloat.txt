@@ -1,0 +1,42 @@
+# CleanYourPhone 清理列表 — 摩托罗拉 myui (myui 4-6, 联想旗下)
+# 用法: python3 tools/phone.py apply examples/moto-myiui/debloat.txt --dry-run
+# 说明:
+#   - myui 接近原生 Android, 广告极少, 主要清理的是 Moto 自带推广位、演示模式、诊断上报
+#   - 包名来自 UAD-NG 社区库(com.motorola.* / com.moto.*)
+#   - myui 的版本号常只在 ro.build.display.id 里体现, 识别不到时用
+#     python3 tools/phone.py rom --version myui:5 手动指定
+#   - Moto 手势(Moto Actions)、相机、电池养护属于功能项, 默认不动
+
+# ---------- 推广 / 推荐(卸载) ----------
+com.motorola.brapps            uninstall # Moto App Box 应用推荐位
+com.motorola.discovery         uninstall # 发现气泡(提示与推荐)
+com.motorola.demo              uninstall # 演示模式(零售店展示)
+com.motorola.demo.env          disable   # 演示模式环境
+
+# ---------- 诊断 / 统计(禁用) ----------
+com.motorola.bug2go            disable   # 崩溃上报
+com.motorola.bach.modemstats   disable   # 基带统计日志
+com.motorola.dciservice        disable   # IMS 信号测试与统计
+com.motorola.appforecast       disable   # 内存/存储"优化"(伪优化)
+com.motorola.android.jvtcmd    disable   # Java 测试命令
+com.motorola.android.nativedropboxagent disable # 日志收集(与云盘无关)
+com.motorola.android.providers.chromehomepage disable # Chrome 主页提供器
+
+# ---------- 企业/推送(禁用) ----------
+com.motorola.ccc.devicemanagement disable # 企业设备管理(MDM)
+com.motorola.ccc.mainplm       disable   # 产品生命周期上报
+com.motorola.ccc.notification  disable   # Moto 通知服务
+
+# ---------- AI(可选, 不用 Moto AI 就禁) ----------
+com.motorola.aiservices        disable   # Moto AI 服务
+com.motorola.camera3.consent.ai disable  # 相机 AI 授权
+com.motorola.camera3.content.ai disable  # 相机 AI 内容
+
+# ---------- 界面覆盖层(卸载, 无功能影响) ----------
+com.motorola.actions.overlay   uninstall # Moto Actions 默认配置覆盖层
+
+# ---------- 保留说明 ----------
+# com.motorola.actions        保留: Moto 手势(甩腕开相机/翻转勿扰)
+# com.motorola.camera2/3      保留: 相机
+# com.motorola.batterycare    保留: 电池养护(限充 80%)
+# com.motorola.android.fmradio 保留: 调频收音机(需要硬件支持)

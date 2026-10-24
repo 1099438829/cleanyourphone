@@ -25,3 +25,10 @@
 - **保留** `com.samsung.android.scloud`(三星云)与 `com.samsung.android.fmm`(查找手机)
 - **保留** `com.samsung.android.spay`(Samsung Pay): 绑定公交卡/银行卡者默认保留
 - 国行 Samsung Free 关闭后, 负一屏仍可放小组件
+
+## 四、版本差异
+
+- One UI 5/6/7 对系统应用卸载限制较少, `pm uninstall --user 0` 多数可用
+- 版本识别: `python3 tools/phone.py rom`(看 `ro.build.version.oneui`, 60100 = 6.1)
+- 国行与港版/国际版预装差异大, 列表中不存在的包会自动跳过
+

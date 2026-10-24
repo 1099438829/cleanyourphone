@@ -21,3 +21,11 @@
 
 - **保留** `com.meizu.mstore`(应用商店)、`com.meizu.cloud`(云服务)、`com.meizu.flyme.launcher`(桌面)
 - Flyme 推送(`com.meizu.flyme.push`)卸载后部分应用可能收不到推送, 默认保留
+
+## 四、版本差异
+
+- Flyme 8/9/10 对系统应用卸载限制较少, `pm uninstall --user 0` 多数可用
+- Flyme 11(AI 终端)起部分系统组件改为不可卸, 工具会自动降级为禁用
+- 版本识别: `python3 tools/phone.py rom`(看 `ro.flyme.version`)
+- Flyme 本身广告与预装很少, 清理重点是个性化推荐与统计上报
+
