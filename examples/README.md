@@ -14,7 +14,7 @@
 | 目录 | 适用品牌/ROM | 清理重点 |
 | --- | --- | --- |
 | [xiaomi-hyperos](xiaomi-hyperos/) | 小米/红米/POCO MIUI 12-14、HyperOS 1-2 | MSA、遥测、锁屏画报、负一屏、视频/音乐/浏览器 |
-| [huawei-harmonyos](huawei-harmonyos/) | 华为 EMUI 10/11、HarmonyOS 2-4(NEXT 5.x 不支持 adb) | 华为视频/音乐/搜索、玩机技巧、HMS 遥测 |
+| [huawei-harmonyos](huawei-harmonyos/) | 华为 EMUI 10/11、HarmonyOS 2-4(NEXT 5.x 走 hdc) | 华为视频/音乐/搜索、玩机技巧、HMS 遥测 |
 | [honor-magicos](honor-magicos/) | 荣耀 MagicOS 6/7/8/9 | 杂志锁屏、浏览器/视频/音乐、推送通道 |
 | [oppo-coloros](oppo-coloros/) | OPPO ColorOS 7-15 | 乐划锁屏、锁屏杂志、欢太统计、浏览器 |
 | [oneplus-coloros](oneplus-coloros/) | 一加国行 ColorOS/OxygenOS 11-15 | 禅定模式、游戏空间、图标包、乐划锁屏 |
@@ -28,9 +28,13 @@
 | [transsion-hios](transsion-hios/) | 传音 Tecno/Infinix/itel HiOS·XOS 12-14 | Folax 语音、AI 壁纸、健康、售后 App、工程模式 |
 | [universal](universal/) | 全品牌通用 | Android 广告服务、Google 组件、AOSP 彩蛋 |
 | [shake_apps.txt](shake_apps.txt) | 全品牌摇一摇封杀清单 | 微信/淘宝/抖音等 22 款第三方 App |
+| [freeze-recommended.txt](freeze-recommended.txt) | 全品牌可冻结预装清单(1848 个, safe/recommended/caution 三级) | 冻结=不可启动但不删除, 随时可解冻; 也可 `python3 tools/phone.py freeze --tier safe` 按本机过滤 |
 
 > 不想手工挑? 用**自动清单**: `python3 tools/harvest.py` 抓取互联网知识库后,
 > `python3 tools/phone.py auto` 会按**本机实际预装**自动生成清单(见根目录 README)。
+>
+> 不敢删只想让它闭嘴? 用**冻结清单**: `python3 tools/phone.py freeze --tier safe`
+> (语义参考 Hail / FreezeYou, 解冻 `restore --all`)。
 
 ## 使用
 

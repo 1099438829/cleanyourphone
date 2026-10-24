@@ -1080,6 +1080,42 @@ class FreezeDbTest(unittest.TestCase):
                     "com.xiaomi.account", "com.google.android.gms"):
             self.assertTrue(any(p in pkg for p in self.never), pkg)
 
+    def test_db_has_no_never_or_deny_leak(self):
+        """冻结清单不能包含 never_freeze / DENY / 谨慎名单里的包。"""
+        leaks = {"never": [], "deny": [], "caution": []}
+        for pkg in self.db:
+            if any(p and p in pkg for p in self.never):
+                leaks["never"].append(pkg)
+            if phone.is_denied(pkg):
+                leaks["deny"].append(pkg)
+            if phone.caution_reason(pkg):
+                leaks["caution"].append(pkg)
+        self.assertEqual(leaks["never"], [])
+        self.assertEqual(leaks["deny"], [])
+        self.assertEqual(leaks["caution"], [])
+
+    def test_db_has_knowledge_base_entries(self):
+        """知识库来源的条目应占多数(自动分级), 且带 UAD 级数字段。"""
+        uad = [p for p, rec in self.db.items() if rec.get("u")]
+        self.assertGreater(len(uad), 500)
+        for pkg in uad:
+            self.assertIn(self.db[pkg]["u"], ("Recommended", "Advanced"), pkg)
+
+    def test_freeze_candidates_accepts_full_db(self):
+        """freeze_candidates 既收 packages 字典, 也收整个清单文件。"""
+        import json as _json
+        full = _json.loads((Path(__file__).resolve().parent.parent
+                            / "rules" / "freeze-packages.json")
+                           .read_text(encoding="utf-8"))
+        dev = FakeAdb(packages={"com.miui.analytics", "com.xiaomi.account"},
+                      paths={"com.miui.analytics": "/system/app/A/A.apk",
+                             "com.xiaomi.account": "/system/app/B/B.apk"})
+        res = phone.freeze_candidates(dev, full, tier="safe")
+        pkgs = {r["pkg"] for r in res["rows"]}
+        self.assertIn("com.miui.analytics", pkgs)
+        self.assertNotIn("com.xiaomi.account", pkgs)
+        self.assertIn("com.xiaomi.account", res["skipped_never"])
+
     def test_generated_list_is_applicable(self):
         path = (Path(__file__).resolve().parent.parent
                 / "examples" / "freeze-recommended.txt")

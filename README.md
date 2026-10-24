@@ -294,7 +294,7 @@ com.heytap.browser              disable    [v>=12]  # 高版本只能禁用
 # 1. 按冻结清单预演(只列清单, 不动手机)
 python3 tools/phone.py freeze --tier safe
 
-# 2. 执行(共 127 个候选, 按本机实际安装过滤; 需输入 y 确认)
+# 2. 执行(候选按本机实际安装过滤; 需输入 y 确认)
 python3 tools/phone.py freeze --tier safe --apply
 
 # 3. 更全一点: safe + recommended(推送通道/内容预装/负一屏等, 影响明确)
@@ -312,15 +312,23 @@ python3 tools/phone.py restore --all
 
 | 分级 | 数量 | 含义 |
 | --- | --- | --- |
-| `safe` | 71 | 纯广告/统计/遥测/日志/工厂测试组件, 冻结后几乎无感知 |
-| `recommended` | 49 | 推送通道/内容预装/负一屏/快应用等, 影响明确可预期 |
-| `caution` | 7 | 会关掉某个功能(人脸解锁/推送/主题个性化), 冻结前先看影响 |
+| `safe` | 110 | 纯广告/统计/遥测/日志/工厂测试组件, 冻结后几乎无感知 |
+| `recommended` | 1059 | 推送通道/内容预装/负一屏等, 影响明确可预期 |
+| `caution` | 679 | 会关掉某个功能(浏览器/视频/人脸解锁/主题等), 冻结前先看影响 |
 
 `examples/freeze-recommended.txt` 是整理好的成品清单, 可直接
 `python3 tools/phone.py apply examples/freeze-recommended.txt`。
-清单由 `tools/build_freeze_db.py` 从 14 个品牌 debloat 列表的 `disable` 条目生成
-(即"这些包本来就是我们建议禁用的"), 手工分级表在
-`tools/freeze-curated.tsv`, 改完跑一次生成脚本即可。
+清单由 `tools/build_freeze_db.py` 从两个来源生成:
+
+1. **14 个品牌 debloat 列表的 `disable` 条目**(即"这些包本来就是我们建议禁用的",
+   人工分级), 手工分级表在 `tools/freeze-curated.tsv`
+2. **互联网聚合知识库**(`rules/known-packages.json`, UAD-NG 等 5000+ 包): 取 OEM 预装 +
+   Recommended/Advanced 级, 过与运行时一致的安全规则(DENY/谨慎名单/never_freeze/
+   品牌过滤), 再按包名关键词自动分级; Advanced 级一律 caution
+
+知识库自动分级的条目未经真机验证, 所以 `caution` 级务必先读"影响"列;
+要改分级改 `freeze-curated.tsv`(品牌条目)或 `build_freeze_db.py` 的
+`IMPACT_RULES`(知识库条目), 跑一次生成脚本即可。
 
 **不要冻结的**: 桌面/电话/短信/账号/同步适配器/GMS 等核心组件,
 见 `rules/freeze-packages.json` 的 `never_freeze` 段(与 `phone.py` 的
@@ -353,14 +361,14 @@ python3 tools/phone.py restore --all
 | --- | --- |
 | `phone.py` | 核心工具(Python 标准库, 跨平台, 21 个子命令) |
 | `harvest.py` | 抓取聚合互联网 debloat 知识 -> `rules/known-packages.json` |
-| `build_freeze_db.py` | 由品牌清单 + `tools/freeze-curated.tsv` 生成冻结清单 -> `rules/freeze-packages.json` |
+| `build_freeze_db.py` | 由品牌清单 + `tools/freeze-curated.tsv` + 知识库生成冻结清单 -> `rules/freeze-packages.json` |
 | `clean.sh` | 全流程编排(备份→debloat→settings→shake, 可分阶段) |
 | `disable.sh` / `restore.sh` / `check.sh` | 应用/恢复/检查列表 |
 | `install-adb.sh` | 安装官方 Android 平台工具 |
 | `sync_uad.py` | 从 UAD-NG 社区数据库同步品牌候选列表(轻量版, 只要品牌候选时用它) |
 | `../rules/rom-profiles.json` | 版本规则库: 家族属性/版本说明/分版本动作覆盖 |
-| `../rules/freeze-packages.json` | 冻结清单: 127 个可冻结预装 + 分级/影响 + never_freeze 黑名单 |
-| `../tests/test_phone.py` | 单元测试(模拟设备, 90 个用例): `python3 -I tests/test_phone.py` |
+| `../rules/freeze-packages.json` | 冻结清单: 1848 个可冻结预装(safe 110 / recommended 1059 / caution 679)+ 影响 + never_freeze 黑名单 |
+| `../tests/test_phone.py` | 单元测试(模拟设备, 93 个用例): `python3 -I tests/test_phone.py` |
 
 ## 真机实测(2026-10-23, OPPO PEQM00 / Android 13 / ColorOS 13)
 
@@ -492,10 +500,10 @@ cleanyourphone/
 ├── rules/               规则库
 │   ├── known-packages.json   5009 个包的分级/描述/依赖/来源(harvest.py 生成)
 │   ├── rom-profiles.json     版本规则: 11 个 ROM 家族 + 分版本动作覆盖
-│   ├── freeze-packages.json  冻结清单: 127 个可冻结预装 + 分级/影响 + never_freeze
+│   ├── freeze-packages.json  冻结清单: 1848 个可冻结预装 + 分级/影响 + never_freeze
 │   ├── ALL-BLOAT.txt         人类可读全量清单(按厂商分组)
 │   └── harvest-report.md     抓取报告(来源与失败原因)
-├── tests/test_phone.py  单元测试(模拟设备, 90 个用例)
+├── tests/test_phone.py  单元测试(模拟设备, 93 个用例)
 └── examples/            各品牌列表 + settings.conf + 手动关广告/优化设置说明
     ├── xiaomi-hyperos/ huawei-harmonyos/ honor-magicos/ oppo-coloros/
     ├── oneplus-coloros/ realme-ui/ vivo-originos/ samsung-oneui-cn/ meizu-flyme/

@@ -11,11 +11,11 @@
 | `tools/clean.sh` | 全流程编排(backup→debloat→settings→shake, 可分阶段) | 保持编排式实现, 逻辑一律放 phone.py |
 | `tools/disable.sh` `restore.sh` `check.sh` | `phone.py` 的 bash 封装 | 保持转发式实现 |
 | `tools/install-adb.sh` | 安装官方 Android 平台工具 | 覆盖 macOS/Linux/Windows |
-| `tools/build_freeze_db.py` | 由品牌清单 + `tools/freeze-curated.tsv` 生成 `rules/freeze-packages.json` 与 `examples/freeze-recommended.txt` | 分级表(freeze-curated.tsv)手改; 生成物不手改 |
+| `tools/build_freeze_db.py` | 由品牌清单 + `tools/freeze-curated.tsv` + `rules/known-packages.json`(知识库, OEM+Recommended/Advanced 级, 关键词自动分级)生成 `rules/freeze-packages.json` 与 `examples/freeze-recommended.txt` | 分级表(freeze-curated.tsv)与 IMPACT_RULES 手改; 生成物不手改; 知识库来源必须过 phone.py 安全规则(DENY/谨慎名单/never_freeze/品牌过滤) |
 | `tools/sync_uad.py` | 从 UAD-NG 同步品牌候选列表到 `examples/<品牌>/uad-recommended.txt` | 只生成候选文件, 禁止覆盖手工 `debloat.txt`; 必须过安全规则过滤 |
 | `rules/known-packages.json` | 自动清单知识库(harvest.py 生成) | 由脚本生成, 不手改 |
 | `rules/rom-profiles.json` | 版本规则库: 家族属性/版本说明/分版本动作覆盖/hdc 门槛 | 手改; 新增家族需带 `label/brands/props/priority`, 并在测试里覆盖识别 |
-| `rules/freeze-packages.json` | 冻结清单: safe/recommended/caution 三级 + 影响 + never_freeze | 由 build_freeze_db.py 生成, 不手改 |
+| `rules/freeze-packages.json` | 冻结清单: 1848 个 safe/recommended/caution 三级 + 影响 + never_freeze | 由 build_freeze_db.py 生成, 不手改 |
 | `tests/test_phone.py` | 单元测试(FakeAdb/FakeHdc 模拟设备) | 改 `phone.py` 行为必须同步测试 |
 | `examples/<品牌>/debloat.txt` | 手工维护的清理列表 | 格式见下; 分 推荐/可选/谨慎(谨慎默认注释); 版本相关条目加 `[v>=13]` 标注 |
 | `examples/<品牌>/settings.conf` | 设置项(settings put) | 格式: `ns key value # 注释`; DNS 项默认注释 |

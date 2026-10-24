@@ -5,9 +5,10 @@
 #   suspend: 图标变灰, 系统提示已挂起(禁用被拒时自动兜底)
 # 恢复: python3 tools/phone.py restore --all
 # 语义参考 Hail(aistra0528/Hail) 与 FreezeYou(FreezeYou/FreezeYou)
-# 用法: python3 tools/phone.py apply examples/freeze-recommended.txt
+# 数据来源: 14 个品牌 debloat 清单 + UAD-NG 知识库(自动分级)
+# 用法: python3 tools/phone.py freeze --tier safe   # 或 apply 本文件
 
-# ================= safe 几乎无感知(71) =================
+# ================= safe 几乎无感知(110) =================
 com.hihonor.magazinelock freeze  # 杂志锁屏(锁屏画报广告)停用
 com.huawei.hms.analytics freeze  # 仅 HMS 统计少一份数据
 com.zui.bugtogo freeze  # 无感知(隐藏的数据采集)
@@ -79,8 +80,47 @@ com.zte.burntest.camera freeze  # 无感知(相机烧机测试)
 com.zte.emode freeze  # 无感知(工程模式)
 com.zte.emodeservice freeze  # 无感知(工程模式服务)
 com.zte.heartyservice.strategy freeze  # 无感知(健康服务策略(统计))
+com.bbk.iqoo.logsystem freeze  # 统计/遥测/日志上报, 冻结后几乎无感知
+com.coloros.feedback freeze  # 统计/遥测/日志上报, 冻结后几乎无感知
+com.coloros.logkit freeze  # 统计/遥测/日志上报, 冻结后几乎无感知
+com.coloros.logkit.plugin.upload freeze  # 统计/遥测/日志上报, 冻结后几乎无感知
+com.hihonor.collectcenter freeze  # 统计/遥测/日志上报, 冻结后几乎无感知
+com.hihonor.mmitest freeze  # 统计/遥测/日志上报, 冻结后几乎无感知
+com.huawei.android.rftest freeze  # 统计/遥测/日志上报, 冻结后几乎无感知
+com.huawei.imonitor freeze  # 统计/遥测/日志上报, 冻结后几乎无感知
+com.huawei.mmiautotest freeze  # 统计/遥测/日志上报, 冻结后几乎无感知
+com.huawei.mmitest freeze  # 统计/遥测/日志上报, 冻结后几乎无感知
+com.mi.AutoTest freeze  # 统计/遥测/日志上报, 冻结后几乎无感知
+com.miui.bugreport freeze  # 统计/遥测/日志上报, 冻结后几乎无感知
+com.miui.klo.bugreport freeze  # 统计/遥测/日志上报, 冻结后几乎无感知
+com.nearme.statistics.rom freeze  # 统计/遥测/日志上报, 冻结后几乎无感知
+com.oplus.logkit freeze  # 统计/遥测/日志上报, 冻结后几乎无感知
+com.oplus.stdsp freeze  # 广告/推广服务, 冻结后几乎无感知
+com.oplus.wifitest freeze  # 统计/遥测/日志上报, 冻结后几乎无感知
+com.oppo.fingerprints.fingerprintsensortest freeze  # 统计/遥测/日志上报, 冻结后几乎无感知
+com.oppo.logkit freeze  # 统计/遥测/日志上报, 冻结后几乎无感知
+com.oppo.logkitsdservice freeze  # 统计/遥测/日志上报, 冻结后几乎无感知
+com.oppo.logkitservice freeze  # 统计/遥测/日志上报, 冻结后几乎无感知
+com.oppo.wifitest freeze  # 统计/遥测/日志上报, 冻结后几乎无感知
+com.samsung.android.knox.analytics.uploader freeze  # 统计/遥测/日志上报, 冻结后几乎无感知
+com.sec.android.app.bluetoothtest freeze  # 统计/遥测/日志上报, 冻结后几乎无感知
+com.sec.android.app.factorykeystring freeze  # 统计/遥测/日志上报, 冻结后几乎无感知
+com.sec.android.app.felicatest freeze  # 统计/遥测/日志上报, 冻结后几乎无感知
+com.sec.android.app.hwmoduletest freeze  # 统计/遥测/日志上报, 冻结后几乎无感知
+com.sec.android.app.uwbtest freeze  # 统计/遥测/日志上报, 冻结后几乎无感知
+com.sec.android.app.wlantest freeze  # 统计/遥测/日志上报, 冻结后几乎无感知
+com.sec.android.provider.logsprovider freeze  # 统计/遥测/日志上报, 冻结后几乎无感知
+com.sec.factory freeze  # 统计/遥测/日志上报, 冻结后几乎无感知
+com.sec.factory.camera freeze  # 统计/遥测/日志上报, 冻结后几乎无感知
+com.sec.factory.cameralyzer freeze  # 统计/遥测/日志上报, 冻结后几乎无感知
+com.sec.factory.iris.usercamera freeze  # 统计/遥测/日志上报, 冻结后几乎无感知
+com.sec.imslogger freeze  # 统计/遥测/日志上报, 冻结后几乎无感知
+com.transsion.statisticalsales freeze  # 统计/遥测/日志上报, 冻结后几乎无感知
+com.vivo.bsptest freeze  # 统计/遥测/日志上报, 冻结后几乎无感知
+com.vivo.feedback freeze  # 统计/遥测/日志上报, 冻结后几乎无感知
+com.xiaomi.mipicks freeze  # 广告/推广服务, 冻结后几乎无感知
 
-# ================= recommended 推荐冻结(49) =================
+# ================= recommended 推荐冻结(1059) =================
 com.hihonor.pushagent freeze  # 推送通道停用; 部分应用收不到推送
 com.huawei.livecontent freeze  # 情景智能(商业信息流)停用
 com.huawei.fastapp freeze  # 快应用不可用
@@ -130,8 +170,1018 @@ cn.nubia.doubleapp freeze  # 应用分身不可用
 cn.nubia.keymapcenter freeze  # 游戏按键映射(肩键)不可用
 com.zte.assistant freeze  # 语音助手不可用
 com.zte.beautify freeze  # 主题商店不可用(已下载主题保留)
+cn.nubia.diyaod freeze  # 锁屏杂志/常亮显示类内容, 冻结后对应内容不再更新
+cn.nubia.edge freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+cn.nubia.extcard freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+cn.nubia.fastpair freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+cn.nubia.gif freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+cn.nubia.harassintercept freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+cn.nubia.heartrate freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+cn.nubia.paycomponent freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+cn.nubia.persist freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+cn.nubia.phonemanualintegrate.preset freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+cn.nubia.processmanager freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+cn.nubia.quickappwebserver freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+cn.nubia.quicksearchbox freeze  # 负一屏/资讯/推荐入口, 冻结后该页面不再有内容
+cn.nubia.sar freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+cn.nubia.sensor freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+cn.nubia.smartrecognition freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+cn.nubia.virtualgamehandle freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+cn.nubia.voiceassist freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+cn.nubia.woodpecker freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+cn.nubia.yulorepage freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.coloros.apprecover freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.coloros.avastofferwall freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.coloros.colordirectservice freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.coloros.colorfilestand freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.coloros.directui freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.coloros.dirrecord freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.coloros.exserviceui freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.coloros.eyeprotect freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.coloros.floatassistant freeze  # 负一屏/资讯/推荐入口, 冻结后该页面不再有内容
+com.coloros.focusmode freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.coloros.gesture freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.coloros.healthcheck freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.coloros.healthservice freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.coloros.karaoke freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.coloros.mapcom.frame freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.coloros.mcs freeze  # 推送通道, 冻结后第三方应用可能收不到推送
+com.coloros.ocrservice freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.coloros.ocs.opencapabilityservice freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.coloros.onekeylockscreen freeze  # 锁屏杂志/常亮显示类内容, 冻结后对应内容不再更新
+com.coloros.operationManual freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.coloros.operationtips freeze  # 负一屏/资讯/推荐入口, 冻结后该页面不再有内容
+com.coloros.oppomultiapp freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.coloros.phonemanager freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.coloros.phonenoareainquire freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.coloros.prome.service freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.coloros.prome.smsservice freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.coloros.regservice freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.coloros.safesdkproxy freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.coloros.sauhelper freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.coloros.scenemode freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.coloros.sceneservice freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.coloros.sharescreen freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.coloros.smartdrive freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.coloros.smartlock freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.coloros.smartsidebar freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.coloros.speechassist freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.coloros.trafficlimit freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.coloros.translate.engine freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.coloros.wifisecuredetect freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.flyme.aod freeze  # 锁屏杂志/常亮显示类内容, 冻结后对应内容不再更新
+com.flyme.netadmin freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.heytap.colorfulengine freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.heytap.datamigration freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.heytap.market freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.heytap.openid freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.heytap.speechassist freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.hihonor.aipluginengine freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.hihonor.android.FloatTasks freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.hihonor.android.chr freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.hihonor.android.fmradio freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.hihonor.android.hnupgradeguide freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.hihonor.android.instantshare freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.hihonor.android.mirrorshare freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.hihonor.android.projectmenu freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.hihonor.appmarket freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.hihonor.assetsync freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.hihonor.assetsyncservice freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.hihonor.assistant freeze  # 负一屏/资讯/推荐入口, 冻结后该页面不再有内容
+com.hihonor.autoinstallapkfrommcc freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.hihonor.awareness freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.hihonor.behaviorauth freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.hihonor.compass freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.hihonor.detectrepair freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.hihonor.gameassistant freeze  # 负一屏/资讯/推荐入口, 冻结后该页面不再有内容
+com.hihonor.hiview freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.hihonor.hnpanpayservice freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.hihonor.hnstartupguide freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.hihonor.iconnect freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.hihonor.imedia.sws freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.hihonor.lens freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.hihonor.linktowindowsservice freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.hihonor.magazine freeze  # 锁屏杂志/常亮显示类内容, 冻结后对应内容不再更新
+com.hihonor.numberidentity freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.hihonor.pcassistant freeze  # 负一屏/资讯/推荐入口, 冻结后该页面不再有内容
+com.hihonor.phoneservice freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.hihonor.photos freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.hihonor.search freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.hihonor.searchservice freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.hihonor.soundrecorder freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.hihonor.synergy freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.hihonor.trustcircle freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.HwMultiScreenShot freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.aml freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.android.FloatTasks freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.android.chr freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.android.hsf freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.android.hwpay freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.android.hwupgradeguide freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.android.instantonline freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.android.instantshare freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.android.karaoke freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.android.mirrorshare freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.android.projectmenu freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.android.remotecontroller freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.android.tips freeze  # 负一屏/资讯/推荐入口, 冻结后该页面不再有内容
+com.huawei.android.totemweatherapp freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.android.wfdft freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.aod freeze  # 锁屏杂志/常亮显示类内容, 冻结后对应内容不再更新
+com.huawei.ar.measure freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.arengine.service freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.assetsync freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.assetsyncservice freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.audioaccessorymanager freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.autoinstallapkfrommcc freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.bd freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.behaviorauth freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.betaclub freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.ca freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.compass freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.contentsensor freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.cryptosms.service freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.desktop.explorer freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.devicemanager freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.distributed.kms freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.dtmfanalyzer freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.easygo freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.fans freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.featurelayer.sharedfeature.map freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.gameassistant freeze  # 负一屏/资讯/推荐入口, 冻结后该页面不再有内容
+com.huawei.geofence freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.health freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.hff freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.hiaction freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.hiai freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.hiassistantoversea freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.hicar freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.hicard freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.hicloud freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.hifolder freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.hilink.framework freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.himovie.overseas freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.himovie.partner1 freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.himovie.partner2 freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.hiskytone freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.hisuite freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.hitouch freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.hiview freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.hms5gkit.agentservice freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.honorclub.android freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.hwblockchain freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.hwdetectrepair freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.hwdiagnosis freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.hwireader freeze  # 负一屏/资讯/推荐入口, 冻结后该页面不再有内容
+com.huawei.hwpanpayservice freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.hwpolicyservice freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.hwread.dz freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.hwsearch freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.hwstartupguide freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.hwvoipservice freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.hwvplayer.youku freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.iconnect freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.ihealth freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.imedia.sws freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.indexsearch freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.indexsearch.observer freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.intelligent freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.internetaudioservice freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.lives freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.livewallpaper.artflower freeze  # 锁屏杂志/常亮显示类内容, 冻结后对应内容不再更新
+com.huawei.livewallpaper.flowersbloom freeze  # 锁屏杂志/常亮显示类内容, 冻结后对应内容不再更新
+com.huawei.livewallpaper.mountaincloud freeze  # 锁屏杂志/常亮显示类内容, 冻结后对应内容不再更新
+com.huawei.livewallpaper.naturalgarden freeze  # 锁屏杂志/常亮显示类内容, 冻结后对应内容不再更新
+com.huawei.livewallpaper.paradise freeze  # 锁屏杂志/常亮显示类内容, 冻结后对应内容不再更新
+com.huawei.livewallpaper.ripplestone freeze  # 锁屏杂志/常亮显示类内容, 冻结后对应内容不再更新
+com.huawei.magazine freeze  # 锁屏杂志/常亮显示类内容, 冻结后对应内容不再更新
+com.huawei.meetime freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.mirror freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.mirrorlink freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.msdp freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.multimedia.audioengine freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.multimedia.hivideoplayengine freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.mycenter freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.numberidentity freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.ohos.collaborationcenter freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.ohos.famanager freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.ohos.hiwindow freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.onehopsvcclient freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.onehopsvchost freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.parentcontrol freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.pcassistant freeze  # 负一屏/资讯/推荐入口, 冻结后该页面不再有内容
+com.huawei.pengine freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.phoneservice freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.profile freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.rcsserviceapplication freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.recsys freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.regservice freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.ridemode freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.runningtestii freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.sarlevel freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.scenepack freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.search freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.searchservice freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.secime freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.skytone freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.smarthome freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.sos freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.spaceservice freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.stylus.floatmenu freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.suggestion freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.synergy freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.systemdebug freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.tips freeze  # 负一屏/资讯/推荐入口, 冻结后该页面不再有内容
+com.huawei.tipsove freeze  # 负一屏/资讯/推荐入口, 冻结后该页面不再有内容
+com.huawei.trustagent freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.trustcircle freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.trustedthingsauth freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.trustspace freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.userguide freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.vassistant freeze  # 负一屏/资讯/推荐入口, 冻结后该页面不再有内容
+com.huawei.vdrive freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.vrservice freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.watch.sync freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.waudio freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.huawei.welinknow freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.infinix.xshare freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.iqoo.aftersale.engineermode freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.iqoo.engineermode freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.iqoo.user.engineermode freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.iqoo.website freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.lenovo.levoice.caption freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.lenovo.levoice.trigger freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.lenovo.levoice_agent freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.lenovo.lsf.user freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.meizu.alphame freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.meizu.assistant freeze  # 负一屏/资讯/推荐入口, 冻结后该页面不再有内容
+com.meizu.callsetting freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.meizu.dataservice freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.meizu.ems freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.meizu.facerecognition freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.meizu.flyme.easylauncher freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.meizu.flyme.service.find freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.meizu.flymelab freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.meizu.mzbasestationsafe freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.meizu.mznfcpay freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.meizu.mzsyncservice freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.meizu.net.search freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.meizu.picker freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.meizu.pps freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.meizu.setup freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.meizu.suggestion freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.meizu.telephonyengineermode freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.meizu.voiceassist freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.meizu.wifiadmin freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.mi.android.globalpersonalassistant freeze  # 负一屏/资讯/推荐入口, 冻结后该页面不再有内容
+com.mi.appfinder freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.mi.emapal freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.mi.global.bbs freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.mi.global.pocobbs freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.mi.health freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.mi.healthglobal freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.mi.liveassistant freeze  # 负一屏/资讯/推荐入口, 冻结后该页面不再有内容
+com.mi.webkit.core freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.miui.audioeffect freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.miui.carlink freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.miui.catcherpatch freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.miui.cit freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.miui.cleanmaster freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.miui.compass freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.miui.contentcatcher freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.miui.core.internal.assistant freeze  # 负一屏/资讯/推荐入口, 冻结后该页面不再有内容
+com.miui.easygo freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.miui.enbbs freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.miui.extraphoto freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.miui.fm freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.miui.fmservice freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.miui.huanji freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.miui.maintenancemode freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.miui.mediafeature freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.miui.metoknlp freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.miui.miservice freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.miui.miwallpaper.earth freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.miui.miwallpaper.mars freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.miui.newhome freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.miui.newmidrive freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.miui.nextpay freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.miui.otaprovision freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.miui.personalassistant freeze  # 负一屏/资讯/推荐入口, 冻结后该页面不再有内容
+com.miui.player freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.miui.privacycomputing freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.miui.qr freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.miui.screenrecorder freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.miui.smsextra freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.miui.sysopt freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.miui.system.overlay freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.miui.translation.kingsoft freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.miui.translation.xmcloud freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.miui.translation.youdao freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.miui.translationservice freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.miui.tsmclient freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.miui.userguide freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.miui.vipservice freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.miui.voiceassist freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.miui.voicetrigger freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.miui.vpnsdkmanager freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.miui.wmsvc freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.motorola.actions.overlay freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.motorola.android.coresettingsext.overlay.doubletap freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.motorola.android.fmradio freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.motorola.android.overlay.crystaltalkai freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.motorola.appdirectedsmsproxy freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.motorola.brapps freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.motorola.callredirectionservice freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.motorola.comcastext freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.motorola.config.wifi freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.motorola.demo freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.motorola.discovery freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.motorola.dynamicvolume freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.motorola.easyprefix freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.motorola.enterprise.adapter.service freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.motorola.enterprise.service freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.motorola.fmplayer freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.motorola.frameworks.singlehand freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.motorola.genie freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.motorola.gesture freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.motorola.help freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.motorola.help.extlog freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.motorola.hiddenmenuapp freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.motorola.invisiblenet freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.motorola.iqimotmetrics freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.motorola.leanbacklauncher freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.motorola.lifetimedata freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.motorola.livewallpaper3 freeze  # 锁屏杂志/常亮显示类内容, 冻结后对应内容不再更新
+com.motorola.livewallpaper3.prebuilt.chroma_plume freeze  # 锁屏杂志/常亮显示类内容, 冻结后对应内容不再更新
+com.motorola.livewallpaper3.prebuilt.cool_bamboo freeze  # 锁屏杂志/常亮显示类内容, 冻结后对应内容不再更新
+com.motorola.livewallpaper3.prebuilt.lovely_peach freeze  # 锁屏杂志/常亮显示类内容, 冻结后对应内容不再更新
+com.motorola.livewallpaper3.prebuilt.mysterious_amber freeze  # 锁屏杂志/常亮显示类内容, 冻结后对应内容不再更新
+com.motorola.livewallpaper3.prebuilt.romantic_wisteria freeze  # 锁屏杂志/常亮显示类内容, 冻结后对应内容不再更新
+com.motorola.livewallpaper3.prebuilt.titan freeze  # 锁屏杂志/常亮显示类内容, 冻结后对应内容不再更新
+com.motorola.livewallpaper3.prebuilt.tranquil_whale freeze  # 锁屏杂志/常亮显示类内容, 冻结后对应内容不再更新
+com.motorola.livewallpaper3.prebuilt.twilight_twist freeze  # 锁屏杂志/常亮显示类内容, 冻结后对应内容不再更新
+com.motorola.livewallpaper3.prebuilt.vibrant_sapling freeze  # 锁屏杂志/常亮显示类内容, 冻结后对应内容不再更新
+com.motorola.mobiledesktop freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.motorola.mobiledesktop.core freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.motorola.motcameradesktop freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.motorola.moto freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.motorola.motocare freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.motorola.motocare.internal freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.motorola.motocit freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.motorola.motodisplay freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.motorola.motofpstouch freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.motorola.mototour freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.motorola.nfwlocationattribution freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.motorola.omadm.service freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.motorola.overlay.launcher3 freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.motorola.paks freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.motorola.paks.notification freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.motorola.pgmsystem2 freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.motorola.programmenu freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.motorola.ptt.prip freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.motorola.revoker.services freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.motorola.safetycenter.resources.overlay freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.motorola.setup.auto_generated_rro_vendor__ freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.motorola.setup.overlay.amx freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.motorola.setup.overlay.gabuttonrighttop freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.motorola.setup.overlay.pai freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.motorola.setup.overlay.tracfone freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.motorola.slpc_sys freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.motorola.spaces freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.motorola.spectrum.setup.extensions freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.motorola.systemserver freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.motorola.vzw.pco.extensions.pcoreceiver freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.motorola.wifi.motowifimetrics freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.nearme.atlas freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.nearme.deamon freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.nearme.instant.platform freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.oneplus.accessory freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.oneplus.aod freeze  # 锁屏杂志/常亮显示类内容, 冻结后对应内容不再更新
+com.oneplus.aodnotification.overlay.gold freeze  # 锁屏杂志/常亮显示类内容, 冻结后对应内容不再更新
+com.oneplus.aodnotification.overlay.purple freeze  # 锁屏杂志/常亮显示类内容, 冻结后对应内容不再更新
+com.oneplus.aodnotification.overlay.red freeze  # 锁屏杂志/常亮显示类内容, 冻结后对应内容不再更新
+com.oneplus.brickmode freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.oneplus.card freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.oneplus.chargingpilar freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.oneplus.dm freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.oneplus.iconpack.oneplush2 freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.oneplus.iconpack.onepluso2 freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.oneplus.ifaaservice freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.oneplus.membership freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.oneplus.minidumpoptimization freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.oneplus.opbugreportlite freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.oneplus.opshelf freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.oneplus.opsports freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.oneplus.opwlb freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.oneplus.twspods freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.oplus.aipaint freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.oplus.aiwriter freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.oplus.aod freeze  # 锁屏杂志/常亮显示类内容, 冻结后对应内容不再更新
+com.oplus.appdetail freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.oplus.bttestmode freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.oplus.dmp freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.oplus.eid freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.oplus.encryption freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.oplus.engineermode freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.oplus.engineermodeforflipkart freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.oplus.engineernetwork freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.oplus.eyeprotect freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.oplus.hamlet freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.oplus.healthservice freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.oplus.kekepay freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.oplus.lfeh freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.oplus.metis freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.oplus.obrain freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.oplus.oca freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.oplus.ocar freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.oplus.ocloud freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.oplus.ocs freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.oplus.olc freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.oplus.omoji freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.oplus.onet freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.oplus.oscenter freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.oplus.ovoicemanager freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.oplus.ovoicemanager.wakeup freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.oplus.portrait freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.oplus.postmanservice freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.oplus.powermonitor freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.oplus.qualityprotect freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.oplus.sauhelper freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.oplus.studycenter freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.oplus.thirdkit freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.oplus.vip freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.oppo.atlas freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.oppo.bttestmode freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.oppo.criticallog freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.oppo.customize freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.oppo.freefallingmonitor freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.oppo.healthservice freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.oppo.instant.local.service freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.oppo.lfeh freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.oppo.localservice freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.oppo.market freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.oppo.mimosiso freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.oppo.multimedia.dolby freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.oppo.nw freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.oppo.operationManual freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.oppo.oppopowermonitor freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.oppo.ovoicemanager freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.oppo.partnerbrowsercustomizations freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.oppo.qualityprotect freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.oppo.quicksearchbox freeze  # 负一屏/资讯/推荐入口, 冻结后该页面不再有内容
+com.oppo.resmonitor freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.oppo.smartvolume freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.oppo.tzupdate freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.oppo.usageDump freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.oppo.wifirf freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.realme.findphone.client2 freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.realme.link freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.realme.wellbeing freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.InputEventApp freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.aasaservice freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.accessory freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.accessory.beansmgr freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.accessory.safiletransfer freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.adaptivebrightnessgo freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.a20.d01.wallpapermulti freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.a50.d01.wallpapermulti freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.activation freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.adaptivebrightnessgo freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.aircommandmanager freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.airtel.stubapp freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.allshare.service.mediashare freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.app.accesscontrol freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.app.advsounddetector freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.app.assistantmenu freeze  # 负一屏/资讯/推荐入口, 冻结后该页面不再有内容
+com.samsung.android.app.clipboardedge freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.app.cocktailbarservice freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.app.color freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.app.dtv.dmb freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.app.earphonetypec freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.app.episodes freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.app.filterinstaller freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.app.headlines freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.app.interactivepanoramaviewer freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.app.kfa freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.app.ledbackcover freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.app.ledcoverdream freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.app.memo freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.app.mhswrappertmo freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.app.mirrorlink freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.app.news freeze  # 负一屏/资讯/推荐入口, 冻结后该页面不再有内容
+com.samsung.android.app.omcagent freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.app.panel.naver.v freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.app.pinboard freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.app.reminder freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.app.sbrowseredge freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.app.sharelive freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.app.simplesharing freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.app.sketchbook freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.app.social freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.app.talkback freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.app.taskedge freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.app.tips freeze  # 负一屏/资讯/推荐入口, 冻结后该页面不再有内容
+com.samsung.android.app.updatecenter freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.app.vrsetupwizards freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.app.vrsetupwizardstub freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.app.watchmanager freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.app.watchmanagerstub freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.app.withtv freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.ardrawing freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.aremoji freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.aremojieditor freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.arzone freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.asksmanager freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.bbc.bbcagent freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.bbc.fileprovider freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.beaconmanager freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.bixby.agent freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.bixby.agent.dummy freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.bixby.es.globalaction freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.bixby.plmsync freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.bixby.service freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.bixby.voiceinput freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.bixby.wakeup freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.bixbyhelper freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.bixbytouch freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.bixbyvision.framework freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.carkey freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.carlink freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.chnfileshare.kit freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.cmfa.framework freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.coreapps freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.da.daagent freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.dbsc freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.dck.timesync freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.deviceidservice freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.digitalkey freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.dkey freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.dlp.service freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.drivelink.stub freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.dsms freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.easysetup freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.fast freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.fmm freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.galaxycontinuity freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.gearoplugin freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.hdmapp freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.hmt.vrshell freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.hmt.vrsvc freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.homemode freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.hwresourceshare.storage freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.icecone freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.imagepp freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.inputshare freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.intelligenceservice freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.intelligenceservice2 freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.ipsgeofence freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.keyguardwallpaperupdator freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.kidsinstaller freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.knox.containeragent freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.knox.containercore freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.knox.containerdesktop freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.knox.kpecore freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.knox.pushmanager freeze  # 推送通道, 冻结后第三方应用可能收不到推送
+com.samsung.android.knox.zt.framework freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.livestickers freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.mapsagent freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.mateagent freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.mcfds freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.mdecservice freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.mdm freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.mdx freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.mdx.kit freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.mfi freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.mocca freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.networkdiagnostic freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.oneconnect freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.peripheral.framework freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.personalpage.service freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.privateaccesstokens freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.privateshare freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.providers.context freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.rajaampat freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.rampart freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.rlc freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.rubin.app freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.samsungpass freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.samsungpassautofill freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.samsungpositioning freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.scloud freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.scloud.proxy.memo freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.scloud.proxy.snote3 freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.scloud.quota freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.scloud.sync freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.sconnect freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.sdk.handwriting freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.sdk.professionalaudio.app.audioconnectionservice freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.sdk.professionalaudio.utility.jammonitor freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.sdk.spenv10 freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.sdm.config freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.server.wifi.mobilewips freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.service.livedrawing freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.service.peoplestripe freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.service.stplatform freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.service.travel freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.setupindiaservicestnc freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.slinkcloud freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.sm freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.smartcallprovider freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.smartfitting freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.smartprovider freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.smartsuggestions freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.smartswitchassistant freeze  # 负一屏/资讯/推荐入口, 冻结后该页面不再有内容
+com.samsung.android.spay freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.spayfw freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.spaymini freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.spdfnote freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.sskds freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.stickercenter freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.stickerplugin freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.ststub freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.svcagent freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.svoice freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.svoiceime freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.tncpage freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.tzdata.update freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.uds freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.unifiedprofile freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.universalswitch freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.uwb freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.vdc freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.visionarapps freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.visioncloudagent freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.visionintelligence freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.visualars freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.voc freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.voicewakeup freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.vtcamerasettings freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.watch.alarm freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.watch.compass freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.watch.runestone.app freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.watch.stopwatch freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.watch.timer freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.android.widgetapp.yahooedge.news freeze  # 负一屏/资讯/推荐入口, 冻结后该页面不再有内容
+com.samsung.android.wifinetworkdiagnostics freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.app.highlightplayer freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.app.jansky freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.attribution freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.carrier.logcollector freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.chn.apps.devicemanagement freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.crane freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.daydream.customization freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.desktopsystemui freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.discover freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.discover.sep freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.ecomm freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.ecomm.global.in freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.emergencyreporthelper freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.enhanceservice freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.faceservice freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.felicalock freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.fresco.logging freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.gpuwatchapp freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.groupcast freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.helphub freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.hidden.china freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.hongbaoassistant freeze  # 负一屏/资讯/推荐入口, 冻结后该页面不再有内容
+com.samsung.hs20provider freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.inputshare freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.ipservice freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.japan.initonce freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.knox.knoxtrustagent freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.knox.kss freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.knox.rcp.components freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.knox.securefolder freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.knox.securefolder.setuppage freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.logwriter freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.mdl.radio freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.mdl.radio.radiostub freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.mlp freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.mobiletv freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.oh freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.pickuptutorial freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.preloadapp freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.qosindicator freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.rcs freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.safetyinformation freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.sait.sohservice freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.samsungpssdplus freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.sec.android.teegris.tui_service freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.sec.mtv freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.slsi.audiologging freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.svoice.sync freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.tmovvm freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.ucs.agent.ese freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.ucs.ucspinpad freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.visionprovider freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.voiceserviceplatform freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.vvm freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.samsung.vvm.se freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.allsharecastplayer freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.AutoPreconfig freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.CcInfo freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.GeoLookout freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.Kies freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.Preconfig freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.QRreader freeze  # 负一屏/资讯/推荐入口, 冻结后该页面不再有内容
+com.sec.android.RilServiceModeApp freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.SamsungDrmProvider freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.allshare.service.controlshare freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.allshare.service.fileshare freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.allshare.service.mediashare freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.app.DataCreate freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.app.FileShareClient freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.app.FileShareServer freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.app.applinker freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.app.bcocr freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.app.billing freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.app.bluetoothagent freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.app.chromecustomizations freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.app.desktoplauncher freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.app.dexonpc freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.app.dictionary freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.app.easylauncher freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.app.easysetup freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.app.firewall freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.app.interactivekeyguardtutorial freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.app.kidshome freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.app.magnifier freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.app.mediasync freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.app.minimode.res freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.app.mt freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.app.mv.player freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.app.ocr freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.app.parser freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.app.popupuireceiver freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.app.quicktool freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.app.rakein freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.app.ringtoneBR freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.app.saspmodemailerprovider freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.app.sbrowsertry freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.app.scloud freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.app.servicemodeapp freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.app.setupwizardlegalprovider freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.app.shealth freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.app.sns3 freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.app.snsimagecache freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.app.soundalive freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.app.suwscriptplayer freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.app.sysscope freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.app.taskmanager freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.app.tourviewer freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.app.translator freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.app.ve.vebgm freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.app.voicenote freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.app.volumemonitorprovider freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.app.wfdbroker freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.app.withtv freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.app.wluc freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.autodoodle.service freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.automotive.drivelink freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.automotive.drivelinkremote freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.cloudagent freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.cloudagent.dropboxoobe freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.cover.ledcover freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.daemonapp freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.desktopcommunity freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.desktopmode.uiservice freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.directshare freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.easyMover freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.easyMover.Agent freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.easyonehand freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.easysettings freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.fido.uaf.asm freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.fido.uaf.client freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.fwupgrade freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.iaft freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.kies freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.llmpolicy freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.mimage.avatarstickers freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.mimage.gear360editor freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.mmapp freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.nearby.mediaserver freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.omc freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.pagebuddynotisvc freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.preloadinstaller freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.provider.snote freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.providers.mapcon freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.providers.tasks freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.service.bezel freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.service.cm freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.service.health freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.settingsmaps freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.sidesync30 freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.smartfpsadjuster freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.stub.paywithpaypal freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.uibcvirtualsoftkey freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.usermanual freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.android.yellowpage freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.app.RilErrorNotifier freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.bcservice freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.clocationservice freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.dsm.system freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.enterprise.knox.cloudmdm.smdms freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.enterprise.mdm.services.simpin freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.enterprise.mdm.vpn freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.epdgtestapp freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.esdk.elm freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.everglades freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.everglades.update freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.facatfunction freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.hearingadjust freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.hiddenmenu freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.kidsplat.installer freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.knox.bridge freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.knox.containeragent2 freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.knox.foldercontainer freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.knox.knoxsetupwizardclient freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.knox.packageverifier freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.knox.shortcutsms freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.knox.switchknox freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.knox.switchknoxI freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.knox.switchknoxII freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.mldapchecker freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.pcw.device freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.providers.assisteddialing freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.providers.settingsearch freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.readershub freeze  # 负一屏/资讯/推荐入口, 冻结后该页面不再有内容
+com.sec.setdefaultlauncher freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.smartcard.manager freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.spen.flashannotate freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.spp.push freeze  # 推送通道, 冻结后第三方应用可能收不到推送
+com.sec.svoice.lang.en_GB freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.tcpdumpservice freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.sec.vsim.ericssonnsds.webapp freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.transsion.aivoiceassistant freeze  # 负一屏/资讯/推荐入口, 冻结后该页面不再有内容
+com.transsion.aiwallpaper freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.transsion.aod freeze  # 锁屏杂志/常亮显示类内容, 冻结后对应内容不再更新
+com.transsion.audiosmartconnect freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.transsion.avatar freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.transsion.beezedit freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.transsion.carlcare freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.transsion.childmode freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.transsion.childmode.resoverlay freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.transsion.connectx.mirror.source freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.transsion.datatransfer freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.transsion.health freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.transsion.healthlife freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.transsion.hiparty freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.transsion.infinix.xclub freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.transsion.iotservice freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.transsion.kolun.aiservice freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.transsion.kolun.assistant freeze  # 负一屏/资讯/推荐入口, 冻结后该页面不再有内容
+com.transsion.letswitch freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.transsion.magazineservice.hios freeze  # 锁屏杂志/常亮显示类内容, 冻结后对应内容不再更新
+com.transsion.magazineservice.xos freeze  # 锁屏杂志/常亮显示类内容, 冻结后对应内容不再更新
+com.transsion.magicshow freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.transsion.manualguide freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.transsion.mol freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.transsion.nephilim freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.transsion.netphilim freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.transsion.notebook freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.transsion.overlaysuw freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.transsion.phoenix freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.transsion.phonemanager freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.transsion.phonemaster freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.transsion.plat.appupdate freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.transsion.quicktools freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.transsion.repaircard freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.transsion.scanningrecharger freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.transsion.sk freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.transsion.smartpanel freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.transsion.soundrecorder freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.transsion.stasticalsales freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.transsion.tabe freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.transsion.tecnospot freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.transsion.teop freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.transsion.tips freeze  # 负一屏/资讯/推荐入口, 冻结后该页面不再有内容
+com.transsion.tower freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.transsion.trancare freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.transsion.tranengine freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.transsion.uxdetector freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.transsion.wezone freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.transsion.wifiplaytogether freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.vivo.SmartKey freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.vivo.abe freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.vivo.assistant freeze  # 负一屏/资讯/推荐入口, 冻结后该页面不再有内容
+com.vivo.assistantfunction freeze  # 负一屏/资讯/推荐入口, 冻结后该页面不再有内容
+com.vivo.audiofx freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.vivo.compass freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.vivo.contentcatcher freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.vivo.cota freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.vivo.crontab freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.vivo.daemonService freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.vivo.desktopstickers freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.vivo.devicereg freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.vivo.doubleinstance freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.vivo.easyshare freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.vivo.epm freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.vivo.ewarranty freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.vivo.favorite freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.vivo.findphone freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.vivo.floatingball freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.vivo.fuelsummary freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.vivo.globalanimation freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.vivo.globalanimation.resources freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.vivo.globalsearch freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.vivo.heduohao freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.vivo.iotserver freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.vivo.livewallpaper.coffeetime freeze  # 锁屏杂志/常亮显示类内容, 冻结后对应内容不再更新
+com.vivo.livewallpaper.coralsea freeze  # 锁屏杂志/常亮显示类内容, 冻结后对应内容不再更新
+com.vivo.livewallpaper.floatingcloud freeze  # 锁屏杂志/常亮显示类内容, 冻结后对应内容不再更新
+com.vivo.livewallpaper.plant freeze  # 锁屏杂志/常亮显示类内容, 冻结后对应内容不再更新
+com.vivo.livewallpaper.silk freeze  # 锁屏杂志/常亮显示类内容, 冻结后对应内容不再更新
+com.vivo.minscreen freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.vivo.monochromeicons freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.vivo.motionrecognition freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.vivo.networkimprove freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.vivo.networkstate freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.vivo.nightpearl freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.vivo.nps freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.vivo.numbermark freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.vivo.phoneinstructions freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.vivo.puresearch freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.vivo.quickpay freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.vivo.secime.service freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.vivo.simplelauncher freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.vivo.smartLife freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.vivo.smartanswer freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.vivo.smartunlock freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.vivo.sps freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.vivo.stepcount freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.vivo.systemblur.server freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.vivo.unionpay freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.vivo.upnpserver freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.vivo.upslide freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.vivo.vhome freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.vivo.vhomeguide freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.vivo.vibrator4d freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.vivo.virtuallight freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.vivo.vivokaraoke freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.vivo.vms freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.vivo.voicewakeup freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.vivo.vtouch freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.vivo.wifiengineermode freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.xiaomi.NetworkBoost freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.xiaomi.aiasst.service freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.xiaomi.aiasst.vision freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.xiaomi.aireco freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.xiaomi.android.tvsetup.partnercustomizer freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.xiaomi.barrage freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.xiaomi.bttester freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.xiaomi.channel freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.xiaomi.digitalkey freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.xiaomi.entitlement.o2 freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.xiaomi.glgm freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.xiaomi.jr freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.xiaomi.lens freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.xiaomi.macro freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.xiaomi.metoknlp freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.xiaomi.mi_connect_service freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.xiaomi.miaudiovisual freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.xiaomi.mibrain.speech freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.xiaomi.midrop freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.xiaomi.migameservice freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.xiaomi.mircs freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.xiaomi.mirecycle freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.xiaomi.mirror freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.xiaomi.mis freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.xiaomi.mtb freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.xiaomi.o2o freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.xiaomi.oobhelper freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.xiaomi.otrpbroker freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.xiaomi.oversea.ecom freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.xiaomi.pass freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.xiaomi.providers.appindex freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.xiaomi.simactivate.service freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.xiaomi.smarthome freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.xiaomi.touchservice freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.xiaomi.trustservice freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.xiaomi.upnp freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.xiaomi.vipaccount freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.xiaomi.xaee freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.xiaomi.xmsfkeeper freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.xiaomi.youpin freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.zte.easymode freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.zte.onekeycp freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.zte.privacypolicy freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.zte.privacyzone freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.zte.zdmdaemon freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.zte.zdmdaemon.install freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.zui.android.overlay.common freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.zui.net.data.monitor freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.zui.oneime freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.zui.sdac freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.zui.tassistent freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.zui.thirdparty.sdk freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.zui.tuface freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.zui.udevice freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.zui.userexperience freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.zui.wifip2p freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
+com.zui.xlog freeze  # 预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)
 
-# ================= caution 冻结前先看影响(7) =================
+# ================= caution 冻结前先看影响(679) =================
 com.zui.homesettings freeze  # 桌面角标设置不可用
 com.zui.davdroid freeze  # iCloud 联系人/日历同步不可用
 com.heytap.push freeze  # 推送通道停用; 较多应用收不到推送
@@ -139,3 +1189,675 @@ com.oplus.customize.coreapp freeze  # 主题/字体等个性化可能异常
 com.samsung.android.sm.devicesecurity freeze  # 病毒扫描与推广弹窗均不可用
 com.miui.antispam freeze  # 来电拦截云标识更新停止, 拦截准确率下降
 com.zte.faceverify freeze  # 人脸解锁可能不可用
+cn.nubia.antivirus freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+cn.nubia.applockmanager freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+cn.nubia.apptimelock freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+cn.nubia.browser freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+cn.nubia.calendar.preset freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+cn.nubia.clock.widget.preset freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+cn.nubia.deskclock.preset freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+cn.nubia.dynamicwallpaper freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+cn.nubia.faceid freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+cn.nubia.filebrowser freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+cn.nubia.fileobserver freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+cn.nubia.gallery3d freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+cn.nubia.gallerylockscreen freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+cn.nubia.gamenotes freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+cn.nubia.garbagecleanwidget freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+cn.nubia.myfile freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+cn.nubia.neostore freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+cn.nubia.packageoptimization freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+cn.nubia.photoeditor freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+cn.nubia.share freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+cn.nubia.supersnap freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+cn.nubia.theme.apply freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+cn.nubia.thememanager freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+cn.nubia.touping freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+cn.nubia.video freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.bbk.SuperPowerSave freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.bbk.appstore freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.bbk.calendar freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.bbk.photoframewidget freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.bbk.theme freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.coloros.activation freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.coloros.activation.overlay.common freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.coloros.alarmclock freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.coloros.appmanager freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.coloros.calculator freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.coloros.compass2 freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.coloros.digitalwellbeing freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.coloros.filemanager freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.coloros.gallery3d freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.coloros.gamespace freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.coloros.gamespaceui freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.coloros.musiclink freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.coloros.ocrscanner freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.coloros.oshare freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.coloros.safecenter.config_plugin freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.coloros.screenrecorder freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.coloros.securityguard freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.coloros.securitykeyboard freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.coloros.soundrecorder freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.coloros.systemclone freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.coloros.widget.smallweather freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.heytap.headset freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.heytap.music freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.heytap.themestore freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.hihonor.HnMultiScreenShot freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.hihonor.airlink freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.hihonor.android.internal.app freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.hihonor.android.thememanager freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.hihonor.android.wfdft freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.hihonor.browserhomepage freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.hihonor.calculator freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.hihonor.calendar freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.hihonor.camera freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.hihonor.deskclock freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.hihonor.deviceauth freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.hihonor.fido.uafclient freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.hihonor.filemanager freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.hihonor.game.kitserver freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.hihonor.hiviewtunnel freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.hihonor.hnasm freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.hihonor.hndockbar freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.hihonor.iaware freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.hihonor.id freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.hihonor.motionservice freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.hihonor.nearby freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.hihonor.notepad freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.hihonor.printservice freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.hihonor.screenrecorder freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.hihonor.securitypluginbase freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.hihonor.videoeditor freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.huawei.airlink freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.huawei.android.FMRadio freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.huawei.android.airsharing freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.huawei.android.internal.app freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.huawei.android.totemweather freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.huawei.android.totemweatherwidget freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.huawei.android.wfdirect freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.huawei.appmarket freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.huawei.browser freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.huawei.browserhomepage freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.huawei.calculator freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.huawei.calendar freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.huawei.camera freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.huawei.camerakit.impl freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.huawei.contactscamcard freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.huawei.controlcenter freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.huawei.def freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.huawei.deskclock freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.huawei.deviceauth freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.huawei.distributedpasteboard freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.huawei.dmsdp freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.huawei.email freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.huawei.featurelayer.featureframework freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.huawei.fido.uafclient freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.huawei.filemanager freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.huawei.game.kitserver freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.huawei.gamebox freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.huawei.hidisk freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.huawei.himovie freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.huawei.hiviewtunnel freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.huawei.hwasm freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.huawei.hwdockbar freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.huawei.hwusbearphoneupdate freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.huawei.iaware freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.huawei.imedia.dolby freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.huawei.indiacalendar freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.huawei.languagedownloader freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.huawei.maps.app freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.huawei.mediacontroller freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.huawei.motionservice freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.huawei.music freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.huawei.nearby freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.huawei.notepad freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.huawei.ohos.security.privacycenter freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.huawei.photos freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.huawei.powergenie freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.huawei.printservice freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.huawei.privatespace freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.huawei.scanner freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.huawei.screenrecorder freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.huawei.securitypluginbase freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.huawei.smartlocation freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.huawei.soundrecorder freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.huawei.tmecustomize freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.huawei.videoeditor freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.itel.TWSService freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.lenovo.leos.appstore freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.lenovo.levoice_notes freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.lenovo.weathercenter freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.meizu.activeviewlivewallpaper freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.meizu.customizecenter freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.meizu.media.camera freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.meizu.media.gallery freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.meizu.media.imageservice freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.meizu.media.music freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.meizu.media.video freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.meizu.mstore freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.mi.android.globalFileexplorer freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.mi.global.pocostore freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.mi.global.shop freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.mi.globallayout freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.mi.setupwizardoverlay freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.miui.aod freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.miui.audiomonitor freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.miui.calculator freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.miui.cleaner freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.miui.cotaservice freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.miui.euicc freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.miui.face freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.miui.face.overlay.miui freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.miui.freeform freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.miui.gallery freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.miui.guardprovider freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.miui.mediaeditor freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.miui.mediaviewer freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.miui.miinput freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.miui.misound freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.miui.miwallpaper.config.overlay freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.miui.miwallpaper.overlay freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.miui.miwallpaper.overlay.customize freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.miui.miwallpaper.overlay.lundun freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.miui.miwallpaper.overlay.qr freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.miui.miwallpaper.telcel.overlay freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.miui.notes freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.miui.providers.weather freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.miui.securitycenter.securitycenter_phone_overlay.config.overlay freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.miui.securityinputmethod freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.miui.video freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.miui.videoplayer freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.miui.videoplayer.overlay freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.miui.voiceassistoverlay freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.miui.weather2 freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.miui.zman freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.motorola.actions freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.motorola.android.overlay.lpptoga freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.motorola.android.overlay.qcom.common freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.motorola.android.provisioning freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.motorola.audiorecorder freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.motorola.batterycare freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.motorola.batterycare.overlay freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.motorola.batterycare.overlay.appside freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.motorola.blur.service.blur freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.motorola.camera2 freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.motorola.camera3 freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.motorola.carrierconfig freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.motorola.carriersettingsext freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.motorola.dolby.dolbyui freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.motorola.email freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.motorola.faceunlock freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.motorola.faceunlocktrustagent freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.motorola.gamemode freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.motorola.handwritingcalculator freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.motorola.imagertuning_lake freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.motorola.imagertuning_u freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.motorola.imagetuning_V2 freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.motorola.installer freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.motorola.launcherconfig freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.motorola.motointelligence.overlay freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.motorola.motolights freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.motorola.motosignature.app freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.motorola.motosignature2.app freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.motorola.msimsettings.overlay freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.motorola.mykey freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.motorola.om freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.motorola.overlay.googleasi freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.motorola.personalize freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.motorola.photoeditor freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.motorola.rcsConfigService freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.motorola.screenshoteditor freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.motorola.securevault freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.motorola.securityhub freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.motorola.securityhubext freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.motorola.sstservice freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.motorola.telprov freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.motorola.timeweatherwidget freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.nearme.browser freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.nearme.gamecenter freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.nearme.themespace freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.nearme.themestore freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.oneplus.calculator freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.oneplus.camera freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.oneplus.camera.service freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.oneplus.carrierlocation freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.oneplus.communication.data freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.oneplus.config freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.oneplus.deskclock freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.oneplus.dirac.simplemanager freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.oneplus.faceunlock freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.oneplus.filemanager freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.oneplus.gallery freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.oneplus.gamespace freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.oneplus.iconpack.circle freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.oneplus.iconpack.oneplus freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.oneplus.iconpack.square freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.oneplus.note freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.oneplus.orm freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.oneplus.screenrecord freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.oneplus.security freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.oneplus.ses freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.oneplus.simcontacts freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.oneplus.sound.tuner freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.oneplus.soundrecorder freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.oneplus.store freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.oneplus.wifiapsettings freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.oplus.aicall freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.oplus.aimemory freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.oplus.aiunit freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.oplus.android.overlay.gmsconfig.common freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.oplus.apprecover freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.oplus.audio.effectcenter freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.oplus.batterywarning freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.oplus.blacklistapp freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.oplus.callrecorder freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.oplus.cosa freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.oplus.engineercamera freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.oplus.games freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.oplus.linker freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.oplus.location freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.oplus.locationproxy freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.oplus.melody freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.oplus.multiapp freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.oplus.nas freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.oplus.ndsf freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.oplus.padconnect freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.oplus.pantanal.ums freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.oplus.screenrecorder freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.oplus.securitykeyboard freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.oplus.sos freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.oplus.stdid freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.oplus.subsys freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.oplus.synergy freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.oplus.themestore freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.oplus.trafficmonitor freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.oplus.uxdesign freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.oplus.vdc freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.oplus.viewtalk freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.oplus.virtualcomm freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.oplus.wallpapers freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.oppo.camera freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.oppo.ctautoregist freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.oppo.engineermode freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.oppo.engineermode.camera freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.oppo.engineermode.network freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.oppo.gmail.overlay freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.oppo.locationpicker freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.oppo.music freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.oppo.rftoolkit freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.oppo.sos freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.realme.as.music freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.realme.movieshot freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.realme.securitycheck freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.samsung.SMT.lang_en_us_f00 freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.SMT.lang_es_mx_f00 freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.SMT.lang_pt_br_f00 freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.accessory.budsunitemgr freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.advancedcallservice freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.advp.imssettings freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.A10s.d01.wallpapermulti freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.A12.d01.wallpapermulti freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.A21.d01.wallpapermulti freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.alive.service freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.aliveprivacy freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.allshare.service.fileshare freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.app.amcagent freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.app.aodservice freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.app.appsedge freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.app.camera.sticker.facear.preload freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.samsung.android.app.camera.sticker.facear3d.preload freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.samsung.android.app.camera.sticker.facearavatar.preload freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.samsung.android.app.camera.sticker.facearframe.preload freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.samsung.android.app.camera.sticker.stamp.preload freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.samsung.android.app.colorblind freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.app.dofviewer freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.app.dressroom freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.app.galaxyfinder freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.app.interpreter freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.app.motionpanoramaviewer freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.app.multiwindow freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.app.notes freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.samsung.android.app.notes.addons freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.app.scrollcapture freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.app.selfmotionpanoramaviewer freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.app.siofviewer freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.app.smartcapture freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.app.smartwidget freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.app.storyalbumwidget freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.samsung.android.app.vex.scanner freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.appseparation freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.audiomirroring freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.aware.service freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.bio.face.service freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.biometrics freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.biometrics.app.setting freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.bluelightfilter freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.calendar freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.callbgprovider freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.cameraxservice freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.samsung.android.dqagent freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.dynamiclock freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.email.composer freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.samsung.android.email.sync freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.samsung.android.email.ui freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.samsung.android.email.widget freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.samsung.android.emergency freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.fingerprint.service freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.forest freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.framework.res freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.gallery.plugins freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.samsung.android.gallery.watch freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.game.gamehome freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.samsung.android.game.gametools freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.samsung.android.game.gos freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.samsung.android.gametuner.thin freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.samsung.android.incall.contentprovider freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.internal.overlay.config.default_contextual_search freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.kmxservice freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.knox.er freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.knox.mpos freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.location freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.lool freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.mcfserver freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.mdagent freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.mdx.quickboard freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.mediacontroller freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.messageguardsync freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.mobileservice freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.motionphoto.app freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.motionphoto.viewer freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.mydevice freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.net.wifi.wifiguider freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.opencalendar freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.samsung.android.photoremasterservice freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.privacydashboard freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.provider.filterprovider freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.provider.shootingmodeprovider freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.provider.stickerprovider freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.providers.factory freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.radiobasedlocation freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.samsung.android.radiobasedlocation.manager freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.samsung.android.scloud.proxy.calendar freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.samsung.android.scloud.proxy.sbrowser freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.samsung.android.scpm freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.scs freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.sdk.ocr freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.securitylogagent freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.samsung.android.server.iris freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.server.wifi.mobilewips.client freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.service.health freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.service.tagservice freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.shealthmonitor freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.singletake.service freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.sm.devicesecurity.tcm freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.samsung.android.smartface freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.smartface.overlay freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.smartmirroring freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.spdclient freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.tadownloader freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.tencentwifisecurity freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.samsung.android.themecenter freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.themestore freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.timezone.autoupdate_N freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.tripwidget freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.samsung.android.tzdata.update_M freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.vdcservice freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.video freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.videolist freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.watch.cameracontroller freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.samsung.android.watch.findmywatch freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.watch.flashlight freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.watch.screencapture freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.watch.watchface.analogmodular freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.watch.watchface.analoguefont freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.watch.watchface.animal freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.watch.watchface.aremoji freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.watch.watchface.basicclock freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.watch.watchface.basicdashboard freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.watch.watchface.bespoke freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.watch.watchface.bitmoji freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.watch.watchface.boldindex freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.watch.watchface.digitalfont freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.watch.watchface.digitalmodular freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.watch.watchface.dualwatch freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.watch.watchface.dynamicfont freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.watch.watchface.emergency freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.watch.watchface.gradientfont freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.watch.watchface.healthmodular freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.watch.watchface.infomodular freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.watch.watchface.large freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.watch.watchface.livewallpaper freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.watch.watchface.mypebble freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.watch.watchface.myphoto freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.watch.watchface.mystyle freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.watch.watchface.premiumanalog freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.watch.watchface.simpleanalogue freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.watch.watchface.simpleclassic freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.watch.watchface.simplecomplication freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.watch.watchface.superfiction freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.watch.watchface.tickingsound freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.watch.watchface.together freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.watch.watchface.typography freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.watch.watchface.weather freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.watch.weather freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.samsung.android.watch.worldclock freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.samsung.android.wcs.exstention freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.wear.musictransfer freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.wear.shealth freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.weather freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.samsung.android.wellbeing freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.widget.pictureframe freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.widgetapp.yahooedge.finance freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.samsung.android.widgetapp.yahooedge.sport freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.samsung.android.wifi.ai freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.wifi.p2paware.resources freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.android.wifi.sbs.resources freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.app.newtrim freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.app.slowmotion freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.app.video freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.samsung.clipboardsaveservice freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.cmh freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.commonimsservice freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.dcmservice freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.everglades.video freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.hiddennetworksetting freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.ims.smk freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.klmsagent freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.knox.appsupdateagent freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.locationhistory freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.samsung.memorysaver freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.oda.service freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.sdm freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.sdm.sdmviewer freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.sec.android.application.csc freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.storyservice freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.tmowfc.wfccontroller freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.tmowfc.wfcpref freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.unifiedtp freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.samsung.upsmtheme freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.sec.android.UsimRegistrationKOR freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.sec.android.app.SecSetupWizard freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.sec.android.app.SmartClipService freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.sec.android.app.aftersalecamera freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.sec.android.app.apex freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.sec.android.app.camera freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.sec.android.app.camera.plb freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.sec.android.app.camera.sticker freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.sec.android.app.clipvideo freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.sec.android.app.clockpackage freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.sec.android.app.filtermanager freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.sec.android.app.fm freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.sec.android.app.gamehub freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.sec.android.app.mobileprint freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.sec.android.app.music freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.sec.android.app.myfiles freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.sec.android.app.personalization freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.sec.android.app.popupcalculator freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.sec.android.app.qsfastpairoverlay freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.sec.android.app.safetyassurance freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.sec.android.app.sbrowser freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.sec.android.app.sbrowser.lite freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.sec.android.app.vepreload freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.sec.android.app.videoplayer freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.sec.android.app.wallpaperchooser freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.sec.android.casual2 freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.sec.android.classic2 freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.sec.android.dexsystemui freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.sec.android.diagmonagent freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.sec.android.emergencylauncher freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.sec.android.emergencymode.service freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.sec.android.fotaclient freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.sec.android.gallery3d freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.sec.android.gallery3d.panorama360view freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.sec.android.game.gamehome freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.sec.android.mimage.photoretouching freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.sec.android.ofviewer freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.sec.android.overlay.dcmconfig freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.sec.android.provider.badge freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.sec.android.provider.emergencymode freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.sec.android.providers.security freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.sec.android.romantic2 freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.sec.android.sdhms freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.sec.android.splitsound freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.sec.android.theme.natural freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.sec.android.wallpapercropper2 freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.sec.android.wfds.printplugin freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.sec.android.widget.samsungapps freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.sec.android.widgetapp.SPlannerAppWidget freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.sec.android.widgetapp.activeapplicationwidget freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.sec.android.widgetapp.ap.hero.accuweather freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.sec.android.widgetapp.ap.hero.weathernewsjp freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.sec.android.widgetapp.digitalclock freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.sec.android.widgetapp.digitalclockeasy freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.sec.android.widgetapp.diotek.smemo freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.sec.android.widgetapp.dualclockdigital freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.sec.android.widgetapp.easymodecontactswidget freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.sec.android.widgetapp.samsungapps freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.sec.android.widgetapp.webmanual freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.sec.automation freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.sec.downloadablekeystore freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.sec.ims.android freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.sec.internal.vsim.VSimServiceApp freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.sec.knox.seandroid freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.sec.knox.switcher freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.sec.location.nfwlocationprivacy freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.sec.location.nsflp2 freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.sec.sve freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.sec.svoice.lang.de_DE freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.sec.svoice.lang.en_US freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.sec.svoice.lang.es_ES freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.sec.svoice.lang.fr_FR freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.sec.svoice.lang.it_IT freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.sec.svoice.lang.ru_RU freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.sec.usbsettings freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.sec.vsimservice freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.transsion.batterylab freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.transsion.batterylab.icon freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.transsion.calculator freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.transsion.calendar freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.transsion.camera freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.transsion.deskclock freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.transsion.dirac freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.transsion.faceidsub freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.transsion.filemanagerx freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.transsion.fmradio freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.transsion.inearmonitor freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.transsion.iotcard freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.transsion.irremote freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.transsion.itel.manual freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.transsion.livewallpaper.custompictorial freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.transsion.livewallpaper.volcano freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.transsion.livewallpaper.wakeup_mirror freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.transsion.magicfont freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.transsion.microintelligence freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.transsion.multiwindow freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.transsion.overlaysuw.resoverlay freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.transsion.powercenter freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.transsion.resolver freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.transsion.smartmessage freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.transsion.theme.icon freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.transsion.tranradionet freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.transsion.videocallenhancer freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.transsion.vishaplayerhd freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.vivo.alphacamera freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.vivo.appstore freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.vivo.browser freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.vivo.calculator freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.vivo.card freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.vivo.demovideo freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.vivo.doubletimezoneclock freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.vivo.dream.clock freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.vivo.dream.music freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.vivo.dream.weather freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.vivo.email freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.vivo.engineercamera freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.vivo.fingerprintengineer freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.vivo.fingerprintvit freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.vivo.gallery freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.vivo.gamewatch freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.vivo.healthwidget freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.vivo.hybrid freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.vivo.livewallpaper.behavior freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.vivo.livewallpaper.behavior.resources freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.vivo.livewallpaper.ocean freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.vivo.livewallpaper.oceanvertical freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.vivo.musicwidgetmix freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.vivo.notes freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.vivo.safecenter freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.vivo.share freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.vivo.soundrecorder freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.vivo.timerwidget freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.vivo.video.floating freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.vivo.videoeditor freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.vivo.vivo3rdalgoservice freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.vivo.weather freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.vivo.widget.cleanspeed freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.vivo.widget.gallery freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.vivo.widgetweather freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.xiaomi.aicr freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.xiaomi.aiservice freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.xiaomi.bsp.gps.nps freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.xiaomi.calendar freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.xiaomi.cameramind freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.xiaomi.cameratools freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.xiaomi.gamecenter freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.xiaomi.gamecenter.sdk.service freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.xiaomi.location.fused freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.xiaomi.market freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.xiaomi.mbnloader freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.xiaomi.midrop.overlay freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.xiaomi.miplay_client freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.xiaomi.scanner freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.xiaomi.shop freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.zte.videoplayer freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.zte.weather freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.zui.browser freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.zui.callsettings freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.zui.camera freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.zui.camera.plugin.dolphin freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.zui.deskclock freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.zui.deskclock.overlay.lime freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.zui.deskclock.overlay.mostbeautiful freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.zui.deskclock.overlay.phantom freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.zui.deskclock.overlay.redstorm freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.zui.deskclock.overlay.steellegion freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.zui.deskclock.overlay.thinarmor freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.zui.filemanager freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.zui.gallery freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.zui.safecenter.overlay.lime freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.zui.safecenter.overlay.mostbeautiful freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.zui.safecenter.overlay.phantom freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.zui.safecenter.overlay.redstorm freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.zui.safecenter.overlay.steellegion freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.zui.safecenter.overlay.thinarmor freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.zui.simcontacts freeze  # 预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)
+com.zui.theme.overlay.lime freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.zui.theme.overlay.mostbeautiful freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.zui.theme.overlay.phantom freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.zui.theme.overlay.redstorm freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.zui.theme.overlay.steellegion freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.zui.theme.overlay.thinarmor freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.zui.wallpapercropper freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.zui.wallpapersetting freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力
+com.zui.weather freeze  # UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力

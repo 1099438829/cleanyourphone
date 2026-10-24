@@ -2,14 +2,23 @@
 # -*- coding: utf-8 -*-
 """生成"可冻结预装清单" rules/freeze-packages.json 与 examples/freeze-recommended.txt。
 
-数据来源:
-  * tools/freeze-curated.tsv  手工分级(safe/recommended/caution)与冻结影响
-  * examples/*/debloat.txt    本项目 14 个品牌清单里的 disable 条目(已过安全规则)
+数据来源(优先级从高到低):
+  1. tools/freeze-curated.tsv   手工分级(safe/recommended/caution)与冻结影响
+  2. examples/*/debloat.txt     本项目 14 个品牌清单里的 disable 条目(已过安全规则)
+  3. rules/known-packages.json  互联网聚合知识库(UAD-NG 等): OEM 预装 + 推荐级
 
 冻结语义参考:
   * Hail(aistra0528/Hail): 冻结三态 disable/hide/suspend, 解冻必须用同一模式;
     恢复: pm enable / pm unsuspend
   * FreezeYou(FreezeYou/FreezeYou): 手动/计划任务冻结, 省电流畅
+
+自动分级规则(仅对来源 3 生效, 来源 1/2 以人工分级为准):
+  * UAD 推荐级 Recommended + 命中广告/统计/遥测关键词        -> safe
+  * UAD 推荐级 Recommended + 命中功能类关键词               -> caution
+  * UAD 推荐级 Recommended + 其他                           -> recommended
+  * UAD 推荐级 Advanced(可能影响功能)                       -> caution
+  * 一律排除: Expert/Unsafe 级, DENY/PROTECTED, 谨慎名单,
+    非本项目覆盖品牌(Google/AOSP/LG/Sony/Asus/Alcatel 等)
 
 用法: python3 tools/build_freeze_db.py [--check]
   --check  只校验覆盖度, 不写文件
@@ -24,6 +33,10 @@ ROOT = Path(__file__).resolve().parent.parent
 TSV = ROOT / "tools" / "freeze-curated.tsv"
 OUT_DB = ROOT / "rules" / "freeze-packages.json"
 OUT_LIST = ROOT / "examples" / "freeze-recommended.txt"
+KNOWN_DB = ROOT / "rules" / "known-packages.json"
+
+sys.path.insert(0, str(ROOT / "tools"))
+import phone  # noqa: E402  复用安全规则(DENY/PROTECTED/谨慎名单), 保证与运行时一致
 
 BRAND_OF_DIR = {
     "xiaomi-hyperos": "xiaomi", "oppo-coloros": "oppo", "oneplus-coloros": "oppo",
@@ -33,6 +46,65 @@ BRAND_OF_DIR = {
     "meizu-flyme": "meizu", "universal": "universal",
 }
 LINE_RE = re.compile(r"^([A-Za-z][\w.]*)\s+disable\s*(\[[^\]]*\])?\s*(?:#\s?(.*))?$")
+
+# 命名空间 -> 品牌(与 phone.py 的 VENDOR_NS 对齐, 只收本项目覆盖的国产/支持品牌)
+BRAND_NS = (
+    ("com.miui.", "xiaomi"), ("com.xiaomi.", "xiaomi"), ("com.mi.", "xiaomi"),
+    ("com.blackshark.", "xiaomi"),
+    ("com.oppo.", "oppo"), ("com.coloros.", "oppo"), ("com.heytap.", "oppo"),
+    ("com.oplus.", "oppo"), ("com.nearme.", "oppo"), ("com.realme.", "oppo"),
+    ("com.oneplus.", "oppo"),
+    ("com.vivo.", "vivo"), ("com.bbk.", "vivo"), ("com.iqoo.", "vivo"),
+    ("com.huawei.", "huawei"),
+    ("com.hihonor.", "honor"),
+    ("com.samsung.", "samsung"), ("com.sec.", "samsung"),
+    ("cn.nubia.", "zte"), ("com.zte.", "zte"), ("com.redmagic.", "zte"),
+    ("com.motorola.", "moto"),
+    ("com.lenovo.", "lenovo"), ("com.zui.", "lenovo"),
+    ("com.transsion.", "transsion"), ("com.tecno.", "transsion"),
+    ("com.infinix.", "transsion"), ("com.itel.", "transsion"),
+    ("com.meizu.", "meizu"), ("com.flyme.", "meizu"),
+)
+
+# 自动分级关键词 -> (分级, 中文影响说明)。按顺序匹配, 先命中先生效。
+# 与 phone.py 的 HEURISTIC_RULES/SERVICE_HINTS 关键词保持一致。
+# 匹配方式: 把包名按 "." 拆成段, 段等于/开头/结尾命中关键词才算
+# (避免 "networkstate" 被 "stat" 误伤, "dialog" 被 "log" 误伤)
+IMPACT_RULES = (
+    # --- safe: 纯广告/统计/遥测/日志/测试, 冻结后几乎无感知 ---
+    (("analytics", "statistics", "statistic", "mab", "imonitor", "onetrack",
+      "onetrace", "logkit", "bugreport", "telemetry", "crashbox", "diagnos",
+      "collect", "tracker", "tracking", "reporter", "logsystem", "logs",
+      "logger", "logcore", "logupload", "stats", "datacollection",
+      "usagestats", "feedback", "test", "agingtest", "factorytest",
+      "factory", "demomode", "factorymode", "behaviordetection", "errorreport"),
+     "safe", "统计/遥测/日志上报, 冻结后几乎无感知"),
+    (("systemadsolution", "adservice", "adservices", "advert", "promotion",
+      "splash", "asservice", "msa", "adhub", "adsservice", "dsp", "spage",
+      "mipicks", "contentextension", "adplatform", "adsdk", "advertise",
+      "adcenter", "adssetting"),
+     "safe", "广告/推广服务, 冻结后几乎无感知"),
+    # --- recommended: 推送通道/内容预装/负一屏, 影响明确 ---
+    (("push", "mcs", "messagecenter"),
+     "recommended", "推送通道, 冻结后第三方应用可能收不到推送"),
+    (("magazine", "lockscreen", "pictorial", "livecontent",
+      "livewallpaper", "alwaysondisplay", "aod"),
+     "recommended", "锁屏杂志/常亮显示类内容, 冻结后对应内容不再更新"),
+    (("personalassistant", "quicksearchbox", "searchbox", "hiboard", "assistant",
+      "tips", "recommend", "feed", "reader", "news", "informationflow"),
+     "recommended", "负一屏/资讯/推荐入口, 冻结后该页面不再有内容"),
+    (("video", "music", "browser", "reader", "game", "mall", "shop", "store",
+      "theme", "weather", "widget", "photoframe", "gallery", "camera",
+      "scanner", "notes", "notepad", "calculator", "clock", "calendar",
+      "email", "contacts", "dialer", "filemanager", "cleaner", "security",
+      "battery", "powersave", "facewake", "faceunlock", "faceid",
+      "fingerprint", "biometric", "applock", "antivirus", "securitycore",
+      "securitycenter", "safecenter", "doubleapp", "apptimelock", "kidsmode",
+      "paymentguard", "download", "downloader", "gps", "location"),
+     "caution", "预装应用/工具, 冻结后该功能不可用(数据保留, 可随时解冻)"),
+)
+DEFAULT_TIER = "recommended"
+DEFAULT_IMPACT = "预装组件, 冻结后对应功能不可用(数据保留, 可随时解冻)"
 
 # 冻结黑名单: 与 phone.py 的 DENY/PROTECTED 对齐, 冻结它们会让手机直接不可用
 NEVER_FREEZE = {
@@ -90,10 +162,83 @@ def load_examples():
     return found
 
 
+def brand_of_pkg(pkg: str):
+    for ns, brand in BRAND_NS:
+        if pkg.startswith(ns):
+            return brand
+    return None
+
+
+def _seg_hit(pkg: str, keys) -> bool:
+    """按段匹配: 包名拆成段后, 段等于/开头/结尾命中关键词即算。
+
+    避免子串误伤: networkstate 不含独立 "stat" 段, dialog 不以 "log" 结尾。
+    """
+    segs = pkg.lower().split(".")
+    for k in keys:
+        kl = k.lower()
+        for s in segs:
+            if s == kl or s.startswith(kl) or s.endswith(kl):
+                return True
+    return False
+
+
+def auto_tier(pkg: str, uad_level: str):
+    """按关键词给知识库包自动分级, 返回 (tier, impact)。"""
+    if uad_level == "Advanced":
+        return "caution", "UAD 标记为 Advanced(卸载可能影响功能), 冻结同样会关掉相关能力"
+    for keys, tier, impact in IMPACT_RULES:
+        if _seg_hit(pkg, keys):
+            return tier, impact
+    return DEFAULT_TIER, DEFAULT_IMPACT
+
+
+def load_knowledge_base():
+    """rules/known-packages.json 中可冻结的 OEM 预装(过安全规则 + 品牌过滤)。"""
+    if not KNOWN_DB.is_file():
+        print(f"[提示] {KNOWN_DB} 不存在, 跳过知识库来源(可跑 tools/harvest.py 生成)")
+        return {}
+    data = json.loads(KNOWN_DB.read_text(encoding="utf-8"))
+    pk = data.get("packages", {})
+    never = NEVER_FREEZE["patterns"]
+    out = {}
+    stats = {"skip_level": 0, "skip_deny": 0, "skip_caution": 0,
+             "skip_brand": 0, "skip_never": 0}
+    for pkg, v in pk.items():
+        if not isinstance(v, dict):
+            continue
+        if v.get("l") != "Oem":
+            continue
+        level = v.get("r")
+        if level not in ("Recommended", "Advanced"):
+            stats["skip_level"] += 1
+            continue
+        if phone.is_denied(pkg):
+            stats["skip_deny"] += 1
+            continue
+        if phone.caution_reason(pkg):
+            stats["skip_caution"] += 1
+            continue
+        if any(p and p in pkg for p in never):
+            stats["skip_never"] += 1
+            continue
+        brand = brand_of_pkg(pkg)
+        if not brand:
+            stats["skip_brand"] += 1
+            continue
+        tier, impact = auto_tier(pkg, level)
+        out[pkg] = {"brands": {brand}, "tier": tier, "impact": impact,
+                    "reason": "", "desc": (v.get("d") or "")[:120],
+                    "level": level}
+    return out, stats
+
+
 def main():
     curated = load_curated()
     examples = load_examples()
+    kb, kb_stats = load_knowledge_base()
 
+    # 覆盖度校验: 品牌清单(人工维护)必须在 curated 表里有分级; curated 不能有孤儿
     missing = sorted(set(examples) - set(curated))
     unknown = sorted(set(curated) - set(examples))
     if missing or unknown:
@@ -104,6 +249,7 @@ def main():
         raise SystemExit("覆盖度校验失败: 请同步 tools/freeze-curated.tsv")
 
     packages = {}
+    # 来源 2: 品牌清单(人工分级优先)
     for pkg, rec in examples.items():
         cur = curated[pkg]
         entry = {
@@ -115,6 +261,22 @@ def main():
         }
         if rec["gates"]:
             entry["v"] = sorted(rec["gates"])
+        packages[pkg] = entry
+    # 来源 3: 知识库自动分级(不与来源 2 重复)
+    for pkg, rec in kb.items():
+        if pkg in packages:
+            continue
+        entry = {
+            "b": sorted(rec["brands"]),
+            "t": rec["tier"],
+            "r": rec["reason"] or rec["tier"],
+            "i": rec["impact"],
+            "s": ["uad-ng", "hail", "freezeyou"],
+        }
+        if rec.get("desc"):
+            entry["d"] = rec["desc"]
+        if rec.get("level"):
+            entry["u"] = rec["level"]
         packages[pkg] = entry
 
     db = {
@@ -135,16 +297,22 @@ def main():
                 "hide": "pm hide --user 0: 需要 root 或设备所有者, adb shell 做不到, 本工具不使用",
             },
             "sources": [
+                {"id": "cleanyourphone", "note": "本项目 14 个品牌 debloat 清单中的 disable 条目(人工分级)"},
+                {"id": "uad-ng", "note": "UAD-NG 社区数据库: OEM 预装 + Recommended/Advanced 级, "
+                                         "按关键词自动分级(见 build_freeze_db.py 的 IMPACT_RULES)"},
                 {"id": "hail", "note": "aistra0528/Hail: 冻结三态与工作模式矩阵; 解冻必须用同一模式; "
                                         "恢复用 pm enable / pm unsuspend"},
                 {"id": "freezeyou", "note": "FreezeYou/FreezeYou: 手动/计划任务冻结, 省电流畅"},
-                {"id": "cleanyourphone", "note": "本项目 14 个品牌 debloat 清单中的 disable 条目"},
             ],
+            "auto_tier_rules": "知识库来源: Recommended+广告/统计关键词=safe; Recommended+推送/内容/"
+                               "资讯=recommended; Recommended+功能类关键词=caution; Advanced=caution; "
+                               "其他=recommended。品牌清单与 freeze-curated.tsv 始终以人工分级为准",
             "warnings": [
                 "冻结不是删除: 图标与数据都还在, 随时可恢复",
                 "解冻必须用同一模式: disable 冻结的用 pm enable, suspend 挂起的用 pm unsuspend",
                 "suspend 只挡住用户交互, 不阻止后台运行; 要彻底停后台用 disable",
                 "冻结推送通道(如 com.heytap.push)会导致第三方应用收不到推送",
+                "知识库自动分级的条目未经真机验证, caution 级务必先读影响说明",
             ],
         },
         "packages": dict(sorted(packages.items())),
@@ -159,7 +327,8 @@ def main():
         "#   suspend: 图标变灰, 系统提示已挂起(禁用被拒时自动兜底)",
         "# 恢复: python3 tools/phone.py restore --all",
         "# 语义参考 Hail(aistra0528/Hail) 与 FreezeYou(FreezeYou/FreezeYou)",
-        "# 用法: python3 tools/phone.py apply examples/freeze-recommended.txt",
+        "# 数据来源: 14 个品牌 debloat 清单 + UAD-NG 知识库(自动分级)",
+        "# 用法: python3 tools/phone.py freeze --tier safe   # 或 apply 本文件",
         "",
     ]
     for tier, title in (("safe", "safe 几乎无感知"),
@@ -178,6 +347,10 @@ def main():
         for d in packages.values():
             tiers[d["t"]] = tiers.get(d["t"], 0) + 1
         print(f"[OK] {len(packages)} 个包, 分级: {tiers}")
+        print(f"[OK] 知识库筛选: 跳过 级别不符 {kb_stats['skip_level']} / "
+              f"DENY {kb_stats['skip_deny']} / 谨慎名单 {kb_stats['skip_caution']} / "
+              f"never_freeze {kb_stats['skip_never']} / "
+              f"非覆盖品牌 {kb_stats['skip_brand']}")
         return
     OUT_DB.write_text(json.dumps(db, ensure_ascii=False, indent=2) + "\n",
                       encoding="utf-8")

@@ -1921,7 +1921,7 @@ CAUTION_RULES = (
     (r"securepay|payment|wallet|(^|\.)pay($|\.)", "支付与支付安全"),
     (r"codebook|password", "密码本(可能存有已保存的密码)"),
     (r"(^|\.)cloud($|\.)|cloudservice|cloudsync", "云同步/云备份"),
-    (r"usercenter|(^|\.)account($|\.)|(^|\.)auth", "厂商账号(删了会退出登录)"),
+    (r"usercenter|(^|\.)accounts?($|\.)|(^|\.)auth", "厂商账号(删了会退出登录)"),
     (r"softsim|esim", "虚拟 SIM"),
     (r"(^|\.)ota($|\.)|updater|softwareupdate", "系统更新"),
     (r"backup|restore", "备份恢复"),
@@ -2065,8 +2065,16 @@ def freeze_candidates(dev: Adb, db: dict, tier: str = "safe",
         raise ValueError(f"tier 必须是 safe/recommended/all, 收到 {tier!r}")
     want = FREEZE_TIERS[:FREEZE_TIERS.index(tier) + 1] if tier != "all" \
         else FREEZE_TIERS
+    # db 既可以是 packages 字典(load_freeze_db 的第二个返回值), 也可以是
+    # 整个 freeze-packages.json(自动取其中的 packages/never_freeze);
+    # 也兼容 db 上直接挂 never_freeze 键的用法
+    if "packages" in db and isinstance(db.get("packages"), dict):
+        if never is None:
+            nf = db.get("never_freeze") or {}
+            never = nf.get("patterns") if isinstance(nf, dict) else nf
+        db = db["packages"]
     if never is None:
-        nf = db.get("never_freeze") or []
+        nf = db.get("never_freeze") or {}
         never = nf.get("patterns") if isinstance(nf, dict) else nf
     never = [p for p in (never or []) if p]
     installed = preinstalled_packages(dev)

@@ -91,8 +91,8 @@
 
 **C. 冻结清单**(不删除, 只让它无法启动; 语义参考 Hail / FreezeYou)
 适合"不敢删但也不想用"的预装, 以及卸载被 ROM 拦截的场景。
-1. `python3 tools/phone.py freeze --tier safe` 预演(71 个 safe + 49 recommended + 7 caution,
-   按本机实际安装过滤, 每条都带"冻结后影响")
+1. `python3 tools/phone.py freeze --tier safe` 预演(清单共 1848 个候选:
+   safe 110 / recommended 1059 / caution 679, 按本机实际安装过滤, 每条都带"冻结后影响")
 2. 用户确认分级后 `python3 tools/phone.py freeze --tier safe --apply`
    (冻结 = disable + force-stop, 被拒自动降级 suspend; 解冻 `restore --all`)
 3. **必须说明**: 冻结不是删除, 数据与 APK 都保留; 冻结推送通道类包会影响第三方推送
