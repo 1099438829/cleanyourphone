@@ -7,6 +7,7 @@
 #   tools/clean.sh --settings    仅执行阶段二: 写入系统设置(关闭广告/限制追踪)
 #   tools/clean.sh --shake       仅执行阶段三: 封杀第三方 App 摇一摇
 #   tools/clean.sh --auto        自动清单: 按本机预装匹配互联网知识库后清理
+#   tools/clean.sh --adsw        App 内广告开关(热搜/商店推广位/信息流; 需守着手机)
 #   tools/clean.sh --dry-run     全流程预演(不执行任何写操作)
 #   tools/clean.sh --help        显示帮助
 set -euo pipefail
@@ -26,7 +27,7 @@ for arg in "$@"; do
 done
 
 if [ "${1:-}" = "--help" ] || [ "${1:-}" = "-h" ]; then
-  sed -n '2,11p' "$0" | sed 's/^# \{0,1\}//'
+  sed -n '2,12p' "$0" | sed 's/^# \{0,1\}//'
   exit 0
 fi
 
@@ -61,12 +62,23 @@ run_shake() {
   fi
 }
 
+# App 内开关: 需要人守着手机(工具会点屏幕), 所以不放进 all 全流程
+run_adsw() {
+  if [ ${#DRY_RUN[@]} -gt 0 ]; then
+    "${PHONE[@]}" adsw run --dry-run
+  else
+    echo "[提示] 接下来工具会自己点屏幕: 请保持手机解锁、停在桌面, 期间不要手动操作"
+    "${PHONE[@]}" adsw run
+  fi
+}
+
 case "${1:-all}" in
   --backup)  run_backup ;;
   --debloat) run_debloat ;;
   --settings) run_settings ;;
   --shake)   run_shake ;;
   --auto)    run_auto ;;
+  --adsw)    run_adsw ;;
   all)
     run_backup
     run_debloat
@@ -74,6 +86,7 @@ case "${1:-all}" in
     run_shake
     echo ""
     echo "== 全部完成 =="
+    echo "还有 App 内广告开关(热搜/商店推广位/信息流)可关: tools/clean.sh --adsw"
     echo "恢复: tools/restore.sh --all 或 python3 tools/phone.py restore --all"
     ;;
   *) echo "未知参数: $1 (查看帮助: tools/clean.sh --help)"; exit 1 ;;

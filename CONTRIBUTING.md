@@ -27,10 +27,42 @@
 
 6. PR 里请附上: 测试机型、ROM 版本、`python3 tools/phone.py info` 的输出
 
+## 贡献一条 App 内广告开关规则
+
+`rules/ad-switches.json` 记录"打开哪个 App、点哪几层、关哪些开关", 是纯数据(不执行代码)。
+
+1. 手动点进目标页(例如 设置 > 隐私 > 广告与隐私)
+2. 跑 `python3 tools/phone.py adsw explore` —— 它会打印该页所有开关的当前状态,
+   并生成一段可粘贴的 JSON
+3. 把片段贴进 `steps`, 前面补上导航步骤:
+
+   ```json
+   {"do": "launch", "app": "settings"},
+   {"do": "tap", "text": "隐私"},
+   {"do": "tap", "text": "广告与隐私"},
+   {"do": "switches", "off": ["个性化广告推荐"], "page": "广告与隐私"}
+   ```
+
+4. 必填字段: `id` / `label` / `brands` / `roms` / `gate` / `manual` / `steps`
+   - `models` 只写你**实测过**的型号, 不要为了"通用"去掉它 —— 设置页层级随 ROM
+     小版本变化, 拿别的机型路径去点可能点到完全不同的开关
+   - `manual` 是给用户还原用的手动路径, 必填
+   - 只实测了一部分就标 `"verified": false`, 并在 `source` 里写清楚
+   - 会误伤的开关放进 `keep`(如"推送消息""气象预警""订单物流")
+5. 验证:
+
+   ```bash
+   python3 -I tests/test_phone.py
+   python3 tools/phone.py adsw run <你的id> --dry-run   # 只导航不点击
+   ```
+
+6. PR 里附: 机型 / ROM 版本 / `adsw explore` 的输出
+
 ## 报告问题
 
 - 某个包卸载后出现功能异常 → 开 issue, 说明机型/ROM/包名/现象, 我们会把它移到"谨慎区"或加保护
 - 列表漏了某个广告源 → 开 issue 或直接 PR
+- `adsw` 某条规则点错地方 → 开 issue 附上截图与 `ui dump --switch` 的输出, 我们会下掉该条
 
 ## 不要做的事
 

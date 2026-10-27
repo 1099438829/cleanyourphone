@@ -8,7 +8,8 @@
 
 **无需 root、无需解锁、不在手机上安装任何软件、不替换桌面启动器, 全部操作可一键恢复。**
 
-三层清理策略: **卸载预装应用** · **关闭广告与统计服务** · **设置级去广告 + 摇一摇封杀**。
+四层清理策略: **卸载预装应用** · **关闭广告与统计服务** · **设置级去广告 + 摇一摇封杀** ·
+**App 内广告开关**(热搜、商店推广位、浏览器信息流这类只能点界面关的)。
 外加**自动清单**: 抓取互联网 debloat 知识库, 与本机预装求交集后一键清理(见"自动清单")。
 **版本感知**: 同一品牌不同 ROM 版本, 包名和能否卸载都不一样 —— 工具会先识别
 ColorOS 13.1 / HyperOS 2 / MagicOS 8 这类版本号, 再决定"直接卸载"还是"禁用/挂起"
@@ -41,6 +42,8 @@ git clone https://gitee.com/muziys/cleanyourphone.git
 | 挂起(禁用被 ROM 拒绝时) | `pm suspend --user 0 <包名>` | `pm unsuspend --user 0 <包名>` |
 | 关闭广告相关系统设置 | `settings put <ns> <key> <val>` | 还原旧值(restore --all 自动处理) |
 | 封杀"摇一摇"跳转 | `appops set <包名> BODY_SENSORS ignore` 等 | `appops set <包名> <op> default` |
+| 拨 App 内的广告开关 | `uiautomator dump` 读控件树 + `input tap` 点击 | 按规则里的 manual 路径手动开回 |
+| 挂起包断网 | `cmd netpolicy add restrict-background <uid>` | `cmd netpolicy remove ...` |
 
 - APK 始终留在系统分区, 变的只是"对当前用户是否安装/启用", 所以**不会变砖、可完全恢复**
 - 恢复出厂设置同样能恢复一切
@@ -335,6 +338,98 @@ python3 tools/phone.py restore --all
 `DENY_PATTERNS`/`PROTECTED_PACKAGES` 保持同步); 每次执行前还会动态保护
 **当前桌面、最近任务提供者、当前输入法**。
 
+## App 内广告开关: 连界面里的开关一起关
+
+`pm uninstall` 只能处理"包"。但**系统广告、热搜榜、商店推广位、浏览器信息流**
+这些开关长在 App 内部, 没有对应的包可卸 —— 只能点界面关。
+
+这一层能力融合自 [android-ad-cleaner](https://github.com/rddmwmddr/android-ad-cleaner)(MIT),
+但实现换成了纯标准库: 用系统自带 `uiautomator dump` 取控件树, 自己解析 XML,
+再用 `input tap` 点击。**不装 uiautomator2, 不占无障碍服务**(不会跟 GKD、自动记账抢读屏)。
+
+```bash
+# 1. 看本机适用的条目(按品牌/ROM/型号过滤)
+python3 tools/phone.py adsw list
+
+# 2. 预演: 会走完所有页面, 但一次都不点
+python3 tools/phone.py adsw run --dry-run
+
+# 3. 真跑(手机保持解锁、停在桌面, 期间别手动操作)
+python3 tools/phone.py adsw run
+
+# 4. 只跑某几条
+python3 tools/phone.py adsw run xiaomi.system-ad oneplus.market
+
+# 5. 复查(只读: 导航到各页面读开关状态, 不点击)
+python3 tools/phone.py adsw verify
+```
+
+已收录 **43 条 / 351 步**, 全部来自 android-ad-cleaner 的真机实测记录:
+
+| 品牌 | 机型 | ROM | 条目 | 状态 |
+| --- | --- | --- | --- | --- |
+| 小米/红米 | 18 Pro Max(M154FF)、18 Fold | HyperOS 4.0.24 | 10 | 实测 |
+| 荣耀 | PNM-AN10 | MagicOS 10 | 13 | 实测通过 |
+| OPPO | Find N6(PLP120) | ColorOS 16.0.9 | 9 | 路径实测, 整段待验证 |
+| 一加 | Ace 2 Pro(PJA110) | ColorOS 14.0.0.812 | 4 | 实测 |
+| vivo | X300 Ultra(V2547DA) | OriginOS 6 | 7 | 待验证 |
+
+**为什么按型号限制**: 设置页的层级和名称随 ROM 小版本变化。拿别的机型的路径去点,
+可能点到完全不同的开关 —— 这比不点更危险。所以带 `models` 的条目只对实测机型生效。
+你的机型没收录时, 用下面的探路功能自己补一条。
+
+### 新机型: 自己探路, 不用写代码
+
+```bash
+# 手动点进目标页(比如 设置 > 隐私 > 广告与隐私), 然后:
+python3 tools/phone.py adsw explore
+```
+
+它会打印这一页所有开关的当前状态, 并生成一段可直接粘贴的 JSON:
+
+```json
+{"do": "switches", "off": ["个性化广告推荐", "智能推荐服务"], "page": "..."}
+```
+
+把这段贴进 `rules/ad-switches.json` 对应条目的 `steps` 里, 再补上前面几层导航
+(`{"do": "tap", "text": "隐私"}`)即可。规则是纯数据、不执行代码, 可以 review、可以 diff。
+
+### 保险
+
+- 只动 `off` 里点名的开关, `keep` 里的一律保留(如"推送消息""气象预警""订单物流")
+- 找不到入口就跳过, **不猜位置乱点**
+- 不点"同意/支付/删除/安装"类按钮(确实需要时加 `--allow-risky`)
+- App 内开关属于**手动态**, `restore` 不会自动还原 —— 每条规则都带 `manual` 手动路径
+
+### 通用界面操作(可选)
+
+不想用规则、想自己点的时候:
+
+```bash
+python3 tools/phone.py ui dump --switch        # 列出当前页所有开关及状态
+python3 tools/phone.py ui tap 隐私              # 点含"隐私"的控件
+python3 tools/phone.py ui switch 个性化推荐 off  # 把开关拨到关
+python3 tools/phone.py ui open com.xiaomi.market # 打开 App
+python3 tools/phone.py ui wait 广告服务 --timeout 5
+```
+
+## 另外三个小能力
+
+```bash
+# 快应用: 广告里一点就跳进去的"免安装小程序", 关掉它的框架包即可(可逆)
+python3 tools/phone.py quickapp check
+python3 tools/phone.py quickapp off
+
+# 营销通知渠道: 找出"活动优惠/限时秒杀"这类渠道, 逐个跳转手动关(第三方关不了别人的渠道)
+python3 tools/phone.py chan scan --save ~/chan.tsv
+python3 tools/phone.py chan open ~/chan.tsv
+python3 tools/phone.py chan verify ~/chan.tsv
+
+# 给挂起的广告/统计包断网(防止被系统或推送拉起)
+python3 tools/phone.py cutnet on com.miui.analytics
+python3 tools/phone.py cutnet status
+```
+
 ## 安全设计(来自 CleanYourAndroid 的护栏实践)
 
 1. **硬性拒绝名单**: 桌面、电话、短信、系统 UI、设置、WebView、GMS、账号体系等
@@ -359,7 +454,7 @@ python3 tools/phone.py restore --all
 
 | 工具 | 作用 |
 | --- | --- |
-| `phone.py` | 核心工具(Python 标准库, 跨平台, 21 个子命令) |
+| `phone.py` | 核心工具(Python 标准库, 跨平台, 26 个子命令) |
 | `harvest.py` | 抓取聚合互联网 debloat 知识 -> `rules/known-packages.json` |
 | `build_freeze_db.py` | 由品牌清单 + `tools/freeze-curated.tsv` + 知识库生成冻结清单 -> `rules/freeze-packages.json` |
 | `clean.sh` | 全流程编排(备份→debloat→settings→shake, 可分阶段) |
@@ -368,7 +463,8 @@ python3 tools/phone.py restore --all
 | `sync_uad.py` | 从 UAD-NG 社区数据库同步品牌候选列表(轻量版, 只要品牌候选时用它) |
 | `../rules/rom-profiles.json` | 版本规则库: 家族属性/版本说明/分版本动作覆盖 |
 | `../rules/freeze-packages.json` | 冻结清单: 1848 个可冻结预装(safe 110 / recommended 1059 / caution 679)+ 影响 + never_freeze 黑名单 |
-| `../tests/test_phone.py` | 单元测试(模拟设备, 93 个用例): `python3 -I tests/test_phone.py` |
+| `../rules/ad-switches.json` | App 内广告开关路径: 43 条 / 351 步(声明式, 按品牌/ROM/型号匹配) |
+| `../tests/test_phone.py` | 单元测试(模拟设备 + 模拟界面, 117 个用例): `python3 -I tests/test_phone.py` |
 
 ## 真机实测(2026-10-23, OPPO PEQM00 / Android 13 / ColorOS 13)
 
@@ -501,9 +597,10 @@ cleanyourphone/
 │   ├── known-packages.json   5009 个包的分级/描述/依赖/来源(harvest.py 生成)
 │   ├── rom-profiles.json     版本规则: 11 个 ROM 家族 + 分版本动作覆盖
 │   ├── freeze-packages.json  冻结清单: 1848 个可冻结预装 + 分级/影响 + never_freeze
+│   ├── ad-switches.json      App 内广告开关路径: 43 条 / 351 步(声明式)
 │   ├── ALL-BLOAT.txt         人类可读全量清单(按厂商分组)
 │   └── harvest-report.md     抓取报告(来源与失败原因)
-├── tests/test_phone.py  单元测试(模拟设备, 93 个用例)
+├── tests/test_phone.py  单元测试(模拟设备 + 模拟界面, 117 个用例)
 └── examples/            各品牌列表 + settings.conf + 手动关广告/优化设置说明
     ├── xiaomi-hyperos/ huawei-harmonyos/ honor-magicos/ oppo-coloros/
     ├── oneplus-coloros/ realme-ui/ vivo-originos/ samsung-oneui-cn/ meizu-flyme/
@@ -522,4 +619,8 @@ cleanyourphone/
   [FreezeYou(自冻)](https://github.com/FreezeYou/FreezeYou)(GPL-3.0)
 - 零门槛 adb、UAD-NG 同步、设置级去广告与摇一摇封杀参考
   [cleanyourphone(upfind)](https://github.com/upfind/cleanyourphone)(MIT)
+- App 内广告开关的**真机路径数据**与"读屏->找入口->拨开关"思路来自
+  [android-ad-cleaner](https://github.com/rddmwmddr/android-ad-cleaner)(MIT);
+  本项目把它从"每机型一个 Python 脚本"改写为声明式 JSON 规则 + 纯标准库 UI 引擎
+  (用系统自带 `uiautomator dump` 替代 uiautomator2, 不占无障碍服务)
 - 列表基于上述项目与社区 debloat 实践整理, MIT 许可, 详见 [LICENSE](LICENSE)

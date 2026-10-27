@@ -5,6 +5,7 @@
 运行: python3 -I tests/test_phone.py
 """
 import json
+import re
 import subprocess
 import sys
 import tempfile
@@ -138,6 +139,100 @@ class FakeAdb(phone.Adb):
         return subprocess.CompletedProcess(
             args=["adb", *args], returncode=0, stdout=out,
             stderr=getattr(self, "_stderr", ""))
+
+
+class FakeUi(phone.Adb):
+    """模拟一台手机的界面。
+
+    点带 goto 的控件会切页, 点开关会翻转状态, 用来测 UI 引擎和 adsw 引擎。
+    页面定义:
+        {"home": [{"text": "隐私与安全", "goto": "privacy"},
+                  {"switch": "个性化广告推荐", "checked": True}]}
+    """
+
+    def __init__(self, pages, start="home", size=(1080, 2400),
+                 focus="com.android.settings/.Settings", packages=()):
+        self.pages = pages
+        self.cur = start
+        self._size = size
+        self._focus = focus
+        self._packages = set(packages)
+        self._taps = []
+        self._extra = {}
+        self.calls = []
+        self.serial = "FAKEUI"
+
+    def _rows(self):
+        """(XML 片段, 对应的控件定义或 None)。"""
+        rows, y = [], 120
+        for item in self.pages[self.cur]:
+            if "switch" in item:
+                checked = "true" if item.get("checked") else "false"
+                rows.append((
+                    f'<node class="android.widget.TextView" text="{item["switch"]}" '
+                    f'bounds="[60,{y}][720,{y + 90}]" enabled="true" '
+                    f'clickable="false" checkable="false" checked="false" />', None))
+                rows.append((
+                    f'<node class="android.widget.Switch" text="" '
+                    f'resource-id="android:id/switch_widget" checkable="true" '
+                    f'checked="{checked}" bounds="[880,{y}][1040,{y + 90}]" '
+                    f'enabled="true" clickable="true" />', item))
+            else:
+                rows.append((
+                    f'<node class="android.widget.TextView" text="{item["text"]}" '
+                    f'bounds="[60,{y}][1040,{y + 90}]" enabled="true" '
+                    f'clickable="true" checkable="false" checked="false" />', item))
+            y += 140
+        return rows
+
+    def _xml(self):
+        body = "\n".join(x for x, _ in self._rows())
+        return ("<?xml version='1.0' encoding='UTF-8' standalone='yes' ?>\n"
+                f'<hierarchy rotation="0">\n{body}\n</hierarchy>')
+
+    def _tap(self, x, y):
+        for xml, item in self._rows():
+            if item is None:
+                continue
+            m = re.search(r'bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', xml)
+            x1, y1, x2, y2 = (int(v) for v in m.groups())
+            if x1 <= x <= x2 and y1 <= y <= y2:
+                self._taps.append(item)
+                if "switch" in item:
+                    item["checked"] = not item.get("checked")
+                elif item.get("goto"):
+                    self.cur = item["goto"]
+                return
+
+    def run(self, *args, timeout=120):
+        self.calls.append(args)
+        out = ""
+        if args and args[0] == "shell":
+            sh = " ".join(str(a) for a in args[1:])
+            if sh in self._extra:
+                out = self._extra[sh]
+            elif sh.startswith("uiautomator dump"):
+                out = f"UI hierchary dumped to: {sh.split()[-1]}"
+            elif sh.startswith("cat "):
+                out = self._xml()
+            elif sh.startswith("input tap"):
+                parts = sh.split()
+                self._tap(int(parts[2]), int(parts[3]))
+            elif sh.startswith("wm size"):
+                out = f"Physical size: {self._size[0]}x{self._size[1]}"
+            elif "mResumedActivity" in sh or "mCurrentFocus" in sh:
+                out = (f"  mResumedActivity: ActivityRecord{{1a2b3c u0 "
+                       f"{self._focus} t42}}")
+            elif "showinglockscreen" in sh.lower():
+                out = "mShowingLockscreen=false"
+            elif sh.startswith("dumpsys package"):
+                out = "userId=10123"
+            elif sh == "pm list packages":
+                out = "\n".join(f"package:{p}" for p in sorted(self._packages))
+            elif sh == "pm list packages -d":
+                out = ""
+        return subprocess.CompletedProcess(args=["adb", *args], returncode=0,
+                                           stdout=out, stderr="")
 
 
 class ParseTest(unittest.TestCase):
@@ -290,7 +385,8 @@ class ApplyTest(unittest.TestCase):
 
     def test_disable_refused_falls_back_to_suspend(self):
         """真机案例: ColorOS 乐划锁屏 pm disable-user 返回 default(静默拒绝),
-        工具应自动改用 pm suspend 挂起。"""
+        工具应自动改用 pm suspend 挂起。com.heytap.mcs 属推送层(功能必留),
+        需显式 force_feature 才会按列表处理。"""
         dev = FakeAdb(packages={"com.heytap.pictorial", "com.heytap.mcs"},
                       refuse_disable={"com.heytap.pictorial"})
         entries = phone.parse_list(
@@ -298,7 +394,8 @@ class ApplyTest(unittest.TestCase):
             "com.heytap.mcs disable  # 推送\n")
         logs = []
         res = phone.apply_list(dev, entries, do_backup=False,
-                               base=self.base, log=logs.append)
+                               base=self.base, log=logs.append,
+                               force_feature=True)
         self.assertIn("com.heytap.pictorial", res["ok"])
         self.assertIn("com.heytap.mcs", res["ok"])
         self.assertEqual(res["fail"], [])
@@ -1332,6 +1429,287 @@ class HdcChannelTest(unittest.TestCase):
         lines = phone.rom_policy_lines(rom, channel="hdc")
         self.assertTrue(any("已切换到 hdc 通道" in l for l in lines))
         self.assertTrue(any("bm dump -a" in l for l in lines))
+
+
+class UiEngineTest(unittest.TestCase):
+    def _dev(self):
+        return FakeUi({
+            "home": [
+                {"text": "隐私与安全", "goto": "privacy"},
+                {"text": "关于手机", "goto": "about"},
+            ],
+            "privacy": [
+                {"text": "更多安全设置", "goto": "more"},
+                {"switch": "个性化广告推荐", "checked": True},
+                {"switch": "广告服务", "checked": True},
+            ],
+            "about": [{"text": "版本号"}],
+            "more": [{"text": "广告服务"}],
+        })
+
+    def test_dump_parses_switches(self):
+        dev = self._dev()
+        dev.cur = "privacy"
+        nodes = phone.ui_nodes(dev)
+        self.assertTrue(any(n.text == "更多安全设置" for n in nodes))
+        entries = phone.ui_switch_entries(nodes)
+        titles = [t for t, _n, _s in entries]
+        self.assertEqual(titles, ["个性化广告推荐", "广告服务"])
+        self.assertTrue(all(s is True for _t, _n, s in entries))
+
+    def test_switch_title_taken_from_same_row(self):
+        """Switch 自身没有 text 时, 标题应取自同一行左侧的文本。"""
+        dev = self._dev()
+        dev.cur = "privacy"
+        nodes = phone.ui_nodes(dev)
+        sw = [n for n in nodes if n.is_switch][0]
+        self.assertEqual(phone.ui_switch_title(sw, nodes), "个性化广告推荐")
+
+    def test_tap_navigates_to_next_page(self):
+        dev = self._dev()
+        node = phone.ui_find(phone.ui_nodes(dev), "隐私与安全")[0]
+        phone.ui_tap_node(dev, node, log=lambda *a: None)
+        self.assertEqual(dev.cur, "privacy")
+
+    def test_find_prefers_exact_text(self):
+        nodes = phone.parse_ui_xml(
+            '<hierarchy><node text="广告服务设置" bounds="[0,0][10,10]" '
+            'enabled="true"/><node text="广告服务" bounds="[0,20][10,30]" '
+            'enabled="true"/></hierarchy>')
+        self.assertEqual(phone.ui_find(nodes, "广告服务")[0].text, "广告服务")
+
+    def test_risky_word_refused(self):
+        dev = FakeUi({"home": [{"text": "同意并继续", "goto": "home"}]})
+        node = phone.ui_find(phone.ui_nodes(dev), "同意并继续")[0]
+        with self.assertRaises(phone.UiError):
+            phone.ui_tap_node(dev, node, log=lambda *a: None)
+        self.assertEqual(dev._taps, [])
+
+    def test_risky_allowed_when_asked(self):
+        dev = FakeUi({"home": [{"text": "确定", "goto": "home"}]})
+        node = phone.ui_find(phone.ui_nodes(dev), "确定")[0]
+        phone.ui_tap_node(dev, node, log=lambda *a: None, allow_risky=True)
+        self.assertEqual(len(dev._taps), 1)
+
+    def test_unparseable_dump_raises(self):
+        dev = FakeUi({"home": [{"text": "x"}]})
+        for path in ("/sdcard/window_dump.xml", "/data/local/tmp/window_dump.xml"):
+            dev._extra[f"uiautomator dump {path}"] = \
+                "ERROR: could not get idle state."
+            dev._extra[f"cat {path}"] = ""
+        with self.assertRaises(phone.UiError):
+            phone.ui_nodes(dev, retries=1)
+
+
+class AdswTest(unittest.TestCase):
+    def setUp(self):
+        # 引擎在每次点击/翻页后有 settle 等待; 测试里没必要真等
+        patcher = mock.patch("phone.time.sleep", lambda *a, **k: None)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def test_rule_db_is_valid(self):
+        db = phone.load_adsw()
+        self.assertGreaterEqual(len(db["targets"]), 40)
+        ids = [t["id"] for t in db["targets"]]
+        self.assertEqual(len(ids), len(set(ids)), "条目 id 有重复")
+        allowed = {"launch", "tap", "tap_any", "wait", "back", "key",
+                   "scroll", "gesture", "switches", "confirm", "dismiss"}
+        for t in db["targets"]:
+            self.assertTrue(t.get("label"), t["id"])
+            self.assertTrue(t.get("manual"), f"{t['id']} 缺 manual 还原路径")
+            for step in t["steps"]:
+                self.assertIn(step.get("do"), allowed, f"{t['id']} 步骤类型非法")
+
+    def test_match_by_brand_and_model(self):
+        db = phone.load_adsw()
+        hit = phone.adsw_match(db["targets"], brand="Xiaomi", family="xiaomi",
+                               gen=(18,), model="M154FF")
+        self.assertTrue(any(t["id"] == "xiaomi.system-ad" for t in hit))
+        # 别的型号不套用机型专属路径(避免点到别的开关)
+        miss = phone.adsw_match(db["targets"], brand="Xiaomi", family="xiaomi",
+                                gen=(18,), model="OTHER-999")
+        self.assertEqual(miss, [])
+
+    def test_gate_filters_old_rom_version(self):
+        db = phone.load_adsw()
+        old = phone.adsw_match(db["targets"], brand="Xiaomi", family="xiaomi",
+                               gen=(13,), model="M154FF")
+        self.assertFalse(any(t["id"] == "xiaomi.system-ad" for t in old))
+
+    def test_run_closes_only_named_switch(self):
+        dev = FakeUi({
+            "home": [{"text": "隐私与安全", "goto": "privacy"}],
+            "privacy": [{"switch": "个性化广告推荐", "checked": True},
+                        {"switch": "个性化推荐", "checked": True}],
+        })
+        target = {"id": "t", "label": "测试", "steps": [
+            {"do": "launch", "app": "settings"},
+            {"do": "tap", "text": "隐私与安全"},
+            {"do": "switches", "off": ["个性化广告推荐"], "page": "p"},
+        ]}
+        res = phone.adsw_run(dev, target, log=lambda *a: None)
+        self.assertTrue(res["ok"], res)
+        state = {t: s for t, _n, s in
+                 phone.ui_switch_entries(phone.ui_nodes(dev))}
+        self.assertFalse(state["个性化广告推荐"])
+        self.assertTrue(state["个性化推荐"], "没点名的开关不该被动")
+
+    def test_keep_list_is_respected(self):
+        dev = FakeUi({"home": [{"switch": "推送消息", "checked": True},
+                               {"switch": "新手帮助", "checked": True}]})
+        target = {"id": "t", "steps": [
+            {"do": "switches", "off": ["推送消息", "新手帮助"],
+             "keep": ["推送消息"], "page": "p"}]}
+        res = phone.adsw_run(dev, target, log=lambda *a: None)
+        self.assertTrue(res["ok"], res)
+        state = {t: s for t, _n, s in phone.ui_switch_entries(phone.ui_nodes(dev))}
+        self.assertTrue(state["推送消息"], "keep 里的开关不该被关")
+        self.assertFalse(state["新手帮助"])
+
+    def test_dry_run_touches_nothing(self):
+        dev = FakeUi({"home": [{"text": "隐私与安全", "goto": "privacy"}],
+                      "privacy": [{"switch": "个性化广告推荐", "checked": True}]})
+        target = {"id": "t", "steps": [
+            {"do": "launch", "app": "settings"},
+            {"do": "tap", "text": "隐私与安全"},
+            {"do": "switches", "off": ["个性化广告推荐"], "page": "p"}]}
+        res = phone.adsw_run(dev, target, dry_run=True, log=lambda *a: None)
+        self.assertTrue(res["ok"], res)
+        self.assertEqual(dev._taps, [])
+        self.assertTrue(dev.pages["privacy"][0]["checked"], "预演不能真关")
+
+    def test_optional_step_skipped_not_fatal(self):
+        dev = FakeUi({"home": [{"switch": "个性化广告推荐", "checked": True}]})
+        target = {"id": "t", "steps": [
+            {"do": "tap", "text": "不存在的入口", "optional": True},
+            {"do": "switches", "off": ["个性化广告推荐"], "page": "p"}]}
+        res = phone.adsw_run(dev, target, log=lambda *a: None)
+        self.assertTrue(res["ok"], res)
+        self.assertTrue(res["skipped"])
+
+    def test_missing_required_entry_fails(self):
+        dev = FakeUi({"home": [{"switch": "个性化广告推荐", "checked": True}]})
+        target = {"id": "t", "steps": [{"do": "tap", "text": "不存在的入口"}]}
+        res = phone.adsw_run(dev, target, log=lambda *a: None)
+        self.assertFalse(res["ok"])
+        self.assertTrue(res["failed"])
+
+    def test_explore_generates_snippet(self):
+        dev = FakeUi({"home": [{"switch": "活动推荐", "checked": True},
+                               {"switch": "个性化广告", "checked": False}]})
+        out = phone.adsw_explore(dev, log=lambda *a: None)
+        self.assertEqual(out["snippet"]["off"], ["活动推荐", "个性化广告"])
+        self.assertEqual(out["snippet"]["do"], "switches")
+
+
+class ChanTest(unittest.TestCase):
+    TEXT = (
+        "Package [com.taobao.taobao] (1a2b):\n"
+        "  NotificationChannel{aa11 id='promo_1', name='活动优惠', mImportance=3}\n"
+        "  NotificationChannel{bb22 id='order', name='订单物流', mImportance=4}\n"
+        "  NotificationChannel{cc33 id='flash', name='限时秒杀', mImportance=0}\n")
+
+    def test_parse_channels(self):
+        rows = phone.parse_notification_channels(self.TEXT)
+        self.assertEqual(len(rows), 3)
+        self.assertEqual(rows[0]["pkg"], "com.taobao.taobao")
+        self.assertEqual(rows[0]["name"], "活动优惠")
+        self.assertTrue(rows[0]["on"])
+        self.assertFalse(rows[2]["on"], "importance=0 表示已关")
+
+    def test_marketing_classification(self):
+        self.assertTrue(phone.is_marketing_channel("活动优惠"))
+        self.assertTrue(phone.is_marketing_channel("限时秒杀"))
+        self.assertFalse(phone.is_marketing_channel("订单物流"), "订单通知必须保留")
+        self.assertFalse(phone.is_marketing_channel("应用更新"))
+
+    def test_scan_without_channels_raises_clear_error(self):
+        dev = FakeAdb(packages=set())
+        dev._extra["shell dumpsys notification --noredact"] = "nothing useful"
+        with self.assertRaises(ValueError):
+            phone.chan_scan(dev, log=lambda *a: None)
+
+    def test_chan_list_roundtrip(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            rows = phone.parse_notification_channels(self.TEXT)
+            p = phone.write_chan_list(rows, Path(tmp) / "channels.tsv")
+            back = phone.read_chan_list(p)
+            self.assertEqual([r["id"] for r in back],
+                             [r["id"] for r in rows])
+            self.assertEqual(back[0]["pkg"], "com.taobao.taobao")
+
+
+class QuickappTest(unittest.TestCase):
+    def test_find_frameworks_only(self):
+        dev = FakeAdb(packages={"com.miui.hybrid", "com.miui.hybrid.accessory",
+                                "com.miui.player", "com.vivo.hybrid"})
+        pkgs = [r[0] for r in phone.quickapp_find(dev)]
+        self.assertIn("com.miui.hybrid", pkgs)
+        self.assertIn("com.vivo.hybrid", pkgs)
+        self.assertNotIn("com.miui.player", pkgs)
+
+    def test_disable_goes_through_apply_and_records_state(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            dev = FakeAdb(packages={"com.miui.hybrid"})
+            res = phone.quickapp_disable(dev, ["com.miui.hybrid"],
+                                         log=lambda *a: None, base=tmp)
+            self.assertEqual(res["ok"], ["com.miui.hybrid"])
+            self.assertIn("com.miui.hybrid", dev._disabled)
+            state = phone.load_state("FAKE123", tmp)
+            self.assertEqual(state["packages"]["com.miui.hybrid"]["action"],
+                             "disable")
+
+
+class CutnetTest(unittest.TestCase):
+    def test_add_restrict_background_by_uid(self):
+        dev = FakeAdb(packages={"com.miui.analytics"})
+        dev._extra["shell dumpsys package com.miui.analytics"] = "userId=10123"
+        res = phone.cutnet_set(dev, ["com.miui.analytics"], True,
+                               log=lambda *a: None)
+        self.assertEqual(res["ok"], ["com.miui.analytics"])
+        calls = [" ".join(c[1:]) for c in dev.calls]
+        self.assertIn("cmd netpolicy add restrict-background 10123", calls)
+
+    def test_unknown_package_reported(self):
+        dev = FakeAdb(packages=set())
+        dev._extra["shell dumpsys package com.ghost.app"] = ""
+        res = phone.cutnet_set(dev, ["com.ghost.app"], True,
+                               log=lambda *a: None)
+        self.assertEqual(res["fail"], ["com.ghost.app"])
+
+
+class HdcParseTest(unittest.TestCase):
+    """hdc list targets 的报错行不能当成设备(否则会拿报错文本去查 ROM)。"""
+
+    def _hdc(self, stdout):
+        hdc = phone.Hdc.__new__(phone.Hdc)
+        hdc.adb = "hdc"
+        hdc.serial = None
+
+        class _P:
+            pass
+
+        proc = _P()
+        proc.stdout = stdout
+        hdc.run = lambda *a, **k: proc
+        return hdc
+
+    def test_fail_line_is_not_device(self):
+        hdc = self._hdc("[Fail]Not match target founded, check connect-key please\n")
+        self.assertEqual(hdc.devices(), [])
+
+    def test_empty_is_not_device(self):
+        hdc = self._hdc("Empty\n")
+        self.assertEqual(hdc.devices(), [])
+
+    def test_connected_device_parsed(self):
+        hdc = self._hdc("FMR0223A28001483\tUSB\tConnected\n"
+                        "127.0.0.1:1025\tTCP\tConnected\tlocalhost\n")
+        devs = hdc.devices()
+        self.assertEqual([d["serial"] for d in devs],
+                         ["FMR0223A28001483", "127.0.0.1:1025"])
+        self.assertEqual(devs[1]["transport"], "wifi")
 
 
 if __name__ == "__main__":

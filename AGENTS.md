@@ -7,7 +7,7 @@
 
 | 路径 | 内容 | 修改规则 |
 | --- | --- | --- |
-| `tools/phone.py` | 核心工具: adb/hdc 自动准备、列表/设置解析、ROM 版本识别、安全规则、apply/restore/check/audit/settings/dns/shake/rom/freeze/screenshot | 只允许标准库; 新增子命令需同步更新 `build_parser`/`main`/测试 |
+| `tools/phone.py` | 核心工具: adb/hdc 自动准备、列表/设置解析、ROM 版本识别、安全规则、apply/restore/check/audit/settings/dns/shake/rom/freeze/screenshot、UI 引擎(ui)、App 内开关(adsw)、通知渠道(chan)、断网(cutnet)、快应用(quickapp) | 只允许标准库; 新增子命令需同步更新 `build_parser`/`main`/测试 |
 | `tools/clean.sh` | 全流程编排(backup→debloat→settings→shake, 可分阶段) | 保持编排式实现, 逻辑一律放 phone.py |
 | `tools/disable.sh` `restore.sh` `check.sh` | `phone.py` 的 bash 封装 | 保持转发式实现 |
 | `tools/install-adb.sh` | 安装官方 Android 平台工具 | 覆盖 macOS/Linux/Windows |
@@ -16,6 +16,7 @@
 | `rules/known-packages.json` | 自动清单知识库(harvest.py 生成) | 由脚本生成, 不手改 |
 | `rules/rom-profiles.json` | 版本规则库: 家族属性/版本说明/分版本动作覆盖/hdc 门槛 | 手改; 新增家族需带 `label/brands/props/priority`, 并在测试里覆盖识别 |
 | `rules/freeze-packages.json` | 冻结清单: 1848 个 safe/recommended/caution 三级 + 影响 + never_freeze | 由 build_freeze_db.py 生成, 不手改 |
+| `rules/ad-switches.json` | App 内广告开关路径: 声明式步骤(launch/tap/tap_any/switches/gesture...), 按 brands/roms/gate/models 匹配 | 手改; 每条必须带 `manual` 还原路径; 带 `models` 的只对实测机型生效, 不得为了"通用"去掉 models |
 | `tests/test_phone.py` | 单元测试(FakeAdb/FakeHdc 模拟设备) | 改 `phone.py` 行为必须同步测试 |
 | `examples/<品牌>/debloat.txt` | 手工维护的清理列表 | 格式见下; 分 推荐/可选/谨慎(谨慎默认注释); 版本相关条目加 `[v>=13]` 标注 |
 | `examples/<品牌>/settings.conf` | 设置项(settings put) | 格式: `ns key value # 注释`; DNS 项默认注释 |
@@ -44,6 +45,18 @@
 - hdc 通道(华为 DevEco Studio 自带)只能卸载(`bm uninstall -n`), **没有** disable/suspend/
   settings/appops; 遇到这类动作要明确报告"不支持", 不静默失败
 - 冻结(`freeze`)在 hdc 通道同样不可用, 需引导用户改用 uninstall + 手动设置
+- UI 自动化(`ui`/`adsw`)与 `chan`/`cutnet`/`quickapp` 同样只走 adb; hdc 通道要拒绝并说明
+
+## UI 自动化(ui / adsw)
+
+- 只用系统自带 `uiautomator dump` + `input tap`, **不得引入 uiautomator2 或任何第三方包**
+  (不用无障碍服务, 才不会跟 GKD/自动记账抢读屏)
+- 点击前必须过 `UI_RISKY_WORDS`: 不点"同意/允许/支付/删除/安装/恢复出厂"类控件,
+  除非用户显式 `--allow-risky`
+- `switches` 步骤只动 `off` 点名的开关, `keep` 里的一律保留; 找不到入口就跳过, 不猜位置
+- `adsw` 规则是**数据不是代码**: 不得在 JSON 里放可执行表达式, 新步骤类型要在
+  `_adsw_step` 里显式实现并补测试
+- App 内开关属手动态, `restore` 不负责还原; 每条规则必须写 `manual` 手动路径
 
 ## 硬性规则(不可违反)
 
@@ -67,3 +80,8 @@ FakeAdb 在内存中模拟 adb, 覆盖: 列表/设置解析(BOM/CRLF)、安全�
 动态保护、卸载失败降级、分批、恢复(含设置与传感器还原)、OTA 后 check --fix、
 settings 记录与还原、shake on/off、DNS 自愈与回退、审计分组、ROM 版本识别与
 版本门槛、hdc 通道(HarmonyOS NEXT: bm 卸载/不支持禁用)、冻结分级与 never_freeze。
+
+FakeUi 在内存中模拟手机界面(点带 goto 的控件切页, 点开关翻转状态), 覆盖:
+控件树解析、同行标题识别、精确匹配优先、敏感词拒绝、点击导航、读屏失败重试、
+adsw 只关点名开关、keep 保留、dry-run 不落地、可选步骤跳过、缺失入口报错、
+规则库 schema 校验、通知渠道解析与营销分类、快应用识别与禁用、断网按 uid 执行。

@@ -34,6 +34,12 @@
   settings <settings.conf> [--dry-run]   写入系统设置(关闭广告/限制追踪)
   dns on [主机名] | off | status   Private DNS 去广告(带自愈: 解析失败自动关闭)
   shake on|off|status [清单]       封杀第三方 App "摇一摇"开屏广告(appops)
+  chan scan|open|app|verify       营销通知渠道: 只读扫描 + 深链跳转手动关
+  cutnet on|off|status [包名...]  给挂起的广告/统计包断网(防被系统拉起)
+  ui dump|find|tap|switch|wait|open|back|home
+                                  界面自动化: 读屏/找控件/点开关(纯 adb, 不装软件)
+  adsw list|run|verify|explore    App 内广告开关: 按规则库自动拨(可预演)
+  quickapp check|off              检测/关闭快应用(广告跳转的免安装小程序)
   finish                          收尾: 关闭 USB 调试并断开无线连接
 """
 
@@ -51,9 +57,10 @@ import sys
 import time
 import urllib.request
 import zipfile
+import xml.etree.ElementTree as ET
 from pathlib import Path
 
-VERSION = "2.2.0"
+VERSION = "2.4.0"
 HOME_DIR = Path.home() / ".cleanyourphone"
 DEFAULT_WIRELESS_PORT = 5555
 
@@ -494,8 +501,23 @@ class Hdc:
             line = line.strip()
             if not line:
                 continue
-            serial = line.split()[0]
-            out.append({"serial": serial, "state": "device",
+            low = line.lower()
+            # hdc 没有设备时会打印 "[Fail]Not match target founded..." 之类的
+            # 提示, 不能当成序列号(否则后续会拿报错文本去查 ROM)
+            if low.startswith("[") or "fail" in low or "error" in low:
+                continue
+            if low.startswith("empty") or low.startswith("no target"):
+                continue
+            parts = line.split()
+            serial = parts[0]
+            if len(serial) < 6 or not re.match(r"^[\w.:\-]+$", serial):
+                continue
+            state = "device"
+            if len(parts) > 2:
+                st = parts[2].lower()
+                if st not in ("connected", "device", "ready", "online"):
+                    continue
+            out.append({"serial": serial, "state": state,
                         "transport": "wifi" if ":" in serial else "usb",
                         "raw": line})
         return out
@@ -1346,7 +1368,7 @@ def backup_device(dev: Adb, label=None, base=HOME_DIR) -> Path:
 def apply_list(dev: Adb, entries: list, list_file: str = "", dry_run: bool = False,
                do_backup: bool = True, batch: int = 0, screenshot: bool = False,
                base=HOME_DIR, log=print, rom: dict = None,
-               prefer_disable: bool = False) -> dict:
+               prefer_disable: bool = False, force_feature: bool = False) -> dict:
     """应用清理列表。返回分类结果字典。
 
     规则:
@@ -1354,6 +1376,8 @@ def apply_list(dev: Adb, entries: list, list_file: str = "", dry_run: bool = Fal
       * 当前默认桌面 / Recents 提供者 / 当前输入法 -> 拒绝(动态保护)
       * 设备上不存在的包 -> 跳过(不同 ROM 包名有差异, 属正常)
       * 条目带 [v>=13] 之类版本标注且与当前 ROM 版本不符 -> 跳过
+      * 命中"功能必留"(下拉搜索/负一屏/商店/推送层) -> 跳过;
+        用户显式写在列表里并加 --force-feature 时放行(尊重显式意图)
       * uninstall 失败(ROM 限制) -> 自动降级为 disable
       * prefer_disable=True 且该版本 ROM 会拦截卸载 -> 直接禁用, 不试卸载
       * batch>0 时按批次处理, 每批之后截图(需 --screenshot), 方便逐段验证
@@ -1382,7 +1406,8 @@ def apply_list(dev: Adb, entries: list, list_file: str = "", dry_run: bool = Fal
 
     state = load_state(dev.serial, base)
     result = {"ok": [], "skipped_deny": [], "skipped_missing": [],
-              "skipped_protected": [], "skipped_version": skipped_version,
+              "skipped_protected": [], "skipped_feature": [],
+              "skipped_version": skipped_version,
               "skipped_unsupported": [], "already": [], "fail": []}
 
     if do_backup and not dry_run:
@@ -1397,6 +1422,15 @@ def apply_list(dev: Adb, entries: list, list_file: str = "", dry_run: bool = Fal
             result["skipped_deny"].append(pkg)
             log(f"[拒绝] {pkg} 命中安全规则(核心系统组件), 已跳过")
             return
+        keep_why = feature_keep_reason(pkg)
+        if keep_why:
+            if not force_feature:
+                result["skipped_feature"].append(pkg)
+                log(f"[保留] {pkg} 是{keep_why}, 不卸载/不禁用/不冻结"
+                    "(确认要处理请加 --force-feature)")
+                return
+            log(f"[放行] {pkg} 是{keep_why}, 但列表显式指定且带 --force-feature, 继续处理"
+                "(相关功能可能失效)")
         if pkg in protected:
             result["skipped_protected"].append(pkg)
             log(f"[保护] {pkg} 是桌面/最近任务/输入法, 已跳过")
@@ -1495,6 +1529,7 @@ def apply_list(dev: Adb, entries: list, list_file: str = "", dry_run: bool = Fal
         f"版本不符跳过 {len(result['skipped_version'])} | "
         f"已处于目标状态 {len(result['already'])} | 安全拒绝 "
         f"{len(result['skipped_deny']) + len(result['skipped_protected'])} | "
+        f"功能必留跳过 {len(result['skipped_feature'])} | "
         f"通道不支持 {len(result['skipped_unsupported'])} | "
         f"失败 {len(result['fail'])}")
     if result["fail"]:
@@ -1809,6 +1844,760 @@ def shake_status(dev: Adb, pkgs: list = None, base=HOME_DIR, log=print):
 
 
 # ---------------------------------------------------------------------------
+# UI 自动化: 读屏 -> 找入口 -> 拨开关
+#
+#   思路来自 android-ad-cleaner(MIT 许可), 实现换成纯标准库:
+#   用系统自带 uiautomator dump 取控件树, 自己解析 XML, 用 input tap 点击。
+#   所以电脑端零依赖(不装 uiautomator2), 手机端不装任何东西,
+#   也不占用无障碍服务(不跟 GKD / 自动记账抢读屏)。
+#
+#   为什么需要它: pm uninstall/disable/suspend 只能处理"包", 而系统广告开关、
+#   搜索热搜、商店推广位、浏览器信息流都在 App 内部, 只能点界面关。
+# ---------------------------------------------------------------------------
+UI_DUMP_FILE = "/sdcard/window_dump.xml"
+UI_DUMP_ALT = "/data/local/tmp/window_dump.xml"
+UI_KEYCODES = {"back": 4, "home": 3, "enter": 66, "menu": 82, "power": 26,
+               "wakeup": 224, "appswitch": 187, "delete": 67}
+
+# 默认拒绝点击的敏感词: 工具不替机主同意协议、不买东西、不删数据
+UI_RISKY_WORDS = ("同意", "允许", "授权", "安装", "购买", "支付", "付款",
+                  "删除", "卸载", "格式化", "恢复出厂", "清除数据", "注销账号",
+                  "agree", "allow", "install", "buy", "pay", "delete",
+                  "uninstall", "erase", "factory reset")
+
+UI_LAUNCH_ALIASES = {
+    "settings": "am start -f 0x10008000 -a android.settings.SETTINGS",
+    "apps": "am start -a android.settings.APPLICATION_SETTINGS",
+    "notify": "am start -a android.settings.NOTIFICATION_SETTINGS",
+    "wifi": "am start -a android.settings.WIFI_SETTINGS",
+    "display": "am start -a android.settings.DISPLAY_SETTINGS",
+    "privacy": "am start -a android.settings.PRIVACY_SETTINGS",
+}
+_UI_SCREEN_CACHE: dict = {}
+
+
+class UiError(RuntimeError):
+    """读屏或点击失败(界面没打开、控件找不到、屏幕锁着)。"""
+
+
+def _ui_bounds(raw):
+    """'[12,34][56,78]' -> (12, 34, 56, 78); 解析不了返回 None。"""
+    m = re.match(r"\[(-?\d+),(-?\d+)\]\[(-?\d+),(-?\d+)\]", raw or "")
+    if not m:
+        return None
+    return tuple(int(x) for x in m.groups())
+
+
+class UiNode:
+    """界面上的一个控件, 字段与 uiautomator dump 的 XML 属性对应。"""
+
+    __slots__ = ("text", "rid", "cls", "pkg", "desc", "bounds", "clickable",
+                 "checkable", "checked", "has_checked", "enabled",
+                 "scrollable", "selected", "children", "parent")
+
+    def __init__(self, attr: dict, parent=None):
+        self.text = (attr.get("text") or "").strip()
+        self.rid = attr.get("resource-id") or ""
+        self.cls = attr.get("class") or ""
+        self.pkg = attr.get("package") or ""
+        self.desc = (attr.get("content-desc") or "").strip()
+        self.bounds = _ui_bounds(attr.get("bounds"))
+        self.clickable = attr.get("clickable") == "true"
+        self.checkable = attr.get("checkable") == "true"
+        self.has_checked = attr.get("checked") is not None
+        self.checked = attr.get("checked") == "true"
+        self.enabled = attr.get("enabled", "true") == "true"
+        self.scrollable = attr.get("scrollable") == "true"
+        self.selected = attr.get("selected") == "true"
+        self.children = []
+        self.parent = parent
+        if parent is not None:
+            parent.children.append(self)
+
+    @property
+    def label(self) -> str:
+        return self.text or self.desc
+
+    @property
+    def center(self) -> tuple:
+        if not self.bounds:
+            return (0, 0)
+        x1, y1, x2, y2 = self.bounds
+        return ((x1 + x2) // 2, (y1 + y2) // 2)
+
+    @property
+    def area(self) -> int:
+        if not self.bounds:
+            return 0
+        x1, y1, x2, y2 = self.bounds
+        return max(0, x2 - x1) * max(0, y2 - y1)
+
+    @property
+    def is_switch(self) -> bool:
+        if self.checkable:
+            return True
+        low = self.cls.lower()
+        return any(k in low for k in ("switch", "checkbox", "togglebutton",
+                                      "checkedtextview"))
+
+    def keys(self) -> str:
+        return " ".join(x for x in (self.text, self.desc, self.rid, self.cls) if x)
+
+    def __repr__(self) -> str:
+        mark = ""
+        if self.is_switch:
+            mark = " [开]" if self.checked else (" [关]" if self.has_checked else " [?]")
+        return f"<{self.label or self.rid or self.cls}{mark} @{self.center}>"
+
+
+def _xml_attrs(raw: str) -> dict:
+    """把 `<node a="1" b="2">` 里的属性抠成 dict(含实体反转义)。"""
+    out = {}
+    for m in re.finditer(r'([\w:.-]+)="([^"]*)"', raw):
+        v = m.group(2)
+        if "&" in v:
+            v = (v.replace("&quot;", '"').replace("&apos;", "'")
+                  .replace("&lt;", "<").replace("&gt;", ">").replace("&amp;", "&"))
+        out[m.group(1)] = v
+    return out
+
+
+def parse_ui_xml(xml: str) -> list:
+    """解析 uiautomator dump 的 XML, 返回全部控件(先序, 带父子关系)。"""
+    xml = (xml or "").strip()
+    if not xml:
+        return []
+    start = xml.find("<hierarchy")
+    if start < 0:
+        start = xml.find("<?xml")
+    if start > 0:
+        xml = xml[start:]
+    nodes: list = []
+
+    def walk(el, parent):
+        node = UiNode(el.attrib, parent)
+        nodes.append(node)
+        for child in el:
+            if child.tag == "node":
+                walk(child, node)
+
+    try:
+        root = ET.fromstring(xml)
+    except ET.ParseError:
+        # 页面很大时 dump 可能被截断; 退化成宽松正则(丢父子关系但能找控件)
+        for m in re.finditer(r"<node\s([^>]*?)/?>", xml):
+            nodes.append(UiNode(_xml_attrs(m.group(1))))
+        return nodes
+    if root.tag == "hierarchy":
+        for child in root:
+            if child.tag == "node":
+                walk(child, None)
+    else:
+        walk(root, None)
+    return nodes
+
+
+def ui_dump_xml(dev: Adb, retries: int = 3) -> str:
+    """抓当前界面的控件树(XML 文本)。"""
+    errs = []
+    for attempt in range(max(1, retries)):
+        for path in (UI_DUMP_FILE, UI_DUMP_ALT):
+            out = dev.shell_all(f"uiautomator dump {path}")
+            low = out.lower()
+            if "error" in low and "dumped" not in low:
+                errs.append(out.strip()[:100])
+                continue
+            xml = dev.shell(f"cat {path}")
+            if "<hierarchy" in xml or "<node" in xml:
+                return xml
+            errs.append((xml or out).strip()[:100])
+        if attempt + 1 < retries:
+            time.sleep(0.8)
+    raise UiError(
+        "读屏失败: 取不到界面控件树"
+        + (f"({errs[-1]})" if errs and errs[-1] else "")
+        + "\n  排查: 1) 手机已解锁且停在目标页面 "
+          "2) 等页面加载完再试(动画未结束会报 could not get idle state) "
+          "3) 企业管控或读屏类 App 占用 uiautomator 时会被拒")
+
+
+def ui_nodes(dev: Adb, retries: int = 3) -> list:
+    return parse_ui_xml(ui_dump_xml(dev, retries))
+
+
+def ui_find(nodes: list, needle: str, exact: bool = False,
+            visible_only: bool = True) -> list:
+    """按文本/描述/资源 id 查控件, 返回按匹配强度排序的结果。"""
+    needle = (needle or "").strip()
+    if not needle:
+        return []
+    low = needle.lower()
+    scored = []
+    for n in nodes:
+        if visible_only and (not n.enabled or n.area <= 0):
+            continue
+        text, desc = n.text.lower(), n.desc.lower()
+        rid = n.rid.lower().rsplit("/", 1)[-1]
+        score = 0
+        if exact:
+            if text == low or desc == low:
+                score = 100
+            elif rid == low:
+                score = 90
+        else:
+            if text == low:
+                score = 100
+            elif text and low in text:
+                score = 80
+            elif desc == low:
+                score = 70
+            elif desc and low in desc:
+                score = 60
+            elif rid and low in rid:
+                score = 40
+        if score:
+            scored.append((score, n))
+    scored.sort(key=lambda x: -x[0])
+    return [n for _, n in scored]
+
+
+def ui_tap_node(dev: Adb, node: UiNode, log=print, allow_risky: bool = False,
+                label_hint: str = "") -> tuple:
+    """点控件; 控件本身不可点时点它最近的可点祖先。返回坐标。
+
+    label_hint: 日志里显示的名字(开关自身的 text 常为空, 由调用方传入标题)。
+    """
+    target = node
+    while target is not None and not target.clickable:
+        target = target.parent
+    if target is None:
+        target = node
+    x, y = target.center
+    if x <= 0 and y <= 0:
+        raise UiError(f"控件「{node.label or node.rid}」没有可点击区域")
+    if not allow_risky:
+        keys = target.keys().lower()
+        hit = next((w for w in UI_RISKY_WORDS if w in keys), None)
+        if hit:
+            raise UiError(f"拒绝点击含敏感词「{hit}」的控件 "
+                          f"「{target.label or target.rid}」(确认要点头加 --allow-risky)")
+    dev.shell(f"input tap {x} {y}")
+    shown = label_hint or target.label or target.rid or target.cls
+    log(f"    点击「{shown}」 ({x},{y})")
+    return x, y
+
+
+def ui_screen(dev: Adb) -> tuple:
+    """屏幕分辨率(缓存)。"""
+    key = getattr(dev, "serial", "") or ""
+    if key in _UI_SCREEN_CACHE:
+        return _UI_SCREEN_CACHE[key]
+    m = re.search(r"(\d+)x(\d+)", dev.shell("wm size"))
+    size = (int(m.group(1)), int(m.group(2))) if m else (1080, 2400)
+    _UI_SCREEN_CACHE[key] = size
+    return size
+
+
+def ui_scroll(dev: Adb, forward: bool = True, times: int = 1, log=None) -> None:
+    """翻页。forward=True 表示看下面的内容(手指上滑)。"""
+    w, h = ui_screen(dev)
+    for _ in range(max(1, times)):
+        x = w // 2
+        y1, y2 = ((int(h * 0.75), int(h * 0.35)) if forward
+                  else (int(h * 0.35), int(h * 0.75)))
+        dev.shell(f"input swipe {x} {y1} {x} {y2} 300")
+        time.sleep(0.7)
+
+
+def ui_key(dev: Adb, name) -> None:
+    dev.shell(f"input keyevent {UI_KEYCODES.get(name, name)}")
+    time.sleep(0.5)
+
+
+def ui_focus(dev: Adb) -> str:
+    """当前前台组件(包名/类名); 拿不到返回空串。"""
+    for cmd in ("dumpsys activity activities | grep -m1 mResumedActivity",
+                "dumpsys window | grep -m1 mCurrentFocus"):
+        m = re.search(r"([A-Za-z][\w.]*)/([\w.$]+)", dev.shell(cmd))
+        if m:
+            return f"{m.group(1)}/{m.group(2)}"
+    return ""
+
+
+def ui_locked(dev: Adb) -> bool:
+    """屏幕是否锁着(锁屏时点界面没有意义)。"""
+    out = dev.shell("dumpsys window | grep -m1 -i showinglockscreen")
+    if "showinglockscreen=true" in out.replace(" ", "").lower():
+        return True
+    out = dev.shell("dumpsys window policy | grep -m1 -i showing=")
+    return "showing=true" in out.replace(" ", "").lower()
+
+
+def ui_launcher_activity(dev: Adb, pkg: str) -> str:
+    """App 的启动 Activity(用于 am start, 比 monkey 更可靠)。"""
+    out = dev.shell(f"cmd package resolve-activity --brief "
+                    f"-c android.intent.category.LAUNCHER {pkg}")
+    for raw in reversed(out.splitlines()):
+        line = raw.strip()
+        if "/" in line and " " not in line:
+            return line
+    return ""
+
+
+def ui_launch(dev: Adb, app: str, activity: str = "", wait: float = 1.6,
+              log=print) -> str:
+    """打开 App 或系统设置页。返回前台组件名(可能为空)。"""
+    if app in UI_LAUNCH_ALIASES:
+        dev.shell(UI_LAUNCH_ALIASES[app])
+    elif activity:
+        comp = activity if "/" in activity else f"{app}/{activity}"
+        dev.shell(f"am start -n {comp}")
+    else:
+        comp = ui_launcher_activity(dev, app)
+        if comp:
+            dev.shell(f"am start -n {comp}")
+        else:
+            dev.shell(f"monkey -p {app} -c android.intent.category.LAUNCHER 1")
+    time.sleep(wait)
+    focus = ui_focus(dev)
+    log(f"    打开 {activity or app}"
+        + (f" -> {focus.split('/')[-1]}" if focus else " (前台未知)"))
+    return focus
+
+
+def ui_wait(dev: Adb, needle: str, timeout: float = 8.0,
+            exact: bool = False) -> bool:
+    """等界面上出现某文本。"""
+    deadline = time.time() + max(0.5, timeout)
+    while time.time() < deadline:
+        try:
+            if ui_find(ui_nodes(dev, retries=1), needle, exact=exact):
+                return True
+        except UiError:
+            pass
+        time.sleep(0.8)
+    return False
+
+
+def ui_switch_state(node: UiNode):
+    """开关状态: True/False, 读不到返回 None(自绘开关常见)。"""
+    if node.has_checked:
+        return node.checked
+    return None
+
+
+def ui_switch_title(node: UiNode, nodes: list) -> str:
+    """开关的标题。开关自己没文本时, 取同一行左侧离它最近的文本。"""
+    if node.label:
+        return node.label
+    if not node.bounds:
+        return ""
+    y1, y2 = node.bounds[1], node.bounds[3]
+    best = None
+    for n in nodes:
+        if n is node or not n.label or not n.bounds or n.area <= 0:
+            continue
+        cy = (n.bounds[1] + n.bounds[3]) // 2
+        if not (y1 - 12 <= cy <= y2 + 12):
+            continue          # 不在同一行
+        if n.bounds[0] >= node.bounds[2]:
+            continue          # 在开关右边, 是副标题/按钮
+        if best is None or n.bounds[2] > best.bounds[2]:
+            best = n
+    return best.label if best else ""
+
+
+def ui_switch_entries(nodes: list) -> list:
+    """页面上的全部开关: [(标题, 节点, 状态)]。"""
+    out = []
+    for n in nodes:
+        if not n.is_switch or n.area <= 0:
+            continue
+        out.append((ui_switch_title(n, nodes), n, ui_switch_state(n)))
+    return out
+
+
+def ui_describe(nodes: list, limit: int = 60, only_switch: bool = False) -> list:
+    """把界面控件整理成可读行(给 explore / dump 用)。"""
+    lines = []
+    seen = set()
+    for n in nodes:
+        if n.area <= 0 or not n.enabled:
+            continue
+        if only_switch and not n.is_switch:
+            continue
+        if only_switch:
+            label = ui_switch_title(n, nodes)
+        else:
+            label = n.label or (n.rid.rsplit("/", 1)[-1] if n.rid else "")
+            if not label and not n.clickable:
+                continue
+        if not label:
+            continue
+        key = (label, n.bounds)
+        if key in seen:
+            continue
+        seen.add(key)
+        if n.is_switch:
+            state = "开" if n.checked else ("关" if n.has_checked else "?")
+            mark = f"[{state}] "
+        else:
+            mark = "[可点] " if n.clickable else ""
+        lines.append(f"{mark}{label}  @{n.center[0]},{n.center[1]}")
+        if len(lines) >= limit:
+            break
+    return lines
+
+
+# ---------------------------------------------------------------------------
+# App 内广告开关: 声明式 recipe
+#
+#   android-ad-cleaner 的做法是"每机型一个 recipe.py"(可执行 Python)。
+#   这里改成 rules/ad-switches.json 里的声明式步骤, 理由:
+#     * 不执行任意代码, 规则可以被审阅、被 diff
+#     * 一条规则能按 品牌/ROM 家族/版本 自动挑选, 不用为每个小版本写脚本
+#     * 每步都能 --dry-run 预演
+#   步骤类型(do): launch / tap / tap_any / wait / back / key / scroll /
+#                 switches / confirm / dismiss
+# ---------------------------------------------------------------------------
+ADSW_RULE_FILE = (Path(__file__).resolve().parent.parent
+                  / "rules" / "ad-switches.json")
+_ADSW_CACHE: dict = {}
+
+# 弹窗按钮词表: 只点"取消/暂不"这一侧, 不替机主同意
+ADSW_DISMISS_WORDS = ("取消", "以后再说", "暂不", "暂不开启", "跳过", "我知道了",
+                      "不同意", "禁止", "关闭", "残忍拒绝", "下次再说")
+ADSW_CONFIRM_WORDS = ("确定", "确认", "开启", "同意并继续", "OK", "好")
+
+
+def load_adsw(path=None) -> dict:
+    """读取 App 内开关规则库; 文件缺失时返回空表。"""
+    p = Path(path) if path else ADSW_RULE_FILE
+    key = str(p)
+    if key in _ADSW_CACHE:
+        return _ADSW_CACHE[key]
+    data = {"targets": [], "meta": {}}
+    if p.exists():
+        try:
+            loaded = json.loads(p.read_text(encoding="utf-8"))
+            if isinstance(loaded, dict):
+                data["targets"] = [t for t in (loaded.get("targets") or [])
+                                   if isinstance(t, dict) and t.get("id")]
+                data["meta"] = loaded.get("meta") or {}
+        except ValueError as e:
+            raise ValueError(f"{p} 不是合法 JSON: {e}")
+    _ADSW_CACHE[key] = data
+    return data
+
+
+def adsw_match(targets: list, brand: str = "", family: str = "",
+               gen: tuple = (), ids=None, model: str = "",
+               strict_model: bool = True) -> list:
+    """挑出适用于本机的条目(品牌/ROM 家族/版本/型号都对得上才返回)。
+
+    带 models 的条目是"机型专属路径"(实测机型), 型号对不上就不套用:
+    别的机型照搬路径去点, 可能点到完全不同的开关, 比不点更危险。
+    """
+    want = {i.lower() for i in (ids or [])}
+    out = []
+    for t in targets:
+        if want and t["id"].lower() not in want:
+            continue
+        brands = [b.lower() for b in (t.get("brands") or [])]
+        if brands:
+            if not brand or not any(b in brand.lower() for b in brands):
+                continue
+        roms = [r.lower() for r in (t.get("roms") or [])]
+        if roms:
+            if not family or family.lower() not in roms:
+                continue
+        gate = t.get("gate")
+        if gate and gen:
+            # 规则库里写 ">=15" 就行, 也兼容列表文件的 "[v>=15]" 写法
+            expr = gate.strip()
+            if not expr.startswith("["):
+                expr = f"[v{expr}]"
+            if not gate_pass(parse_gates(expr), gen):
+                continue
+        models = [m.upper() for m in (t.get("models") or [])]
+        if models and strict_model and not want:
+            if not model:
+                continue
+            if not any(m in model.upper() for m in models):
+                continue
+        out.append(t)
+    return out
+
+
+def _adsw_tap(dev: Adb, text: str, step: dict, dry_run: bool, log,
+              allow_risky: bool, scrolls=None) -> bool:
+    exact = bool(step.get("exact", True))
+    if scrolls is None:
+        scrolls = int(step.get("scroll", 0) or 0)
+    hits = ui_find(ui_nodes(dev), text, exact=exact)
+    for _ in range(max(0, scrolls)):
+        if hits:
+            break
+        ui_scroll(dev, True)
+        hits = ui_find(ui_nodes(dev), text, exact=exact)
+    if not hits:
+        raise UiError(f"界面上找不到「{text}」")
+    if dry_run:
+        log(f"    [预演] 点击「{text}」")
+        return True
+    ui_tap_node(dev, hits[0], log=log, allow_risky=allow_risky)
+    time.sleep(float(step.get("settle", 0.8)))
+    return True
+
+
+def _adsw_switches(dev: Adb, step: dict, dry_run: bool, log,
+                   allow_risky: bool, max_screens: int) -> bool:
+    """把页面上指定的开关全部关掉, 并回读确认。"""
+    off = [s for s in (step.get("off") or []) if s]
+    keep = [s for s in (step.get("keep") or []) if s]
+    page = step.get("page") or ""
+    all_on_page = bool(step.get("all"))
+    if not off and not all_on_page:
+        raise UiError("switches 步骤需要 off 列表(或 all=true)")
+    targets = [s.lower() for s in off]
+    keeps = [s.lower() for s in keep]
+    changed, unknown, already, seen = [], [], [], []
+    tag = f"[{page}] " if page else ""
+
+    for screen in range(max(1, max_screens)):
+        entries = ui_switch_entries(ui_nodes(dev))
+        for title, node, state in entries:
+            low = (title or "").lower()
+            if not low:
+                continue
+            if keeps and any(k in low for k in keeps):
+                continue
+            if not all_on_page and not any(t in low for t in targets):
+                continue
+            if title not in seen:
+                seen.append(title)
+            if state is False:
+                already.append(title)
+                continue
+            if dry_run:
+                mark = "开" if state else ("关" if state is False else "读不到")
+                log(f"    [预读] 「{title}」当前{mark}")
+                if state is not False:
+                    changed.append(title)
+                continue
+            try:
+                ui_tap_node(dev, node, log=log, allow_risky=allow_risky,
+                            label_hint=title)
+            except UiError as e:
+                log(f"    [跳过] 「{title}」: {e}")
+                continue
+            if state is None:
+                unknown.append(title)
+            else:
+                changed.append(title)
+            time.sleep(0.5)
+        if dry_run:
+            break
+        found_all = bool(targets) and all(
+            any(t in s.lower() for s in seen) for t in targets)
+        if found_all or not entries or screen + 1 >= max_screens:
+            break
+        ui_scroll(dev, True)
+
+    missing = [t for t in off
+               if not any(t.lower() in s.lower() for s in seen)
+               and not any(k in t.lower() for k in keeps)]
+    if changed or already or missing:
+        log(f"    {tag}关闭 {len(changed)} 项"
+            + (f", 本就关着 {len(already)} 项" if already else "")
+            + (f", 本页没有 {'/'.join(missing)}" if missing else ""))
+    if changed and not dry_run:
+        time.sleep(0.6)
+        still_on = []
+        for title, _node, state in ui_switch_entries(ui_nodes(dev)):
+            if state is True and title in changed:
+                still_on.append(title)
+        if still_on:
+            log(f"    [注意] 回读发现仍开着: {'/'.join(still_on)}"
+                "(可能被 ROM 强制打开, 或需要再点一次)")
+            return False
+        if unknown:
+            log(f"    [提示] 这些开关读不到状态, 已点过, 请人工扫一眼: "
+                f"{'/'.join(unknown)}")
+    return True
+
+
+def _adsw_popup(dev: Adb, words, dry_run: bool, log, allow_risky: bool) -> bool:
+    """点弹窗按钮(只在当前页面上找, 不翻页不深挖)。"""
+    hits = []
+    nodes = ui_nodes(dev)
+    for w in words:
+        hits.extend(ui_find(nodes, w, exact=True))
+    if not hits:
+        return False
+    if dry_run:
+        log(f"    [预演] 点弹窗「{hits[0].label}」")
+        return True
+    ui_tap_node(dev, hits[0], log=log, allow_risky=allow_risky)
+    time.sleep(0.6)
+    return True
+
+
+def _adsw_step(dev: Adb, step: dict, dry_run: bool, log,
+               allow_risky: bool, max_screens: int) -> bool:
+    kind = (step.get("do") or "").lower()
+    if kind == "launch":
+        app = step.get("app") or ""
+        if dry_run:
+            log(f"    [预演] 打开 {step.get('activity') or app}")
+            return True
+        ui_launch(dev, app, step.get("activity") or "",
+                  wait=float(step.get("wait", 1.6)), log=log)
+        return True
+    if kind == "tap":
+        return _adsw_tap(dev, step.get("text") or "", step, dry_run, log,
+                         allow_risky)
+    if kind == "tap_any":
+        texts = [t for t in (step.get("texts") or []) if t]
+        if dry_run:
+            log(f"    [预演] 点其中之一: {' / '.join(texts)}")
+            return True
+        last = None
+        for t in texts:
+            try:
+                if _adsw_tap(dev, t, step, dry_run, log, allow_risky):
+                    return True
+            except UiError as e:
+                last = e
+        raise UiError(f"入口都没找到: {' / '.join(texts)}"
+                      + (f"({last})" if last else ""))
+    if kind == "wait":
+        if dry_run:
+            log(f"    [预演] 等「{step.get('text')}」出现")
+            return True
+        ok = ui_wait(dev, step.get("text") or "",
+                     timeout=float(step.get("timeout", 8)))
+        if not ok:
+            raise UiError(f"等不到「{step.get('text')}」")
+        return True
+    if kind == "back":
+        n = int(step.get("n", 1) or 1)
+        if not dry_run:
+            for _ in range(n):
+                ui_key(dev, "back")
+        log(f"    返回 {n} 次")
+        return True
+    if kind == "key":
+        name = step.get("name") or "back"
+        if not dry_run:
+            ui_key(dev, name)
+        log(f"    按键 {name}")
+        return True
+    if kind == "scroll":
+        if not dry_run:
+            ui_scroll(dev, bool(step.get("forward", True)),
+                      int(step.get("times", 1) or 1))
+        log(f"    翻页 {step.get('times', 1)} 次")
+        return True
+    if kind == "gesture":
+        preset = (step.get("preset") or "").lower()
+        w, h = ui_screen(dev)
+        paths = {
+            "pull_down": (w // 2, int(h * 0.30), w // 2, int(h * 0.70)),
+            "pull_down_short": (w // 2, int(h * 0.15), w // 2, int(h * 0.55)),
+            "swipe_right": (w // 7, h // 2, w * 6 // 7, h // 2),
+            "swipe_left": (w * 6 // 7, h // 2, w // 7, h // 2),
+        }
+        if preset not in paths:
+            raise UiError(f"不认识的 gesture 预设: {preset or '(空)'}")
+        x1, y1, x2, y2 = paths[preset]
+        if not dry_run:
+            dev.shell(f"input swipe {x1} {y1} {x2} {y2} 280")
+            time.sleep(float(step.get("settle", 1.2)))
+        log(f"    手势 {preset}")
+        return True
+    if kind == "switches":
+        return _adsw_switches(dev, step, dry_run, log, allow_risky, max_screens)
+    if kind == "confirm":
+        return _adsw_popup(dev, ADSW_CONFIRM_WORDS, dry_run, log, allow_risky)
+    if kind == "dismiss":
+        return _adsw_popup(dev, ADSW_DISMISS_WORDS, dry_run, log, allow_risky)
+    raise UiError(f"不认识的步骤类型: {kind or '(空)'}")
+
+
+def adsw_run(dev: Adb, target: dict, dry_run: bool = False, log=print,
+             allow_risky: bool = False, max_screens: int = 3) -> dict:
+    """执行一条 recipe, 返回结果字典。"""
+    tid = target.get("id", "?")
+    label = target.get("label") or tid
+    res = {"id": tid, "label": label, "ok": False, "done": [],
+           "failed": [], "skipped": []}
+    if not dry_run and ui_locked(dev):
+        res["failed"].append("手机锁屏")
+        log(f"[{label}] 手机锁屏了, 请先解锁")
+        return res
+    log(f"[{label}]" + (f"  (来源: {target['source']})" if target.get("source") else ""))
+    for idx, step in enumerate(target.get("steps") or [], 1):
+        kind = (step.get("do") or "?").lower()
+        optional = bool(step.get("optional"))
+        try:
+            ok = _adsw_step(dev, step, dry_run, log, allow_risky, max_screens)
+        except UiError as e:
+            if optional:
+                res["skipped"].append(f"{kind}: {e}")
+                log(f"    [跳过] 可选步骤 {kind}: {e}")
+                continue
+            res["failed"].append(f"{kind}: {e}")
+            log(f"    [失败] 第 {idx} 步 {kind}: {e}")
+            return res
+        if not ok:
+            msg = f"{kind} 未完全生效"
+            if optional:
+                res["skipped"].append(msg)
+                log(f"    [跳过] {msg}")
+                continue
+            res["failed"].append(msg)
+            log(f"    [失败] 第 {idx} 步 {msg}")
+            return res
+        res["done"].append(kind)
+    res["ok"] = not res["failed"]
+    return res
+
+
+def adsw_explore(dev: Adb, log=print, save=None, only_switch: bool = True) -> dict:
+    """探路: 列出当前页面的开关/可点项, 并生成可粘贴的 JSON 步骤。"""
+    nodes = ui_nodes(dev)
+    focus = ui_focus(dev)
+    log(f"当前页面: {focus or '未知'}")
+    switches = ui_switch_entries(nodes)
+    if switches:
+        log(f"开关 {len(switches)} 个:")
+        for title, node, state in switches:
+            mark = "开" if state else ("关" if state is False else "?")
+            log(f"  [{mark}] {title or '(无标题)'}  @{node.center[0]},{node.center[1]}")
+    else:
+        log("这一页没有识别到开关(可能是入口页, 请手动点进目标页后再跑一次)。")
+    clicks = [n for n in nodes if n.clickable and n.area > 0 and n.label]
+    if clicks:
+        log(f"可点项 {len(clicks)} 个"
+            + ("" if only_switch else ""))
+        for n in clicks[:40]:
+            log(f"  · {n.label}")
+    snippet = {
+        "do": "switches",
+        "off": [t for t, _n, _s in switches if t],
+        "page": (focus.split("/")[-1] if focus else ""),
+    }
+    if save:
+        p = Path(save)
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(json.dumps(snippet, ensure_ascii=False, indent=2) + "\n",
+                     encoding="utf-8")
+        log(f"步骤片段已写入 {p}(粘到 rules/ad-switches.json 的 steps 里)")
+    return {"focus": focus, "switches": switches, "snippet": snippet}
+
+
+# ---------------------------------------------------------------------------
 # 广告/遥测审计
 # ---------------------------------------------------------------------------
 AUDIT_RULES = [
@@ -1827,6 +2616,10 @@ def audit_device(dev: Adb, log=print) -> dict:
     disabled = list_disabled(dev)
     found = {}
     for pkg in sorted(installed):
+        if is_denied(pkg):
+            continue
+        if feature_keep_reason(pkg):
+            continue          # 下拉搜索/负一屏/应用商店/推送传输层: 只提示不动它
         low = pkg.lower()
         for cat, keys in AUDIT_RULES:
             if any(k in low for k in keys):
@@ -1931,6 +2724,34 @@ CAUTION_RULES = (
     (r"childrenspace|parental", "儿童/家长模式"),
 )
 CAUTION_RE = [(re.compile(p, re.I), why) for p, why in CAUTION_RULES]
+
+
+# ---------------------------------------------------------------------------
+# 功能必留包: 不是核心系统组件, 但承载用户真实功能, 一律不卸载/不禁用/不冻结。
+# 来源: android-ad-cleaner(rddmwmddr) 的硬规则与真机实测(2026-10)——
+#   * 下拉搜索 com.heytap.quicksearchbox: 挂了桌面下滑搜索没了
+#   * 负一屏 com.coloros.assistantscreen: 挂了负一屏没了
+#   * 各品牌应用商店: 挂了不能装应用/更新
+#   * 推送传输层 com.heytap.mcs / com.coloros.mcs: 挂了第三方 App 收不到推送
+# 与 DENY_PATTERNS(核心系统组件)分开: 这里给的是"功能保留"原因。
+# ---------------------------------------------------------------------------
+FEATURE_KEEP_RULES = [
+    (r"(^|\.)quicksearchbox($|\.)", "下拉搜索(挂了桌面下滑搜索没了)"),
+    (r"(^|\.)assistantscreen($|\.)", "负一屏/速览(挂了负一屏没了)"),
+    (r"(^|\.)appmarket($|\.)", "应用市场(装应用/更新入口)"),
+    (r"(^|\.)appstore($|\.)", "应用商店(装应用/更新入口)"),
+    (r"(^|\.)market($|\.)", "应用商店(装应用/更新入口)"),
+    (r"(^|\.)mcs($|\.)", "推送传输层(挂了第三方 App 收不到推送)"),
+]
+FEATURE_KEEP_RE = [(re.compile(p, re.I), why) for p, why in FEATURE_KEEP_RULES]
+
+
+def feature_keep_reason(pkg: str):
+    """包名是否命中"功能必留"规则(下拉搜索/负一屏/应用商店/推送传输层)。"""
+    for r, why in FEATURE_KEEP_RE:
+        if r.search(pkg):
+            return why
+    return None
 
 
 def caution_reason(pkg: str):
@@ -2083,8 +2904,13 @@ def freeze_candidates(dev: Adb, db: dict, tier: str = "safe",
     rom = rom if rom is not None else detect_rom(dev)
     brands = {b.lower() for b in (brands or [])}
     rows, skipped = [], []
+    skipped_feature = []
     for pkg in sorted(installed):
         if is_denied(pkg) or pkg in prot:
+            continue
+        keep_why = feature_keep_reason(pkg)
+        if keep_why:
+            skipped_feature.append((pkg, keep_why))
             continue
         if any(p and p in pkg for p in never):
             skipped.append(pkg)
@@ -2110,6 +2936,7 @@ def freeze_candidates(dev: Adb, db: dict, tier: str = "safe",
     return {"rows": rows, "installed": len(installed),
             "skipped_never": skipped, "skipped_version":
             [e["pkg"] for e in skipped_ver], "tier": tier, "rom": rom,
+            "skipped_feature": skipped_feature,
             "protect": protect, "protected_hit": sorted(set(installed) & prot)}
 
 
@@ -2216,8 +3043,13 @@ def auto_candidates(dev: Adb, db: dict, tier: str = "standard",
 
     ex = re.compile(exclude_re) if exclude_re else None
     rows, blocked, skipped_dep, caution, skipped_version = [], [], [], [], []
+    skipped_feature = []
     for pkg, path in sorted(installed.items()):
         if is_denied(pkg) or pkg in prot:
+            continue
+        keep_why = feature_keep_reason(pkg)
+        if keep_why:
+            skipped_feature.append((pkg, keep_why))
             continue
         if ex and ex.search(pkg):
             continue
@@ -2302,6 +3134,7 @@ def auto_candidates(dev: Adb, db: dict, tier: str = "standard",
         "skipped_dep": skipped_dep, "caution": caution, "tier": tier,
         "protect": protect, "browser": browser, "rom": rom,
         "skipped_version": skipped_version,
+        "skipped_feature": skipped_feature,
         "protected_hit": sorted(set(installed) & prot),
     }
 
@@ -2339,6 +3172,291 @@ def write_auto_list(rows: list, path, desc: dict) -> Path:
 # ---------------------------------------------------------------------------
 # 命令行接口
 # ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# 营销通知渠道: 只读扫描 + 深链跳转手动关
+#
+#   第三方没法直接关掉别的 App 的通知渠道(那是 App 自己的权限),
+#   所以这里的定位是: 帮你找出"哪些渠道是营销类且还开着", 然后逐个跳到
+#   系统渠道设置页让你点一下。清单可保存, OTA 之后可以 verify 复查。
+#
+#   渠道状态读取依赖 `dumpsys notification --noredact` 的输出格式,
+#   各 ROM 差异很大; 解析不到时会明确提示改用 `chan app <包名>` 手动关,
+#   不假装成功。
+# ---------------------------------------------------------------------------
+CHAN_MARKETING_WORDS = (
+    "推荐", "活动", "优惠", "促销", "福利", "广告", "营销", "资讯", "热点",
+    "热搜", "直播", "秒杀", "券", "红包", "任务", "签到", "抽奖", "会员",
+    "推广", "新品", "上新", "精选", "话题", "游戏", "小说", "短视频",
+    "promo", "marketing", "recommend", "advert", "campaign", "offer",
+)
+# 这些渠道名里带上面的词也要保留(订单/物流/安全类属于功能通知)
+CHAN_KEEP_WORDS = (
+    "订单", "物流", "快递", "发货", "支付", "退款", "安全", "验证", "登录",
+    "更新", "升级", "下载", "提醒", "闹钟", "日程", "审批", "工单", "告警",
+    "order", "ship", "delivery", "pay", "security", "verify", "update",
+)
+CHANNEL_TOKENS_RE = re.compile(
+    r"NotificationChannel\{[^}]*?id='?([^,}']+)'?[^}]*?"
+    r"(?:mImportance|importance)=(\d+)", re.I)
+CHANNEL_NAME_RE = re.compile(r"name='([^']*)'")
+
+
+def _pkg_from_line(line: str) -> str:
+    """从 dumpsys 的任意一行里抠出包名。"""
+    for pat in (r"pkg=([\w.]+)", r"Package \[([\w.]+)\]", r"^\s*([a-z][\w.]*\.[\w.]+):",
+                r"packageName=([\w.]+)"):
+        m = re.search(pat, line)
+        if m:
+            return m.group(1)
+    return ""
+
+
+def parse_notification_channels(text: str) -> list:
+    """从 dumpsys notification 输出里解析通知渠道。
+
+    返回 [{'pkg','id','name','importance','on'}]。
+    importance: 0=NONE(已关), 1=MIN, 2=LOW, 3=DEFAULT, 4=HIGH, 5=MAX
+    """
+    rows = []
+    pkg = ""
+    for line in (text or "").splitlines():
+        found = _pkg_from_line(line)
+        if found:
+            pkg = found
+        for m in CHANNEL_TOKENS_RE.finditer(line):
+            cid = (m.group(1) or "").strip()
+            try:
+                imp = int(m.group(2))
+            except (TypeError, ValueError):
+                imp = 3
+            if not cid or cid in ("null", "mId"):
+                continue
+            nm = CHANNEL_NAME_RE.search(line)
+            name = (nm.group(1).strip() if nm else "") or cid
+            rows.append({"pkg": pkg, "id": cid, "name": name,
+                         "importance": imp, "on": imp > 0})
+    # 去重(同一渠道可能在多处出现)
+    seen, out = set(), []
+    for r in rows:
+        key = (r["pkg"], r["id"])
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(r)
+    return out
+
+
+def is_marketing_channel(name: str) -> bool:
+    low = (name or "").lower()
+    if any(k in low for k in CHAN_KEEP_WORDS):
+        return False
+    return any(k in low for k in CHAN_MARKETING_WORDS)
+
+
+def chan_scan(dev: Adb, only_marketing: bool = True, log=print) -> list:
+    """扫描通知渠道(只读)。解析不到会抛 ValueError 提示改用手动方式。"""
+    text = dev.shell_all("dumpsys notification --noredact", timeout=60)
+    if "NotificationChannel" not in text and "mChannelId" not in text:
+        raise ValueError(
+            "这台 ROM 的 dumpsys notification 没有暴露渠道信息(常见于部分国产 ROM)。\n"
+            "  改用: python3 tools/phone.py chan app <包名>  逐个 App 跳到通知设置页手动关\n"
+            "  或:   python3 tools/phone.py ui tap 通知管理  自己点进去")
+    rows = parse_notification_channels(text)
+    if only_marketing:
+        rows = [r for r in rows if is_marketing_channel(r["name"])]
+    return rows
+
+
+def write_chan_list(rows: list, path) -> Path:
+    p = Path(path)
+    p.parent.mkdir(parents=True, exist_ok=True)
+    lines = ["# 包名\t渠道id\t渠道名\t状态\t关闭方法",
+             "# 用 phone.py chan open 本文件 逐个跳转; chan verify 复查",
+             ]
+    for r in rows:
+        lines.append(f"{r['pkg']}\t{r['id']}\t{r['name']}\t"
+                     f"{'开' if r['on'] else '关'}\t手动")
+    p.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return p
+
+
+def chan_open_intent(pkg: str, channel_id: str = "") -> str:
+    """跳转系统渠道/App 通知设置页的标准 action。"""
+    if channel_id:
+        return ("am start -a android.settings.CHANNEL_NOTIFICATION_SETTINGS "
+                f"-e android.provider.extra.APP_PACKAGE {pkg} "
+                f"-e android.provider.extra.CHANNEL_ID {channel_id}")
+    return ("am start -a android.settings.APP_NOTIFICATION_SETTINGS "
+            f"-e android.provider.extra.APP_PACKAGE {pkg}")
+
+
+def chan_open(dev: Adb, rows: list, log=print, wait: float = 2.0) -> int:
+    """逐个跳到渠道设置页, 由用户手动关。返回打开成功数。"""
+    opened = 0
+    for i, r in enumerate(rows, 1):
+        log(f"\n[{i}/{len(rows)}] {r['pkg']} 渠道「{r['name']}」"
+            f"({r['id']}) {'开着' if r['on'] else '已关'}")
+        out = dev.shell_all(chan_open_intent(r["pkg"], r["id"]))
+        if "Error" in out or "Exception" in out:
+            log(f"  跳转失败: {out.strip()[:100]}")
+            log(f"  改用 App 通知页: {chan_open_intent(r['pkg'])}")
+            out = dev.shell_all(chan_open_intent(r["pkg"]))
+        if "Error" in out:
+            log("  该 ROM 不支持深链跳转, 请手动进入: 设置 > 通知 > 对应 App")
+            continue
+        opened += 1
+        time.sleep(wait)
+        log("  已跳到设置页, 请在手机上把该渠道关掉, 然后回来继续")
+        if sys.stdin.isatty():
+            try:
+                input("  按回车继续(输入 s 跳过剩余): ").strip()
+            except EOFError:
+                pass
+    return opened
+
+
+def chan_verify(dev: Adb, rows: list, log=print) -> dict:
+    """复查清单里的渠道还有几个开着。"""
+    try:
+        now = chan_scan(dev, only_marketing=False, log=log)
+    except ValueError as e:
+        log(f"[提示] {e}")
+        return {"ok": [], "still_on": [], "unknown": rows}
+    index = {(r["pkg"], r["id"]): r for r in now}
+    ok, still_on, unknown = [], [], []
+    for r in rows:
+        cur = index.get((r["pkg"], r["id"]))
+        if cur is None:
+            unknown.append(r)
+        elif cur["on"]:
+            still_on.append(r)
+        else:
+            ok.append(r)
+    log(f"复查 {len(rows)} 个渠道: 已关 {len(ok)} | 仍开着 {len(still_on)} | "
+        f"查不到 {len(unknown)}")
+    for r in still_on:
+        log(f"  仍开着: {r['pkg']} 「{r['name']}」({r['id']})")
+    for r in unknown:
+        log(f"  查不到: {r['pkg']} 「{r['name']}」({r['id']})(App 可能已卸载或改了渠道)")
+    return {"ok": ok, "still_on": still_on, "unknown": unknown}
+
+
+def read_chan_list(path) -> list:
+    rows = []
+    for raw in Path(path).read_text(encoding="utf-8").splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#"):
+            continue
+        parts = line.split("\t")
+        if len(parts) < 2:
+            continue
+        rows.append({"pkg": parts[0].strip(), "id": parts[1].strip(),
+                     "name": (parts[2].strip() if len(parts) > 2 else parts[1]),
+                     "on": (parts[3].strip() == "开") if len(parts) > 3 else True,
+                     "importance": 3})
+    return rows
+
+
+# ---------------------------------------------------------------------------
+# 挂起包的断网(数据节省程序白名单): 防止被系统/推送拉起
+#   只对已被 disable/suspend 的包用, 普通 App 断网会影响正常使用。
+# ---------------------------------------------------------------------------
+def pkg_uid(dev: Adb, pkg: str):
+    out = dev.shell(f"dumpsys package {pkg}")
+    m = re.search(r"userId=(\d+)", out)
+    return int(m.group(1)) if m else None
+
+
+def cutnet_set(dev: Adb, pkgs: list, on: bool, log=print) -> dict:
+    """给包断网(on=True)或恢复(on=False)。按 uid 走 netpolicy。"""
+    res = {"ok": [], "fail": [], "skipped": []}
+    verb = "add" if on else "remove"
+    for pkg in pkgs:
+        uid = pkg_uid(dev, pkg)
+        if uid is None:
+            res["fail"].append(pkg)
+            log(f"[失败] {pkg}: 拿不到 uid(App 可能不存在)")
+            continue
+        out = dev.shell_all(f"cmd netpolicy {verb} restrict-background {uid}")
+        low = out.lower()
+        if "error" in low or "unknown" in low or "exception" in low:
+            res["fail"].append(pkg)
+            log(f"[失败] {pkg}(uid {uid}): {out.strip()[:80] or '无输出'}"
+                "(该 ROM 可能没有 cmd netpolicy)")
+            continue
+        res["ok"].append(pkg)
+        log(f"[{'已断网' if on else '已恢复'}] {pkg}(uid {uid})")
+    return res
+
+
+def cutnet_status(dev: Adb, pkgs: list, log=print) -> list:
+    out = dev.shell_all("cmd netpolicy list restrict-background")
+    if not out.strip() or "Unknown" in out:
+        log("[提示] 该 ROM 不支持 cmd netpolicy list, 无法查询断网状态")
+        return []
+    uids = {str(pkg_uid(dev, p)): p for p in pkgs} if pkgs else {}
+    rows = []
+    for line in out.splitlines():
+        m = re.search(r"uid[=:]?\s*(\d+)", line, re.I)
+        if not m:
+            continue
+        uid = m.group(1)
+        pkg = uids.get(uid, "")
+        rows.append({"uid": uid, "pkg": pkg})
+        log(f"  已断网: uid {uid}" + (f" ({pkg})" if pkg else ""))
+    if not rows:
+        log("  当前没有被限制后台网络的 uid")
+    return rows
+
+
+# ---------------------------------------------------------------------------
+# 快应用: 广告里一点就跳进去的"免安装小程序"
+#   关闭方式就是禁用它的框架包(可逆), 不需要额外机制。
+# ---------------------------------------------------------------------------
+QUICKAPP_PACKAGES = {
+    "com.miui.hybrid": "小米/红米 快应用框架",
+    "com.miui.hybrid.accessory": "小米 快应用辅助服务",
+    "com.nearme.instant.platform": "OPPO/一加/realme 快应用",
+    "com.oppo.instant.platform": "OPPO 快应用(旧)",
+    "com.coloros.instant.platform": "ColorOS 快应用(旧)",
+    "com.vivo.hybrid": "vivo 快应用",
+    "com.vivo.instantapp": "vivo 快应用(旧)",
+    "com.huawei.fastapp": "华为 快应用",
+    "com.hihonor.fastapp": "荣耀 快应用",
+    "com.huawei.hms.quickapp": "华为 快应用服务",
+    "com.samsung.android.quickapp": "三星 快应用",
+}
+QUICKAPP_KEYWORDS = ("quickapp", "fastapp", "instant.platform", "hybrid",
+                     "instantapp")
+
+
+def quickapp_find(dev: Adb) -> list:
+    """找出本机安装的快应用框架。返回 [(包名, 说明, 是否已禁用)]。"""
+    installed = list_packages(dev)
+    disabled = list_disabled(dev)
+    rows = []
+    for pkg in sorted(installed):
+        why = QUICKAPP_PACKAGES.get(pkg)
+        if not why:
+            low = pkg.lower()
+            if not any(k in low for k in QUICKAPP_KEYWORDS):
+                continue
+            why = "疑似快应用框架(按关键词命中)"
+        rows.append((pkg, why, pkg in disabled))
+    return rows
+
+
+def quickapp_disable(dev: Adb, pkgs: list, log=print, dry_run: bool = False,
+                     base=HOME_DIR) -> dict:
+    """禁用快应用框架(走 apply_list, 复用安全规则与 state 记录, 可 restore)。"""
+    if not pkgs:
+        return {"ok": [], "fail": []}
+    entries = [{"pkg": p, "action": "disable", "comment": "快应用框架",
+                "gates": []} for p in pkgs]
+    return apply_list(dev, entries, list_file="<quickapp>", dry_run=dry_run,
+                      do_backup=not dry_run, base=base, log=log)
+
+
 def confirm(prompt: str) -> bool:
     if not sys.stdin.isatty():
         return False
@@ -2401,6 +3519,9 @@ def build_parser() -> argparse.ArgumentParser:
                    help="手动指定 ROM 版本(如 13.1 或 coloros:13.1), 用于版本标注过滤")
     p.add_argument("--prefer-disable", action="store_true",
                    help="该版本 ROM 会拦截卸载时直接禁用, 不再尝试卸载(少刷失败日志)")
+    p.add_argument("--force-feature", action="store_true",
+                   help="放行「功能必留」项(下拉搜索/负一屏/商店/推送层)。"
+                        "列表里显式写了这些包时用, 相关功能会失效")
 
     p = sub.add_parser("restore", help="恢复(包/设置/传感器限制)")
     p.add_argument("list", nargs="?", help="列表文件; 与 --all 二选一")
@@ -2484,6 +3605,64 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("action", choices=["on", "off", "status"])
     p.add_argument("list", nargs="?", default="examples/shake_apps.txt",
                    help="应用清单文件, 或 off/status 时的单个包名")
+    p.add_argument("--yes", "-y", action="store_true", help="跳过确认")
+
+    p = sub.add_parser("chan", help="营销通知渠道: 只读扫描 + 深链跳转手动关")
+    p.add_argument("action", choices=["scan", "open", "app", "verify"],
+                   help="scan=扫描候选(只读) / open=逐个跳到渠道页手动关 / "
+                        "app=跳到 App 通知管理页 / verify=复查清单里还剩几个开着的")
+    p.add_argument("target", nargs="?", default="",
+                   help="scan: 保存路径(可选) / open,verify: 清单文件 "
+                        "(包名<TAB>渠道id<TAB>说明) / app: 包名")
+    p.add_argument("--save", metavar="文件", default="",
+                   help="scan 时把候选清单写到该文件(默认只打印)")
+    p.add_argument("--all", action="store_true",
+                   help="scan 时连服务类渠道一起列(默认按营销关键词过滤)")
+
+    p = sub.add_parser("cutnet", help="给挂起的广告/统计包断网(防被系统拉起)")
+    p.add_argument("action", choices=["on", "off", "status"])
+    p.add_argument("pkgs", nargs="*", metavar="包名",
+                   help="要断网/恢复的包名; status 时省略则检查支持性")
+    p.add_argument("--yes", "-y", action="store_true", help="跳过确认")
+
+    p = sub.add_parser("ui", help="界面自动化: 读屏/找控件/点开关(纯 adb, 不装软件)")
+    p.add_argument("action", choices=["dump", "find", "tap", "switch", "wait",
+                                      "open", "back", "home"])
+    p.add_argument("target", nargs="?", default="",
+                   help="dump 时忽略; find/tap 是文本; switch 是开关标题; "
+                        "open 是包名")
+    p.add_argument("state", nargs="?", default="toggle",
+                   choices=["on", "off", "toggle"], help="switch 的目标状态")
+    p.add_argument("--exact", action="store_true", help="文本必须完全一致")
+    p.add_argument("--index", type=int, default=0, help="多个匹配时取第几个(从 0 开始)")
+    p.add_argument("--switch", action="store_true", help="dump 时只列开关")
+    p.add_argument("--limit", type=int, default=60, help="最多列多少行")
+    p.add_argument("--timeout", type=float, default=10, help="wait 的超时秒数")
+    p.add_argument("--activity", help="open 时指定 Activity")
+    p.add_argument("--save", help="dump 时把控件树 XML 保存到该文件")
+    p.add_argument("--allow-risky", action="store_true",
+                   help="允许点含敏感词的控件(同意/支付/删除等)")
+    p.add_argument("--yes", "-y", action="store_true", help="跳过确认")
+
+    p = sub.add_parser("adsw", help="App 内广告开关: 按规则库自动拨(可预演)")
+    p.add_argument("action", choices=["list", "run", "verify", "explore"])
+    p.add_argument("ids", nargs="*", help="只处理指定条目 id(省略=本机全部适用条目)")
+    p.add_argument("--dry-run", action="store_true", help="只预演不点击")
+    p.add_argument("--yes", "-y", action="store_true", help="跳过确认")
+    p.add_argument("--rules", help="指定规则库(默认 rules/ad-switches.json)")
+    p.add_argument("--max-screens", type=int, default=3,
+                   help="每个页面最多翻几屏找开关(默认 3)")
+    p.add_argument("--allow-risky", action="store_true",
+                   help="允许点含敏感词的控件")
+    p.add_argument("--all", action="store_true",
+                   help="list 时列出全部条目, 不按品牌/版本过滤")
+    p.add_argument("--any-model", action="store_true",
+                   help="忽略机型限制, 强制套用带 models 的条目(可能点到别的开关)")
+    p.add_argument("--save", help="explore 时把步骤片段保存到该文件")
+
+    p = sub.add_parser("quickapp", help="检测/关闭快应用(广告跳转的免安装小程序)")
+    p.add_argument("action", choices=["check", "off"])
+    p.add_argument("--dry-run", action="store_true", help="只预演不执行")
     p.add_argument("--yes", "-y", action="store_true", help="跳过确认")
 
     sub.add_parser("finish", help="收尾: 关闭 USB 调试并断开无线连接")
@@ -2728,7 +3907,8 @@ def cmd_apply(args) -> int:
     apply_list(dev, kept, list_file=args.list, dry_run=args.dry_run,
                do_backup=not args.no_backup, batch=args.batch,
                screenshot=args.screenshot, rom=rom,
-               prefer_disable=args.prefer_disable)
+               prefer_disable=args.prefer_disable,
+               force_feature=args.force_feature)
     if not args.dry_run:
         print("")
         print("恢复命令: python3 tools/phone.py restore "
@@ -2832,6 +4012,13 @@ def cmd_auto(args) -> int:
         print(f"[跳过] {len(res['skipped_dep'])} 个被其他组件依赖: "
               f"{', '.join(res['skipped_dep'][:5])}"
               + (" ..." if len(res["skipped_dep"]) > 5 else ""))
+    if res.get("skipped_feature"):
+        print(f"[保留] {len(res['skipped_feature'])} 个功能必留(下拉搜索/负一屏/"
+              f"应用商店/推送传输层):")
+        for pkg, why in res["skipped_feature"][:6]:
+            print(f"        {pkg}  — {why}")
+        if len(res["skipped_feature"]) > 6:
+            print(f"        ... 共 {len(res['skipped_feature'])} 个")
     if res.get("skipped_version"):
         print(f"[版本] {len(res['skipped_version'])} 个因 ROM 版本不符跳过:")
         for pkg, note in res["skipped_version"][:6]:
@@ -2924,6 +4111,13 @@ def cmd_freeze(args) -> int:
         print(f"[跳过] {len(res['skipped_never'])} 个命中 never_freeze 黑名单: "
               f"{', '.join(res['skipped_never'][:5])}"
               + (" ..." if len(res["skipped_never"]) > 5 else ""))
+    if res.get("skipped_feature"):
+        print(f"[保留] {len(res['skipped_feature'])} 个功能必留(下拉搜索/负一屏/"
+              f"应用商店/推送传输层):")
+        for pkg, why in res["skipped_feature"][:6]:
+            print(f"        {pkg}  — {why}")
+        if len(res["skipped_feature"]) > 6:
+            print(f"        ... 共 {len(res['skipped_feature'])} 个")
     if res["skipped_version"]:
         print(f"[版本] {len(res['skipped_version'])} 个因 ROM 版本不符跳过: "
               f"{', '.join(res['skipped_version'][:5])}")
@@ -3025,6 +4219,274 @@ def phone_shake_list(path) -> list:
     return pkgs
 
 
+def cmd_ui(args) -> int:
+    _, dev = _need_device(args)
+    act = args.action
+    if act == "dump":
+        nodes = ui_nodes(dev)
+        print(f"当前页面: {ui_focus(dev) or '未知'}")
+        lines = ui_describe(nodes, limit=args.limit, only_switch=args.switch)
+        for line in lines:
+            print("  " + line)
+        if not lines:
+            print("  (没解析到控件; 换一页再试, 或用 --switch 只看开关)")
+        if args.save:
+            p = Path(args.save)
+            p.parent.mkdir(parents=True, exist_ok=True)
+            p.write_text(ui_dump_xml(dev), encoding="utf-8")
+            print(f"控件树 XML 已保存: {p}")
+        return 0
+
+    if act == "find":
+        hits = ui_find(ui_nodes(dev), args.target, exact=args.exact)
+        if not hits:
+            print(f"找不到「{args.target}」")
+            return 1
+        for n in hits[:args.limit]:
+            print(f"  {n}  可点={n.clickable} 可勾选={n.is_switch}")
+        return 0
+
+    if act == "tap":
+        nodes = ui_nodes(dev)
+        hits = ui_find(nodes, args.target, exact=args.exact)
+        if not hits:
+            print(f"找不到「{args.target}」。先用 ui dump 看页面上有什么。")
+            return 1
+        node = hits[min(args.index, len(hits) - 1)]
+        if not args.yes and not confirm(f"点击「{node.label or node.rid}」? [y/N] "):
+            print("已取消。")
+            return 1
+        ui_tap_node(dev, node, allow_risky=args.allow_risky)
+        return 0
+
+    if act == "switch":
+        entries = ui_switch_entries(ui_nodes(dev))
+        needle = args.target.lower()
+        hit = [e for e in entries if needle in (e[0] or "").lower()]
+        if not hit:
+            print(f"页面上没有标题含「{args.target}」的开关。")
+            print("用 ui dump --switch 看看这一页有哪些开关。")
+            return 1
+        title, node, state = hit[0]
+        cur = "开" if state else ("关" if state is False else "读不到")
+        print(f"开关「{title}」当前: {cur}")
+        want = args.state
+        need = (want == "off" and state is not False) or \
+               (want == "on" and state is not True) or want == "toggle"
+        if not need:
+            print("已经是目标状态, 没有动它。")
+            return 0
+        if not args.yes and not confirm(f"点击开关「{title}」? [y/N] "):
+            print("已取消。")
+            return 1
+        ui_tap_node(dev, node, allow_risky=args.allow_risky, label_hint=title)
+        time.sleep(0.6)
+        after = [s for t, _n, s in ui_switch_entries(ui_nodes(dev)) if t == title]
+        if after:
+            s = after[0]
+            print(f"现在: {'开' if s else ('关' if s is False else '读不到(请人工确认)')}")
+        return 0
+
+    if act == "wait":
+        ok = ui_wait(dev, args.target, timeout=args.timeout, exact=args.exact)
+        print(f"{'已出现' if ok else '等不到'}: {args.target}")
+        return 0 if ok else 1
+
+    if act == "open":
+        focus = ui_launch(dev, args.target, args.activity or "")
+        if not focus:
+            print("已发出启动命令, 但读不到前台组件(可能被系统拦截)")
+        return 0
+
+    if act in ("back", "home"):
+        ui_key(dev, act)
+        print(f"已按 {act}")
+        return 0
+    return 2
+
+
+def cmd_adsw(args) -> int:
+    _, dev = _need_device(args)
+    if args.action == "explore":
+        adsw_explore(dev, save=args.save)
+        return 0
+
+    db = load_adsw(args.rules)
+    if not db["targets"]:
+        print(f"规则库是空的或不存在: {args.rules or ADSW_RULE_FILE}")
+        return 2
+
+    rom = detect_rom(dev)
+    desc = describe_device(dev)
+    brand = rom.get("brand") or desc.get("brand") or ""
+    family = rom.get("family") or ""
+    gen = rom.get("generation") or ()
+    model = desc.get("model") or ""
+    if args.action == "list" and args.all:
+        targets = db["targets"]
+    else:
+        targets = adsw_match(db["targets"], brand=brand, family=family, gen=gen,
+                             ids=args.ids, model=model,
+                             strict_model=not args.any_model)
+    if not targets:
+        print(f"没有匹配 {brand or '未知品牌'} / {family or '未知 ROM'} "
+              f"{rom.get('display') or ''} {model} 的条目。")
+        print("机型专属路径不能跨机型套用(可能点到别的开关)。可以:")
+        print("  · adsw list --all        看全部条目")
+        print("  · adsw run <id> --any-model  强制跑某条(自担风险)")
+        print("  · adsw explore           自己探路, 把路径补进 rules/ad-switches.json")
+        return 1
+
+    if args.action == "list":
+        print(f"本机: {brand} / {family or '未知'} {rom.get('display') or ''}"
+              f" | 适用条目 {len(targets)} 条")
+        for t in targets:
+            mark = "已实测" if t.get("verified") else "待验证"
+            print(f"\n· {t['id']}  [{mark}]")
+            print(f"   {t.get('label') or ''}")
+            if t.get("manual"):
+                print(f"   手动路径: {t['manual']}")
+            if t.get("source"):
+                print(f"   来源: {t['source']}")
+            print(f"   步骤 {len(t.get('steps') or [])} 步")
+        print("\n执行: python3 tools/phone.py adsw run [条目id ...] --dry-run 先预演")
+        return 0
+
+    if args.action == "verify":
+        print("复查模式: 只读, 会按步骤导航到各页面读开关状态, 不点击。")
+        bad = 0
+        for t in targets:
+            res = adsw_run(dev, t, dry_run=True, log=print,
+                           max_screens=args.max_screens)
+            if not res["ok"]:
+                bad += 1
+            print("")
+        print(f"复查完成: {len(targets)} 条, 有 {bad} 条没走通")
+        return 0 if not bad else 1
+
+    # run
+    if not args.yes and not args.dry_run:
+        print(f"将对 {len(targets)} 条目标自动点击界面(约 {len(targets)} 个 App)。")
+        print("手机请保持解锁、停在桌面, 期间不要手动操作。")
+        if not confirm("继续? [y/N] "):
+            print("已取消。可先加 --dry-run 预演。")
+            return 1
+    ok_n, fail_n = 0, 0
+    for t in targets:
+        res = adsw_run(dev, t, dry_run=args.dry_run, log=print,
+                       allow_risky=args.allow_risky,
+                       max_screens=args.max_screens)
+        if res["ok"]:
+            ok_n += 1
+            print(f"  完成: 走了 {len(res['done'])} 步"
+                  + (f", 跳过 {len(res['skipped'])} 步" if res["skipped"] else ""))
+        else:
+            fail_n += 1
+            print(f"  未完成: {'; '.join(res['failed'])}")
+        print("")
+    print(f"合计: 完成 {ok_n} 条 | 未完成 {fail_n} 条"
+          + ("(预演, 未改动手机)" if args.dry_run else ""))
+    if not args.dry_run and ok_n:
+        print("\nApp 内开关属于「手动态」, restore 不会自动还原; "
+              "要还原请按各条目 manual 路径把开关打开。")
+    return 0 if not fail_n else 1
+
+
+def cmd_chan(args) -> int:
+    _, dev = _need_device(args)
+    if args.action == "scan":
+        rows = chan_scan(dev, only_marketing=not args.all)
+        if not rows:
+            print("没有扫到营销类渠道。加 --all 可以看全部渠道。")
+            return 0
+        print(f"营销类渠道 {len(rows)} 个(只读扫描, 没动手机):")
+        for r in rows:
+            print(f"  [{'开' if r['on'] else '关'}] {r['pkg']}"
+                  f"  {r['name']}  ({r['id']})")
+        target = args.save or args.target
+        if target:
+            p = write_chan_list(rows, target)
+            print(f"\n清单已保存: {p}")
+            print(f"逐个关闭: python3 tools/phone.py chan open {p}")
+        else:
+            print("\n加 --save 文件名 可保存清单, 再用 chan open 逐个跳转关闭")
+        return 0
+
+    if args.action == "open":
+        if not args.target:
+            print("请指定清单文件: chan open <清单.tsv>")
+            return 2
+        rows = read_chan_list(args.target)
+        if not rows:
+            print("清单是空的。")
+            return 2
+        print(f"将逐个跳到系统渠道设置页, 共 {len(rows)} 个, 请在手机上关掉。")
+        chan_open(dev, rows)
+        print(f"\n关完复查: python3 tools/phone.py chan verify {args.target}")
+        return 0
+
+    if args.action == "app":
+        if not args.target:
+            print("请指定包名: chan app <包名>")
+            return 2
+        out = dev.shell_all(chan_open_intent(args.target))
+        print(out.strip() or f"已跳转 {args.target} 的通知设置页")
+        return 0
+
+    if args.action == "verify":
+        if not args.target:
+            print("请指定清单文件: chan verify <清单.tsv>")
+            return 2
+        res = chan_verify(dev, read_chan_list(args.target))
+        return 0 if not res["still_on"] else 1
+    return 2
+
+
+def cmd_cutnet(args) -> int:
+    _, dev = _need_device(args)
+    if args.action == "status":
+        cutnet_status(dev, args.pkgs)
+        return 0
+    if not args.pkgs:
+        print("请给出包名(一般是被 freeze/suspend 的广告/统计包): "
+              "cutnet on com.xxx")
+        return 2
+    on = args.action == "on"
+    if on and not args.yes and not confirm(
+            f"限制 {len(args.pkgs)} 个包的后台网络? [y/N] "):
+        print("已取消。")
+        return 1
+    res = cutnet_set(dev, args.pkgs, on)
+    return 0 if not res["fail"] else 1
+
+
+def cmd_quickapp(args) -> int:
+    _, dev = _need_device(args)
+    rows = quickapp_find(dev)
+    if not rows:
+        print("本机没有快应用框架(或已被清理)。")
+        return 0
+    print(f"找到 {len(rows)} 个快应用相关包:")
+    for pkg, why, dis in rows:
+        print(f"  [{'已禁用' if dis else '启用中'}] {pkg}  # {why}")
+    if args.action == "check":
+        print("\n关闭: python3 tools/phone.py quickapp off")
+        return 0
+    todo = [p for p, _w, d in rows if not d]
+    if not todo:
+        print("全部已禁用, 无需操作。")
+        return 0
+    if not args.yes and not confirm(
+            f"禁用 {len(todo)} 个快应用框架? 之后广告里不会再跳进快应用, "
+            "restore 可恢复 [y/N] "):
+        print("已取消。")
+        return 1
+    res = quickapp_disable(dev, todo, dry_run=args.dry_run)
+    print(f"\n完成: 成功 {len(res['ok'])} | 失败 {len(res['fail'])}")
+    print("恢复: python3 tools/phone.py restore --all")
+    return 0 if not res["fail"] else 1
+
+
 def cmd_finish(args) -> int:
     adb, dev = _need_device(args)
     dev.shell("settings put global adb_enabled 0")
@@ -3048,6 +4510,8 @@ def main(argv=None) -> int:
         "restore": cmd_restore, "check": cmd_check, "audit": cmd_audit,
         "auto": cmd_auto, "rom": cmd_rom, "freeze": cmd_freeze,
         "settings": cmd_settings, "dns": cmd_dns, "shake": cmd_shake,
+        "ui": cmd_ui, "adsw": cmd_adsw, "chan": cmd_chan,
+        "cutnet": cmd_cutnet, "quickapp": cmd_quickapp,
         "finish": cmd_finish,
     }
     try:
